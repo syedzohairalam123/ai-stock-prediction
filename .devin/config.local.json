@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Exec(.\\.venv\\Scripts\\Activate.ps1)",
+      "Exec(.\\.venv\\Scripts\\pip.exe install)",
+      "Exec(Copy-Item)",
+      "Exec(.\\.venv\\Scripts\\python.exe)",
+      "Exec(npm run)",
+      "Exec(git status)",
+      "Exec(gh)",
+      "Exec(git add)"
+    ]
+  }
+}

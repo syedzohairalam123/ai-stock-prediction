@@ -1,0 +1,4 @@
+import {useEffect,useRef,useState} from "react";
+const WS_URL=import.meta.env.VITE_WS_URL||"ws://127.0.0.1:8000";
+export type LiveQuote={type:string;ticker?:string;price?:number|null;source?:string;status?:string;timestamp?:string;message?:string};
+export function useStockWebSocket(ticker:string){const [quote,setQuote]=useState<LiveQuote|null>(null);const [state,setState]=useState("connecting");const retry=useRef<number>();useEffect(()=>{let socket:WebSocket;let stopped=false;const open=()=>{setState("connecting");socket=new WebSocket(`${WS_URL}/ws/stock/${encodeURIComponent(ticker)}`);socket.onopen=()=>setState("connected");socket.onmessage=e=>{try{setQuote(JSON.parse(e.data))}catch{}};socket.onerror=()=>setState("error");socket.onclose=()=>{if(!stopped){setState("reconnecting");retry.current=window.setTimeout(open,3000)}}};open();return()=>{stopped=true;window.clearTimeout(retry.current);socket?.close()}},[ticker]);return{quote,state}}
