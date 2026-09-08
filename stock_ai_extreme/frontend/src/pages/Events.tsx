@@ -8,8 +8,9 @@ const EXAMPLES=[["2008-09-15","Lehman collapse"],["2020-03-09","COVID oil crash"
 export default function Events(){
   const [ticker,setTicker]=useState("AAPL"),[dates,setDates]=useState("2020-03-09, 2022-02-24"),[label,setLabel]=useState("Crisis events"),[rep,setRep]=useState<Report|null>(null),[stress,setStress]=useState<StressReport|null>(null),[err,setErr]=useState<string|null>(null),[busy,setBusy]=useState(false);
   useEffect(()=>{
-    getJSON<StressReport>(`/api/market-stress?ticker=${encodeURIComponent(ticker)}`).then(setStress).catch(()=>setStress(null));
-  },[ticker]);
+    // Use default market index for stress gauge instead of individual ticker
+    getJSON<StressReport>("/api/market-stress").then(setStress).catch(()=>setStress(null));
+  },[]);
   async function run(e:FormEvent){
     e.preventDefault();setBusy(true);setErr(null);
     try{

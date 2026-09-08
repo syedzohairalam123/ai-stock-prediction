@@ -1,7 +1,6 @@
 from contextlib import asynccontextmanager
 from datetime import date,timedelta
 import asyncio
-import logging
 import math
 import pandas as pd
 from fastapi import FastAPI,HTTPException,WebSocket,WebSocketDisconnect
@@ -9,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel,Field
 from typing import Optional
 from .config import settings
+from .logging_config import configure_logging, get_logger
 from .agents import DataAgent,PredictionAgent,InsightAgent
 from .lstm_agent import LSTMPredictionAgent
 from .gru_agent import GRUPredictionAgent
@@ -34,7 +34,9 @@ from . import regime as regime_mod
 from . import crypto_pro as crypto_mod
 from . import screener as screener_mod
 
-logger=logging.getLogger("neural_market.main")
+# Configure structured logging
+configure_logging(log_level="INFO")
+logger=get_logger("neural_market.main")
 
 @asynccontextmanager
 async def lifespan(app:FastAPI):
@@ -392,11 +394,15 @@ async def event_study_route(ticker:str,body:EventStudyRequest):
  except Exception as e: raise HTTPException(400,str(e))
 
 @app.get("/api/market-stress")
-async def market_stress_route(ticker:Optional[str]="^GSPC"):
+async def market_stress_route(ticker:Optional[str]=None):
  """Geopolitical/market stress gauge from real headline volume+sentiment.
  A risk indicator, explicitly not an outcome forecast."""
  try:
-  t=validate_ticker(ticker or "^GSPC")
+  # Use a default market index if no ticker provided
+  t=ticker or "^GSPC"
+  # Skip validation for market indices to avoid regex issues
+  if not t.startswith("^"):
+   t=validate_ticker(t)
   items,source,status=await manager.news(t,limit=30)
   stress=events_mod.geopolitical_score(items)
   return {**stress,"affected_assets":events_mod.affected_assets(stress.get("level") or ""),
@@ -421,7 +427,13 @@ async def fundamentals_route(ticker:str):
    import yfinance as yf
    full_info=await asyncio.to_thread(lambda: yf.Ticker(ticker).info or info)
   except Exception as e: logger.debug("full info fetch failed for %s: %s",ticker,e)
-  return {"ticker":ticker.upper(),**fundamentals_mod.build_fundamentals(full_info,price),
+  # Handle case where fundamentals might fail
+  try:
+   fundamentals_data=fundamentals_mod.build_fundamentals(full_info,price)
+  except Exception as e:
+   logger.warning("fundamentals calculation failed for %s: %s",ticker,e)
+   fundamentals_data={"error":"Unable to calculate fundamentals","ticker":ticker.upper()}
+  return {"ticker":ticker.upper(),**fundamentals_data,
           "data_meta":{"price_available":price is not None}}
  except Exception as e: raise HTTPException(400,str(e))
 

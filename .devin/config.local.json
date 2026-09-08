@@ -10,7 +10,9 @@
       "Exec(gh)",
       "Exec(git add)",
       "Exec(git commit)",
-      "Exec(git remote)"
+      "Exec(git remote)",
+      "Exec(find)",
+      "Exec(npx tsc)"
     ]
   }
 }
