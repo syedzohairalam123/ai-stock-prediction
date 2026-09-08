@@ -85,6 +85,54 @@ class YFinanceProvider(MarketDataProvider):
             "exchange": info.get("exchange"),
         }
 
+    def _fetch_news(self, ticker: str) -> list[dict]:
+        return list(yf.Ticker(ticker.upper()).news or [])
+
+    @staticmethod
+    def _normalize_published(pub) -> str | None:
+        """yfinance has shipped both epoch timestamps and ISO-8601 strings
+        (and keeps changing which) — accept either, or pass the raw string
+        through as a last resort rather than dropping the item."""
+        if not pub:
+            return None
+        if isinstance(pub, (int, float)):
+            return datetime.fromtimestamp(pub, tz=timezone.utc).isoformat()
+        try:
+            return datetime.fromisoformat(str(pub).replace("Z", "+00:00")).isoformat()
+        except ValueError:
+            return str(pub)
+
+    def _normalize_news_item(self, item: dict) -> dict:
+        """Handle BOTH yfinance news shapes: the legacy flat items and the
+        newer nested `content` block — the upstream format has changed
+        before and will again, so this never assumes one of them."""
+        content = item.get("content") if isinstance(item, dict) else None
+        if isinstance(content, dict):
+            provider = content.get("provider") or {}
+            link = (content.get("clickThroughUrl") or {}).get("url") or (content.get("canonicalUrl") or {}).get("url")
+            return {
+                "title": content.get("title"),
+                "publisher": provider.get("displayName") if isinstance(provider, dict) else None,
+                "link": link,
+                "type": content.get("contentType"),
+                "published_at": self._normalize_published(content.get("pubDate")),
+            }
+        return {
+            "title": item.get("title"),
+            "publisher": item.get("publisher"),
+            "link": item.get("link"),
+            "type": item.get("type"),
+            "published_at": self._normalize_published(item.get("providerPublishTime")),
+        }
+
+    async def get_news(self, ticker: str) -> list[dict]:
+        """Recent headlines from the same Yahoo feed price data comes from.
+        An empty list is a valid, honest answer (some tickers simply have no
+        news right now) — it is NOT converted into an error. Only a real
+        fetch failure raises ProviderError after the retry budget."""
+        raw = await self._with_retries(self._fetch_news, ticker)
+        return [self._normalize_news_item(item) for item in raw]
+
     async def get_quote(self, ticker: str) -> Quote:
         end = date.today()
         d = await self._with_retries(self._fetch, ticker, end - timedelta(days=10), end, "1d")

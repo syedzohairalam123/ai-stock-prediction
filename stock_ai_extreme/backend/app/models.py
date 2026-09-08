@@ -48,3 +48,33 @@ class WatchlistItem(Base):
     ticker: Mapped[str] = mapped_column(String(20), index=True)
     note: Mapped[str | None] = mapped_column(String(200), nullable=True)
     added_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+
+class Alert(Base):
+    """Phase 17 — smart alerts. `alert_type` is one of: price_above,
+    price_below, pct_change, rsi_overbought, rsi_oversold."""
+    __tablename__ = "alerts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ticker: Mapped[str] = mapped_column(String(20), index=True)
+    alert_type: Mapped[str] = mapped_column(String(30))
+    threshold: Mapped[float] = mapped_column(Float)
+    active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    triggered_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    triggered_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+
+class PortfolioHolding(Base):
+    """Phase 10 — portfolio tracker. One row per tracked position: how many
+    shares were bought at what average cost. Current price is always fetched
+    live at read time (never stored), so P&L is always honest and current."""
+    __tablename__ = "portfolio_holdings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ticker: Mapped[str] = mapped_column(String(20), index=True)
+    shares: Mapped[float] = mapped_column(Float)
+    avg_cost: Mapped[float] = mapped_column(Float)
+    note: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)

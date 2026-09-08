@@ -94,3 +94,10 @@ class MarketDataProvider(ABC):
         """Providers that need an API key should override this and return False when missing,
         so the manager can skip them quietly instead of failing loudly on every request."""
         return True
+
+    async def get_news(self, ticker: str) -> list[dict]:
+        """Optional capability, same pattern as get_profile: a provider that
+        can't serve news simply doesn't override this, and the manager's
+        getattr() check skips it. Returns normalized headlines or [] when
+        there is genuinely no news right now (never a fabricated item)."""
+        raise ProviderError(self.name, f"{self.name} does not support news")

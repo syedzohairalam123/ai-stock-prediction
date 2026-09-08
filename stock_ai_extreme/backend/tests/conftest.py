@@ -9,6 +9,11 @@ from pathlib import Path
 _TEST_DB_PATH = Path(tempfile.gettempdir()) / "neural_market_test.db"
 _TEST_DB_PATH.unlink(missing_ok=True)
 os.environ["DATABASE_URL"] = f"sqlite:///{_TEST_DB_PATH}"
+# The rate limiter's state lives on the shared app instance for the whole test
+# session (many tests reuse `from app.main import app`) — a low limit here
+# would make the test suite's pass/fail depend on how many tests exist, not
+# on correctness. Rate limiting is a production concern; keep it out of the way here.
+os.environ["RATE_LIMIT_MAX_REQUESTS"] = "100000"
 
 # Make sure `backend/` (the parent of `app/`) is importable as a package root,
 # regardless of the directory pytest is invoked from.

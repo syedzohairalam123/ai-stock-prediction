@@ -27,6 +27,7 @@ class MarketDataManager:
         history_cache_ttl: int = 300,
         quote_cache_ttl: int = 20,
         profile_cache_ttl: int = 3600,
+        news_cache_ttl: int = 600,
     ):
         # keep only providers that are actually usable (e.g. Finnhub with no key is dropped here)
         self.providers = [p for p in providers if p.is_configured()]
@@ -35,6 +36,7 @@ class MarketDataManager:
         self._history_cache = TTLCache(history_cache_ttl)
         self._quote_cache = TTLCache(quote_cache_ttl)
         self._profile_cache = TTLCache(profile_cache_ttl)
+        self._news_cache = TTLCache(news_cache_ttl)
 
     async def history(self, ticker: str, start: date, end: date, interval: str = "1d"):
         key = f"history:{ticker.upper()}:{start}:{end}:{interval}"
@@ -95,11 +97,50 @@ class MarketDataManager:
         logger.error("quote unavailable for %s: %s", ticker, error)
         return q
 
+    async def news(self, ticker: str, limit: int = 10):
+        """Recent headlines. Returns (items, source, status) like history().
+        An empty item list is a normal answer (no news right now); only a
+        total provider failure raises ProviderError."""
+        key = f"news:{ticker.upper()}"
+        cached = await self._news_cache.get(key)
+        if cached is not None:
+            items, source = cached
+            return items[:limit], source, DataStatus.CACHED
+
+        last_error: Exception | None = None
+        for provider in self.providers:
+            get_news = getattr(provider, "get_news", None)
+            if get_news is None:
+                continue
+            try:
+                items = await get_news(ticker)
+                await self._news_cache.set(key, (items, provider.name))
+                return items[:limit], provider.name, DataStatus.LIVE
+            except ProviderError as exc:
+                logger.warning("news provider failed, trying next: %s", exc)
+                last_error = exc
+                continue
+
+        raise ProviderError("manager", f"no provider could return news for {ticker}: {last_error}")
+
+    async def purge_caches(self, keep_for_stale_seconds: float = 3600) -> int:
+        """Memory hygiene for long-running servers: drop cache entries that
+        have been expired for a while (recently-expired entries are kept on
+        purpose so get_stale() can still serve a last-resort value). Called
+        periodically by the background maintenance loop."""
+        return sum([
+            await self._history_cache.purge_expired(keep_for_stale_seconds),
+            await self._quote_cache.purge_expired(keep_for_stale_seconds),
+            await self._profile_cache.purge_expired(keep_for_stale_seconds),
+            await self._news_cache.purge_expired(keep_for_stale_seconds),
+        ])
+
     def cache_stats(self) -> dict:
         return {
             "history_entries": self._history_cache.size(),
             "quote_entries": self._quote_cache.size(),
             "profile_entries": self._profile_cache.size(),
+            "news_entries": self._news_cache.size(),
         }
 
     def provider_status(self) -> list[dict]:

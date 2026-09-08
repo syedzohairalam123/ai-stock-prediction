@@ -8,7 +8,9 @@
       "Exec(npm run)",
       "Exec(git status)",
       "Exec(gh)",
-      "Exec(git add)"
+      "Exec(git add)",
+      "Exec(git commit)",
+      "Exec(git remote)"
     ]
   }
 }

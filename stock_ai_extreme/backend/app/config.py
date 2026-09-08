@@ -14,5 +14,23 @@ class Settings(BaseSettings):
     # --- Phase 3: persistence (SQLite by default; point this at Postgres later
     # with zero code changes — SQLAlchemy handles both through the same URL) ---
     database_url: str = "sqlite:///./neural_market.db"
+    # --- Phase 14: optional AI briefing (skipped cleanly if no key is set) ---
+    anthropic_api_key: Optional[str] = None
+    anthropic_model: str = "claude-haiku-4-5-20251001"
+    # --- Phase 19: basic API rate limiting ---
+    rate_limit_max_requests: int = 120
+    rate_limit_window_seconds: int = 60
+    # --- Phase 10/14+: background jobs + notifications (all optional) ---
+    background_interval_seconds: int = 300     # how often the background maintenance loop runs
+    background_jobs_enabled: bool = True        # set false to disable the background loop entirely
+    news_cache_ttl_seconds: int = 600           # how long fetched news headlines are cached
+    telegram_bot_token: Optional[str] = None    # optional Telegram alert notifications
+    telegram_chat_id: Optional[str] = None
+    smtp_host: Optional[str] = None             # optional email alert notifications (stdlib smtplib)
+    smtp_port: int = 587
+    smtp_user: Optional[str] = None
+    smtp_password: Optional[str] = None
+    smtp_to: Optional[str] = None
+    smtp_from: Optional[str] = None
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 settings = Settings()

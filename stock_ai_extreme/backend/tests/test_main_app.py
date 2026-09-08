@@ -27,7 +27,9 @@ def _fake_frame(n_days: int = 150) -> pd.DataFrame:
 
 @pytest.fixture
 def client():
+    from app.db import init_db
     from app.main import app
+    init_db()  # don't rely on the app's lifespan firing — TestClient(app) alone doesn't trigger it
     return TestClient(app)
 
 
@@ -192,3 +194,113 @@ def test_watchlist_crud_roundtrip(client):
     assert client.post("/api/watchlist", json={"ticker": "nflx"}).status_code == 409  # duplicate
     assert client.delete("/api/watchlist/nflx").status_code == 200
     assert client.delete("/api/watchlist/nflx").status_code == 404  # already gone
+
+
+def test_cross_asset_report_route(client):
+    def fake_download(ticker, **kwargs):
+        return _fake_frame(150)
+    with patch("app.providers.yfinance_provider.yf.download", side_effect=fake_download):
+        resp = client.post(
+            "/api/cross-asset/report",
+            json={"tickers": ["AAPL", "MSFT"], "start": str(date.today() - timedelta(days=200)),
+                  "end": str(date.today()), "benchmark": "SPY"},
+        )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["benchmark"] == "SPY"
+    assert "AAPL" in body["correlation_matrix"]
+
+
+def test_cross_asset_requires_at_least_two_tickers(client):
+    resp = client.post(
+        "/api/cross-asset/report",
+        json={"tickers": ["AAPL"], "start": str(date.today() - timedelta(days=50)), "end": str(date.today())},
+    )
+    assert resp.status_code == 400
+
+
+def test_markets_list_route(client):
+    body = client.get("/api/markets").json()
+    assert set(body["asset_classes"]) == {"crypto", "commodities", "forex"}
+
+
+def test_markets_crypto_route(client):
+    with patch("app.providers.yfinance_provider.yf.download", return_value=_fake_frame(30)):
+        resp = client.get("/api/markets/crypto")
+    assert resp.status_code == 200
+    assert len(resp.json()) > 0
+
+
+def test_markets_unknown_asset_class(client):
+    assert client.get("/api/markets/not-a-class").status_code == 400
+
+
+def test_briefing_route_reports_unavailable_without_api_key(client):
+    with patch("app.providers.yfinance_provider.yf.download", return_value=_fake_frame()):
+        resp = client.post("/api/stocks/AAPL/briefing")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "UNAVAILABLE"  # no ANTHROPIC_API_KEY configured in this test env
+    assert body["structured_data"]["ticker"] == "AAPL"
+
+
+def test_alerts_create_list_check_delete_roundtrip(client):
+    created = client.post("/api/alerts", json={"ticker": "aapl", "alert_type": "price_above", "threshold": 1.0}).json()
+    assert created["ticker"] == "AAPL"
+    listed = client.get("/api/alerts", params={"ticker": "AAPL"}).json()
+    assert len(listed) == 1
+
+    with patch("app.providers.yfinance_provider.yf.download", return_value=_fake_frame()):
+        checked = client.post("/api/stocks/AAPL/alerts/check").json()
+    assert len(checked["triggered"]) == 1  # threshold of 1.0 is trivially exceeded by any real price
+
+    still_active = client.get("/api/alerts", params={"ticker": "AAPL", "active_only": True}).json()
+    assert still_active == []  # triggered alert is no longer active
+
+    assert client.delete(f"/api/alerts/{created['id']}").status_code == 200
+    assert client.delete(f"/api/alerts/{created['id']}").status_code == 404
+
+
+def test_alerts_rejects_unsupported_type(client):
+    resp = client.post("/api/alerts", json={"ticker": "AAPL", "alert_type": "not_a_real_type", "threshold": 1.0})
+    assert resp.status_code == 400
+
+
+def test_monitoring_drift_with_no_data_reports_insufficient(client):
+    body = client.get("/api/monitoring/drift", params={"ticker": "NEVERSEEN"}).json()
+    assert body["status"] == "insufficient_data"
+
+
+def test_monitoring_resolve_route_actually_resolves_a_past_prediction(client):
+    from app import repository as repo
+    # `date.today() - 3` can land on a weekend, but the mocked resolve frame
+    # below is a business-day calendar — snap the target to a weekday so the
+    # exact-date lookup inside /resolve always finds a row.
+    past_target = pd.bdate_range(end=pd.Timestamp(date.today() - timedelta(days=3)), periods=1)[0].date().isoformat()
+    record_id = repo.save_prediction(
+        ticker="RESOLVETEST", model="ridge", horizon=1, data_source="yfinance", data_status="LIVE",
+        predictions=[{"date": past_target, "price": 100.0, "lower": 95.0, "upper": 105.0}],
+        metrics={"mae": 1.0, "rmse": 1.5},
+    )
+
+    # The lookup inside /resolve goes through data.history(), which runs
+    # add_indicators() (needs 30+ rows for the SMA-30/Bollinger warmup) — so
+    # this needs a properly-sized frame, not just a couple of rows. The last
+    # row's date/close is the one the resolver should pick up.
+    n = 60
+    idx = pd.date_range(end=pd.Timestamp(past_target), periods=n, freq="B")
+    closes = [100.0 + (i % 5) for i in range(n - 1)] + [107.25]
+    resolve_frame = pd.DataFrame({
+        "Open": closes, "High": [c + 1 for c in closes], "Low": [c - 1 for c in closes],
+        "Close": closes, "Volume": [1_000_000] * n,
+    }, index=idx)
+
+    with patch("app.providers.yfinance_provider.yf.download", return_value=resolve_frame):
+        resolve_resp = client.post("/api/monitoring/resolve")
+    assert resolve_resp.status_code == 200
+    body = resolve_resp.json()
+    resolved_ids = [r["id"] for r in body["resolved"]]
+    assert record_id in resolved_ids
+
+    updated = repo.get_prediction_history("RESOLVETEST")[0]
+    assert updated["actual_price"] == 107.25
