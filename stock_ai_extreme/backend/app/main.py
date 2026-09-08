@@ -27,6 +27,12 @@ from . import jobs
 from .news import analyze_news
 from .portfolio import portfolio_summary
 from .providers import MarketDataManager,YFinanceProvider,FinnhubProvider,DataStatus
+from . import macro as macro_mod
+from . import events as events_mod
+from . import fundamentals as fundamentals_mod
+from . import regime as regime_mod
+from . import crypto_pro as crypto_mod
+from . import screener as screener_mod
 
 logger=logging.getLogger("neural_market.main")
 
@@ -71,6 +77,10 @@ class CrossAssetRequest(BaseModel): tickers:list[str]; start:date; end:date; ben
 class AlertCreateRequest(BaseModel): ticker:str; alert_type:str; threshold:float
 class HoldingAddRequest(BaseModel): ticker:str; shares:float=Field(...,gt=0); avg_cost:float=Field(...,ge=0); note:Optional[str]=None
 class HoldingUpdateRequest(BaseModel): shares:Optional[float]=Field(None,gt=0); avg_cost:Optional[float]=Field(None,ge=0); note:Optional[str]=None
+class MacroRequest(BaseModel): source:str="yfinance"; indicators:Optional[list[str]]=None; history_days:int=Field(365,ge=60,le=1825)
+class EventStudyRequest(BaseModel): event_dates:list[str]; label:str="Event study"
+class CryptoRequest(BaseModel): source:str="coingecko"
+class ScreenerRequest(BaseModel): tickers:list[str]; lookback_days:int=Field(365,ge=90,le=1825)
 
 SUPPORTED_ALERT_TYPES={"price_above","price_below","pct_change","rsi_overbought","rsi_oversold"}
 
@@ -346,6 +356,106 @@ async def resolve_predictions_route():
 def drift_route(ticker:Optional[str]=None,model:Optional[str]=None,window:int=20):
  resolved=repo.get_resolved_predictions(ticker=ticker,model=model)
  return compute_drift_report(resolved,window=window)
+
+@app.get("/api/macro")
+async def macro_route(source:Optional[str]=None,indicators:Optional[str]=None,history_days:int=365):
+ """Macro intelligence dashboard. The SOURCE IS SELECTABLE — 'yfinance'
+ (market proxies, zero setup) or 'fred' (official data, needs FRED_API_KEY).
+ A failing source reports UNAVAILABLE with the reason; it never silently
+ substitutes the other one."""
+ try:
+  src=(source or settings.macro_default_source).lower()
+  keys=[k.strip() for k in indicators.split(",") if k.strip()] if indicators else None
+  report=await macro_mod.macro_report(manager,source=src,indicators=keys,fred_api_key=settings.fred_api_key,history=history_days)
+  return report
+ except Exception as e: raise HTTPException(400,str(e))
+
+@app.post("/api/stocks/{ticker}/events/study")
+async def event_study_route(ticker:str,body:EventStudyRequest):
+ """What did this asset ACTUALLY do after similar past events? Measured on
+ real price windows around real dates — historical statistics, never a
+ forecast of any future election/policy outcome."""
+ try:
+  ticker=validate_ticker(ticker)
+  if not body.event_dates: raise HTTPException(400,"Provide at least one past event date.")
+  d,source,status=await data.history(ticker,date.today()-timedelta(days=1200),date.today())
+  result=events_mod.event_study(d,body.event_dates,body.label)
+  stress=None
+  try:
+   items,_,_=await manager.news(ticker,limit=20)
+   stress=events_mod.geopolitical_score(items)
+  except Exception as e: logger.debug("stress score unavailable for %s: %s",ticker,e)
+  return {"ticker":ticker.upper(),"event_study":events_mod.event_study_to_dict(result),
+          "stress_score":stress,"data_meta":{"source":source,"status":status.value},
+          "disclaimer":"Historical event statistics only — not a prediction of political outcomes or future returns."}
+ except HTTPException: raise
+ except Exception as e: raise HTTPException(400,str(e))
+
+@app.get("/api/market-stress")
+async def market_stress_route(ticker:Optional[str]="^GSPC"):
+ """Geopolitical/market stress gauge from real headline volume+sentiment.
+ A risk indicator, explicitly not an outcome forecast."""
+ try:
+  t=validate_ticker(ticker or "^GSPC")
+  items,source,status=await manager.news(t,limit=30)
+  stress=events_mod.geopolitical_score(items)
+  return {**stress,"affected_assets":events_mod.affected_assets(stress.get("level") or ""),
+          "data_meta":{"ticker":t,"source":source,"status":status.value}}
+ except Exception as e: raise HTTPException(400,str(e))
+
+@app.get("/api/stocks/{ticker}/fundamentals")
+async def fundamentals_route(ticker:str):
+ """Company deep-dive: valuation ratios, profitability, balance sheet,
+ dividends, analyst targets, 52-week context. Missing fields are None,
+ never fabricated."""
+ try:
+  ticker=validate_ticker(ticker)
+  info=await data.profile(ticker)  # provider layer already caches profiles
+  price=None
+  try:
+   q=await manager.quote(ticker)
+   if q.status!=DataStatus.UNAVAILABLE and not math.isnan(q.price): price=q.price
+  except Exception as e: logger.debug("fundamentals quote failed for %s: %s",ticker,e)
+  full_info=dict(info)
+  try:
+   import yfinance as yf
+   full_info=await asyncio.to_thread(lambda: yf.Ticker(ticker).info or info)
+  except Exception as e: logger.debug("full info fetch failed for %s: %s",ticker,e)
+  return {"ticker":ticker.upper(),**fundamentals_mod.build_fundamentals(full_info,price),
+          "data_meta":{"price_available":price is not None}}
+ except Exception as e: raise HTTPException(400,str(e))
+
+@app.get("/api/stocks/{ticker}/regime")
+async def regime_route(ticker:str):
+ """What kind of market is this asset in right now? Rule-based classification
+ always; optional HMM when hmmlearn is installed. Descriptive, not predictive."""
+ try:
+  ticker=validate_ticker(ticker)
+  d,source,status=await data.history(ticker,date.today()-timedelta(days=500),date.today())
+  result=regime_mod.detect_regime(d)
+  return {"ticker":ticker.upper(),**result,"data_meta":{"source":source,"status":status.value}}
+ except Exception as e: raise HTTPException(400,str(e))
+
+@app.post("/api/crypto/overview")
+async def crypto_route(body:CryptoRequest):
+ """Crypto dashboard with a SELECTABLE source: 'coingecko' (market cap, rank,
+ supply) or 'yfinance' (existing provider layer). Never auto-substitutes."""
+ try:
+  return await crypto_mod.crypto_overview(manager,body.source)
+ except Exception as e: raise HTTPException(400,str(e))
+
+@app.post("/api/screener")
+async def screener_route(body:ScreenerRequest):
+ """Analytical ranking of real computed factors across tickers. Explicitly
+ 'not investment advice' — the ranking is a table, not a recommendation."""
+ try:
+  for t in body.tickers: validate_ticker(t)
+  return await screener_mod.scan(manager,body.tickers,body.lookback_days)
+ except Exception as e: raise HTTPException(400,str(e))
+
+@app.get("/api/screener/defaults")
+def screener_defaults_route():
+ return {"tickers":[t.strip() for t in settings.screener_default_tickers.split(",") if t.strip()]}
 
 @app.websocket("/ws/stock/{ticker}")
 async def stream(websocket:WebSocket,ticker:str):

@@ -57,3 +57,55 @@
 .portfolio .empty{color:#7d8cad;font-size:.85rem}
 
 .export-btns{display:flex;gap:8px;margin-left:auto}.export-btns button{background:#0d1424;border:1px solid #263458;color:#9daed1;border-radius:8px;padding:6px 12px;font-size:.78rem;font-weight:600;cursor:pointer}.export-btns button:hover{border-color:#2dd4bf;color:#2dd4bf}
+/* ---- app shell (sidebar) ---- */
+.shell{display:flex;min-height:100vh}
+.sidebar{width:212px;flex:none;display:flex;flex-direction:column;gap:26px;padding:22px 16px;background:#0a0f1fd9;border-right:1px solid #263458;position:sticky;top:0;height:100vh}
+.tagline{color:#7d8cad;font-size:.72rem;letter-spacing:1px;margin-top:6px}
+.side-links{display:flex;flex-direction:column;gap:4px}
+.side-links a{display:flex;align-items:center;gap:10px;color:#9daed1;text-decoration:none;padding:9px 12px;border-radius:10px;font-size:.9rem}
+.side-links a:hover{background:#14203f;color:#e6edf7}
+.side-links a.active{background:linear-gradient(135deg,#6366f1,#2dd4bf);color:#0b0f1a;font-weight:700}
+.side-links .icon{width:20px;text-align:center}
+.side-foot{margin-top:auto;color:#67789e;font-size:.72rem;line-height:1.5}
+.content{flex:1;min-width:0;padding:26px 30px;max-width:1500px;margin:0 auto}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:20px}
+.page-head p{margin:0;color:#9daed1;text-transform:uppercase;letter-spacing:2px;font-size:.74rem}
+.page-head h1{margin:6px 0 0;font-size:clamp(1.7rem,3.4vw,2.6rem)}
+.source-select{display:flex;align-items:center;gap:8px;color:#9daed1;font-size:.85rem}
+.error-text{color:#fb7185;background:#240f14;border:1px solid #5c1f2c;border-radius:10px;padding:10px 14px}
+.warn-banner{color:#fb923c;background:#241708;border:1px solid #5c3a1f;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:.88rem}
+.card-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:16px}
+.card{background:linear-gradient(145deg,#182342ca,#0d1327d9);border:1px solid #2c3e68;border-radius:16px;padding:14px 16px}
+.card .k{color:#7d8cad;font-size:.74rem;text-transform:uppercase;letter-spacing:1px}
+.card .v{font-size:1.5rem;font-weight:800;margin:4px 0}
+.card .v.pos{color:#4ade80}.card .v.neg{color:#fb7185}
+.card .s{color:#9daed1;font-size:.78rem;line-height:1.5}
+.card.yc.inverted .v,.card.stress.severe .v,.card.stress.high .v{color:#fb7185}
+.card.yc.flat .v,.card.stress.elevated .v{color:#facc15}
+.card.yc.normal .v,.card.stress.low .v{color:#4ade80}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #273555;font-size:.9rem}
+.kv span{color:#9daed1}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.grid-2 .panel{margin:0}
+.panel h2 .freshness{margin-left:8px}
+.row-form{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px}
+.row-form label{display:flex;flex-direction:column;gap:5px;color:#9daed1;font-size:.8rem}
+.row-form input{background:#0d1424;border:1px solid #263458;border-radius:8px;padding:8px 10px;color:#e6edf7}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.chip{background:#0d1424;border:1px solid #263458;color:#9daed1;border-radius:20px;padding:3px 10px;font-size:.74rem}
+.chip.as-btn{cursor:pointer}
+.chip.as-btn:hover{border-color:#2dd4bf;color:#2dd4bf}
+.plain-list{margin:8px 0;padding-left:18px;color:#c7d2fe;line-height:1.7;font-size:.88rem}
+.dim{color:#7d8cad}
+.meta-line{margin-top:10px;color:#7d8cad;font-size:.78rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.bar-cell{display:flex;align-items:center;gap:8px;min-width:120px}
+.bar{height:8px;border-radius:4px;background:linear-gradient(90deg,#6366f1,#2dd4bf);display:inline-block}
+.inset{margin-top:12px}
+@media(max-width:900px){
+  .shell{flex-direction:column}
+  .sidebar{width:100%;height:auto;position:static;flex-direction:row;align-items:center;flex-wrap:wrap;gap:12px}
+  .side-links{flex-direction:row;flex-wrap:wrap}
+  .side-foot{display:none}
+  .content{padding:16px}
+  .grid-2{grid-template-columns:1fr}
+}

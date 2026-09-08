@@ -32,5 +32,11 @@ class Settings(BaseSettings):
     smtp_password: Optional[str] = None
     smtp_to: Optional[str] = None
     smtp_from: Optional[str] = None
+    # --- Macro/events/crypto-pro/screener additions (all optional — the app runs with none set) ---
+    fred_api_key: Optional[str] = None          # official FRED macro data (free key at fred.stlouisfed.org)
+    macro_default_source: str = "yfinance"      # "fred" or "yfinance" — the user-selectable macro source
+    crypto_default_source: str = "coingecko"    # "coingecko" or "yfinance" — the user-selectable crypto source
+    coingecko_timeout_seconds: float = 15.0
+    screener_default_tickers: str = "AAPL,MSFT,GOOGL,AMZN,NVDA,META,TSLA,JPM,XOM,GLD,BTC-USD"
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 settings = Settings()
