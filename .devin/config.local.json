@@ -12,7 +12,9 @@
       "Exec(git commit)",
       "Exec(git remote)",
       "Exec(find)",
-      "Exec(npx tsc)"
+      "Exec(npx tsc)",
+      "Exec(python3)",
+      "Exec(git config)"
     ]
   }
 }
