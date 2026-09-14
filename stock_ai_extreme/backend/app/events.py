@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import date
 
 import pandas as pd
 
@@ -59,6 +60,20 @@ def _pct_window(closes: pd.Series, event_pos: int, horizon: int) -> float | None
     if base == 0:
         return None
     return round((later - base) / base * 100.0, 4)
+
+
+def parse_event_dates(event_dates: list[str]) -> list[date]:
+    """Parse caller-supplied event dates, failing with a clear message instead of
+    the opaque pandas error an unparsable string would raise several layers down.
+    Callers need the parsed values anyway: the history window has to cover the
+    EARLIEST requested event or the study silently has nothing to measure."""
+    parsed: list[date] = []
+    for raw in event_dates:
+        try:
+            parsed.append(pd.Timestamp(str(raw).strip()).date())
+        except (ValueError, TypeError, OverflowError) as exc:
+            raise ValueError(f"'{raw}' is not a valid event date — use YYYY-MM-DD.") from exc
+    return parsed
 
 
 def event_study(df: pd.DataFrame, event_dates: list[str], label: str,

@@ -26,7 +26,7 @@ from . import repository as repo
 from . import jobs
 from .news import analyze_news
 from .portfolio import portfolio_summary
-from .providers import MarketDataManager,YFinanceProvider,FinnhubProvider,DataStatus
+from .providers import MarketDataManager,YFinanceProvider,FinnhubProvider,DataStatus,ProviderError
 from . import macro as macro_mod
 from . import events as events_mod
 from . import fundamentals as fundamentals_mod
@@ -462,7 +462,30 @@ async def event_study_route(ticker:str,body:EventStudyRequest):
  try:
   ticker=validate_ticker(ticker)
   if not body.event_dates: raise HTTPException(400,"Provide at least one past event date.")
-  d,source,status=await data.history(ticker,date.today()-timedelta(days=1200),date.today())
+  # The window must actually COVER the events being studied. A fixed 1200-day
+  # lookback made every older date unusable — including all four example dates
+  # this page offers (2008–2023) — so the study rejected its own defaults with a
+  # confusing "no usable event dates" instead of measuring anything. Anchor the
+  # start to the earliest requested event (with a small buffer for the bar it
+  # lands on), capped so a typo'd year can't ask for a century of data.
+  try:
+   event_days=events_mod.parse_event_dates(body.event_dates)
+  except ValueError as exc:
+   raise HTTPException(400,str(exc))
+  today=date.today()
+  earliest=min(event_days)
+  if earliest>today: raise HTTPException(400,"Event dates must be in the past.")
+  start=max(earliest-timedelta(days=14),date(1970,1,1))
+  # Deliberately the provider frame rather than data.history(): the indicator
+  # pipeline drops its first ~30 bars (indicator warm-up, add_indicators().dropna()),
+  # which silently swallowed any event landing near the start of the window — and
+  # this study only measures close-to-close moves, so those indicators were never used.
+  try:
+   frame,source,status=await manager.history(ticker,start,today)
+  except ProviderError as exc:
+   raise HTTPException(400,str(exc))
+  d=frame[[c for c in ["Open","High","Low","Close","Volume"] if c in frame]].dropna()
+  if d.empty: raise HTTPException(400,f"No price history available for {ticker} in the requested window.")
   result=events_mod.event_study(d,body.event_dates,body.label)
   stress=None
   try:

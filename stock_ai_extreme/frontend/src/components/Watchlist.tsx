@@ -116,7 +116,8 @@ export default function Watchlist({ active, onSelect }: { active: string; onSele
       )}
 
       <small className="watchlist-foot">
-        <span className="data-source-indicator">Fallback Data Mode</span> · Prices are simulated for demonstration
+        <span className="data-source-indicator">Live quotes</span> · Prices are fetched from the market-data provider
+        each time this panel loads; a ticker the provider cannot price shows “no quote” instead of a guess.
       </small>
     </aside>
   );

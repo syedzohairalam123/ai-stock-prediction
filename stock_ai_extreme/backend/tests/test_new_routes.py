@@ -66,6 +66,35 @@ def test_event_study_route_requires_dates(client):
     assert resp.status_code == 400
 
 
+def test_event_study_route_rejects_unparsable_date(client):
+    resp = client.post("/api/stocks/AAPL/events/study", json={"event_dates": ["not-a-date"]})
+    assert resp.status_code == 400
+    assert "YYYY-MM-DD" in resp.json()["detail"]
+
+
+def test_event_study_route_loads_history_back_to_the_earliest_event(client):
+    """Regression: the route used a fixed 1200-day window, so every example date
+    the Events page ships (Lehman 2008, COVID 2020, Ukraine 2022, SVB 2023) fell
+    outside the loaded history and the study rejected its own defaults with a
+    "no usable event dates" 400. The window must reach the earliest event."""
+    long_frame = _fake_frame(n_days=2900)  # ~11 years of business days
+    requested = {}
+
+    def fake_download(*args, **kwargs):
+        requested.update(kwargs)
+        return long_frame
+
+    with patch("app.providers.yfinance_provider.yf.download", side_effect=fake_download):
+        resp = client.post(
+            "/api/stocks/NVDA/events/study",
+            json={"event_dates": ["2016-06-24"], "label": "Brexit vote"},
+        )
+
+    assert resp.status_code == 200, resp.text
+    assert str(requested["start"]) <= "2016-06-24", "history must start at or before the event date"
+    assert resp.json()["event_study"]["sample_size"] >= 1
+
+
 def test_market_stress_route(client):
     fake_news = [
         {"title": "Markets rally on strong earnings"},

@@ -117,6 +117,10 @@ export default function StockDashboard() {
   const change = snap?.change ?? null;
   const changePct = snap?.change_percent ?? null;
   const up = (changePct ?? change ?? 0) >= 0;
+  // The live socket can deliver a price before the snapshot (which carries the
+  // day's change) arrives. Showing a green "▲ +— (—%)" in that window asserts a
+  // gain that isn't known yet, so render a neutral dash until change data exists.
+  const hasChange = change !== null || changePct !== null;
 
   // --- chart traces (memoized: they'd otherwise rebuild on every render) ---
   const overlayTraces = useMemo(() => {
@@ -197,9 +201,15 @@ export default function StockDashboard() {
 
           <div className="stock-quote-block">
             <div className={`stock-price ${up ? "pos" : "neg"}`}>{num(price)}</div>
-            <div className={`stock-change ${up ? "pos" : "neg"}`}>
-              <span aria-hidden>{up ? "▲ +" : "▼ "}</span>
-              {num(change)} ({num(changePct)}%)
+            <div className={`stock-change ${hasChange ? (up ? "pos" : "neg") : "mut"}`}>
+              {hasChange ? (
+                <>
+                  <span aria-hidden>{up ? "▲ +" : "▼ "}</span>
+                  {num(change)} ({num(changePct)}%)
+                </>
+              ) : (
+                <span title="Day change is still loading">—</span>
+              )}
             </div>
             <div className="stock-quote-meta">
               {psxMeta && <MarketStatusBadge status={session} isMock={false} />}
