@@ -314,5 +314,225 @@ This pass completed six analytical modules that had been left out of earlier rou
 - `src/lib/api.tsx` is the shared fetch layer (`getJSON`/`postJSON` with real error messages, `Pct`/`Money`/`Num`/`MetaBadge`/`StatCard` primitives) so every page degrades the same honest way when a source is unavailable.
 - Verified with `npx tsc --noEmit` and a full `npm run build` (76 modules, succeeds).
 
-**Testing:** 231 automated backend tests (up from 170) — the six new modules each have a dedicated test file, all against synthetic/mocked data, plus route tests through the FastAPI app. One environment note: `pytest-asyncio` must be installed for the async test suite (`pip install pytest-asyncio`); without it every async test fails with "async def functions are not natively supported", which looks like 29 unrelated failures but is purely the missing plugin.
+**Testing:** 231 automated backend tests (up from 170) — the six new modules each have a dedicated test file, all against synthetic/mocked data, plus route tests through the FastAPI app. One environment note: `pytest-asyncio` must be installed for the async test suite (`pip install pytest-asyncio`); without it every async test fails with "async def functions are not natively supported", which looks like 29 unrelated failures but is purely the missing plugin.## What's New — PSX live data, completed pages & error cleanup (this update)
 
+This pass ran the whole app end-to-end (backend + frontend), found the internal
+errors that were breaking features silently, and fixed them. Nothing was removed.
+
+**The root-cause bug — every PSX ticker feature was failing live.** Yahoo Finance
+lists Pakistan Stock Exchange companies with a `.KA` suffix; the bare symbol
+(`OGDC`, `KEL`, `MEBL`, …) returns *no data at all*. So the PSX terminal's global
+search, watchlist, announcement "View Stock", alerts, portfolio and the stock
+dashboard all resolved to an empty payload — while US tickers worked, which made it
+look like only "some features" were broken. Fixed in a new
+`backend/app/symbols.py` used by the yfinance provider: a known PSX symbol maps
+straight to `<TICKER>.KA`, anything else is tried bare first and then with `.KA`
+(so `AAPL` still works and unlisted PSX symbols still resolve). Verified live:
+`OGDC` (545 rows), `KEL`, `MEBL` ("Meezan Bank Limited", PKR), `SYS` news,
+screener + cross-asset + predict + fundamentals + regime — all now return real data.
+
+**Completed pages that were "coming soon" stubs:**
+- `NewsPage` — live headlines + lexicon sentiment for a selectable PSX ticker or the broader market (`^GSPC`), via the existing `/api/stocks/{t}/news`.
+- `AnnouncementPage` (`/announcements/:id`) — real permalink detail, backed by a new `GET /api/psx/announcements/{id}` route that searches the live feed, then the labelled demo set, and 404s honestly when an id has rolled off. Announcement cards now link to it.
+
+**Other fixes:**
+- `GlobalSearch` searched a hardcoded mock list; it now autocompletes the real PSX universe (stocks + indices + sectors from `lib/psxMarket.ts`) and routes correctly — and no longer displays invented percentage changes.
+- `HomePage` quick-tickers were US names in a PSX terminal → now PSX blue chips.
+- `EVENT_META.BOARD_CHANGE` had the literal string `"chair"` as its icon → fixed to ⚑.
+- Cross-asset defaults now start from PSX tickers (`OGDC, LUCK, HBL, MEBL`).
+- Removed two accidental zero-byte artifacts (`backend/=24.1.0`, `backend/=8.5.0`).
+
+**Verified:** 258 backend tests pass (up from 241 — new `test_symbols.py` plus
+announcement-permalink route tests), `npx tsc --noEmit` clean, `npm run build`
+succeeds, and a live smoke run of every PSX feature returned `200` with zero
+unavailable tickers and no server-side tracebacks.
+
+PSX-specific to-do checklist (all 9 items now done):
+- [x] Inspect existing project structure and framework
+- [x] Create PSX-specific header with navigation
+- [x] Implement global search UI with autocomplete (real universe)
+- [x] Add responsive navigation with mobile menu
+- [x] Implement theme system (dark/light mode)
+- [x] Create base UI components (buttons, cards, badges, etc.)
+- [x] Enhance routing with PSX-specific routes
+- [x] Add loading skeleton and empty state components
+- [x] Test responsiveness and theme switching
+
+**Known limitation (honest, not hidden):** PSX *index* levels (KSE-100 etc.) are
+not available on Yahoo Finance, so the Market/Index pages still use clearly-labelled
+mock data. Individual PSX **stocks** are live. Swapping in the official PSX Data
+Portal API is the documented next step for real index data.
+
+## Phase 4 — PSX Announcements, Filings & AI Intelligence
+
+A complete Smart Company Announcements system, kept strictly separate from the
+rest of the market features (nothing else was touched).
+
+**Live feed.** `backend/app/announcements.py` fetches real PSX company
+announcements from the public ksestocks.com mirror (server-rendered HTML of the
+official feed — no API key), parses the `<table id="ans">` rows, and runs
+deterministic rule-based analysis on the real filing text. `source_status` is
+`LIVE` when the mirror answered, `STALE` when served from last-good cache, and
+`UNAVAILABLE` when it didn't — **no filing is ever fabricated to fill a gap.**
+`GET /api/psx/announcements` serves the feed; `GET /api/psx/announcements/{id}`
+serves a single permalink record (live first, then demo, honest 404 otherwise).
+
+**All 17 event categories:** Rights Issue, Bonus Shares, Dividend, AGM, EGM,
+Insider Sale, Insider Purchase, Management Change, Board Change, Financial
+Results, Profit Warning, Acquisition, Merger, Contract Award, Corporate Action,
+Regulatory Notice, Other.
+
+**Sentiment:** POSITIVE / NEGATIVE / MIXED / NEUTRAL — each rendered as
+**icon + text + accessible label** (`role="img"` + `aria-label`), never color alone.
+
+**AI summary block:** every card shows an `AI SUMMARY` chip, the analysis engine
+(`rule-based-v1`), extracted highlights (facts/dates/actions/figures drawn only
+from the source text), the structured fields, and an explicit “AI-generated
+analysis — not an official PSX statement” disclaimer. AI content and source
+content are visually separated — the original filing text sits in its own
+collapsible block labelled as source, not AI.
+
+**Structured event extraction:** Event, Person, Action, Shares, Price, Total
+Value, Effective Date (plus EPS, Dividend, Bonus, Rights and book-closure dates).
+Only fields literally present in the source are emitted — a missing field stays
+`null` and is simply not rendered; nothing is inferred into existence.
+
+**Card contents:** company, ticker, published date + honest relative time, event
+badge, sentiment badge, AI summary, structured data, original PDF, original
+image, source link, permalink, **View Stock →** and **Company Fundamentals →**.
+
+**Filtering:** event type, sentiment, company (case-insensitive partial match),
+date range, and stock ticker. **Search:** company, ticker, title, event and body.
+**Pagination:** 7-slot pager window with server-side clamping, built to scale to
+large feeds; every filter/view is deep-linkable via URL query params.
+
+**Demo dataset:** `source=simulated` serves clearly-labelled `DEMO` records across
+all categories (real PSX tickers, synthetic bodies) for interface development —
+never a claim about a real company.
+
+**Data architecture (API separate from UI):** `lib/announcements.ts` exposes
+`AnnouncementService` (typed fetch funnel), `AIAnalysisService` (event/sentiment
+presentation metadata + `structuredRows`), `AnnouncementTypes`, and
+`AnnouncementFilters` — mirroring the backend contract 1:1 so the official PSX
+Data Portal can be swapped in without touching the UI.
+
+**Completed in this pass** (spec gaps): added the Company filter to the UI +
+case-insensitive partial matching, added the EVENT row to structured extraction,
+added honest relative dates, added the Company Fundamentals deep-link, and made
+`/company` accept `?ticker=` so announcement cards can deep-link into it.
+
+## Phase 5 — Final Integration, Detail Pages & Production Polish
+
+The whole app is now one integrated PSX financial terminal. Nothing was removed.
+
+**Stock detail page (`/stock/:symbol`).** A new `GET /api/stocks/{ticker}/snapshot`
+gives the page one consolidated payload (name, sector/industry/country/exchange,
+price, absolute + percent change, open, day high/low, previous close, volume,
+traded value, 52-week high/low). The page renders a snapshot header with a
+**LIVE / RECENT / CACHED / STALE / UNAVAILABLE** freshness chip, a PSX session
+badge, and a Shariah badge (only for known PSX symbols — never invented for US
+tickers). An interactive chart has **1D / 7D / 1M / 6M / 1Y / 3Y / 5Y** timeframes
+(intraday bars for the short ranges, daily beyond), deep-linkable via `?range=1Y`,
+with SMA/EMA/Bollinger overlays and the AI forecast band on daily ranges. Every
+existing panel (prediction engine, drift, indicators, cross-asset, forecast
+table, backtest, briefing, alerts, watchlist) is preserved, plus live news.
+
+**Index detail page (`/index/:symbol`).** Rebuilt from a stub into a full page:
+value, change, percent change, interactive chart with all seven timeframes,
+open/high/low/previous close/volume/traded value, day range and 52-week range —
+reusing the existing market components. Clearly labelled **DEMO** because PSX
+index levels are not on the free provider.
+
+**Watchlist foundation.** `GET /api/watchlist/quotes` prices every saved ticker
+fresh at read time; the panel shows current price and % change for each saved
+stock with add/remove and persistence. A ticker the provider can't price shows
+“no quote” — never a fabricated number.
+
+**Portfolio foundation.** Existing holdings / quantity / average price / current
+price / market value / P&L UI is unchanged and server-backed (already better than
+the mock data the brief suggested).
+
+**Data architecture — one direction, no shortcuts:**
+
+```
+UI (pages/components)  ->  hooks (React Query)  ->  services  ->  API/data layer
+```
+
+- `lib/services.ts` — typed endpoints (`MarketService`), the only place URLs live.
+- `hooks/useMarketQueries.ts` — `useStockSnapshot`, `useStockHistory`, `useWatchlist`
+  with caching, de-duplication, retries and cache invalidation.
+- `lib/timeframes.ts` — one definition of each chart range.
+- `lib/axios.ts` + `lib/react-query.ts` are now genuinely used (previously set up
+  but unused), and its interceptors normalize network/timeout/HTTP errors into
+  human-readable messages surfaced consistently in the UI.
+
+**Performance.** Route-level code splitting (`React.lazy`) with a Suspense
+boundary **inside** the shell, so the terminal chrome never unmounts while a page
+chunk loads. The initial JS bundle dropped from **5,126 kB to 250 kB** and Plotly
+is isolated into its own on-demand chunk. Chart traces are `useMemo`-ized,
+`AnnouncementCard` is `React.memo`-ized, and search/filters are debounced.
+
+**Accessibility.** Semantic landmarks, `role="tablist"`/`aria-selected` on
+range and chart controls, `role="status"`/`role="alert"` on async states,
+`scope="col"` table headers, `.sr-only` labels for icon-only actions, focus
+rings on new controls, and gain/loss shown with **sign + arrow + text**, never
+colour alone.
+
+**Error handling.** Every new async surface has loading (skeleton), error
+(message + Retry) and empty states; invalid symbols, unavailable providers and
+empty datasets each render a specific, honest message instead of a blank panel.
+
+**Mobile.** Snapshot header stacks, the stat strip becomes 2-up, tables scroll
+horizontally, charts resize (`useResizeHandler`), and the mobile nav is unchanged.
+
+**Engineering audit.** `npx tsc --noEmit` clean, `npm run build` succeeds,
+`pytest` green, no broken routes/imports, no duplicate logic added, and no
+console errors in the app code (axios logging is DEV-only).
+
+### Final structure (new/changed in Phase 5)
+
+```text
+backend/app/
+  main.py                       + /snapshot, + /watchlist/quotes
+  symbols.py                    PSX .KA resolution (Phase 4 pass)
+frontend/src/
+  App.tsx                       route-level code splitting
+  Layout.tsx                    Suspense boundary around <Outlet/>
+  lib/services.ts               NEW  typed service layer
+  lib/timeframes.ts             NEW  chart range definitions
+  lib/psxMarket.ts              + getStockMeta / sectorLabel
+  hooks/useMarketQueries.ts     NEW  React Query hooks
+  components/ShariahBadge.tsx   NEW
+  components/RouteFallback.tsx  NEW
+  components/Watchlist.tsx      live price + % change
+  pages/StockDashboard.tsx      snapshot header, timeframes, stats, news
+  pages/IndexPage.tsx           full index detail page
+```
+
+### Run it
+
+```bash
+# backend
+cd stock_ai_extreme/backend
+python -m venv .venv && .venv/Scripts/activate        # Windows
+pip install -r requirements.txt
+cp .env.example .env
+uvicorn app.main:app --reload --port 8000
+
+# frontend (separate terminal)
+cd stock_ai_extreme/frontend
+npm install
+npm run dev            # http://localhost:5173
+```
+
+### Build the production version
+
+```bash
+cd stock_ai_extreme/frontend
+npm run build          # emits frontend/dist (static)
+npm run preview        # local preview of the built bundle
+
+# backend (production server)
+cd stock_ai_extreme/backend
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+```

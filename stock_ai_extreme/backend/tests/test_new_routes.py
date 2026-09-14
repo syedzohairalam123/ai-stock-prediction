@@ -144,3 +144,71 @@ def test_screener_route(client):
 def test_screener_defaults_route(client):
     body = client.get("/api/screener/defaults").json()
     assert isinstance(body["tickers"], list) and len(body["tickers"]) > 0
+
+
+def test_stock_snapshot_route_returns_detail_fields(client):
+    frame = _fake_frame(300, drift=0.1)
+    fake_info = {"longName": "Oil & Gas Dev Co", "currency": "PKR", "exchange": "KAR"}
+    with patch("app.providers.yfinance_provider.yf.download", return_value=frame), \
+         patch("app.providers.yfinance_provider.yf.Ticker") as MockTicker:
+        MockTicker.return_value.info = fake_info
+        resp = client.get("/api/stocks/OGDC/snapshot")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["ticker"] == "OGDC"
+    assert body["price"] == pytest.approx(float(frame["Close"].iloc[-1]))
+    assert body["previous_close"] == pytest.approx(float(frame["Close"].iloc[-2]))
+    assert body["change"] == pytest.approx(body["price"] - body["previous_close"])
+    assert body["change_percent"] is not None
+    assert body["day_high"] >= body["day_low"]
+    assert body["week52_high"] >= body["week52_low"]
+    assert body["volume"] == 1_000_000
+    assert body["traded_value"] == pytest.approx(1_000_000 * body["price"])
+    assert body["data_meta"]["status"] in ("LIVE", "RECENT", "CACHED", "STALE")
+
+
+def test_watchlist_quotes_route_prices_saved_tickers(client):
+    client.post("/api/watchlist", json={"ticker": "TESTWL"})
+    try:
+        with patch("app.providers.yfinance_provider.yf.download", return_value=_fake_frame(30)):
+            resp = client.get("/api/watchlist/quotes")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["count"] == len(body["items"])
+        row = next(i for i in body["items"] if i["ticker"] == "TESTWL")
+        assert row["price"] is not None and row["price"] > 0
+        assert row["status"] in ("LIVE", "RECENT", "CACHED", "STALE")
+    finally:
+        client.delete("/api/watchlist/TESTWL")
+
+
+def test_watchlist_quotes_route_null_when_unpriced(client):
+    """A saved ticker the provider can't price must come back null, not 0."""
+    client.post("/api/watchlist", json={"ticker": "NOPRICE"})
+    try:
+        with patch("app.providers.yfinance_provider.yf.download", return_value=pd.DataFrame()):
+            resp = client.get("/api/watchlist/quotes")
+        row = next(i for i in resp.json()["items"] if i["ticker"] == "NOPRICE")
+        assert row["price"] is None
+        assert row["change_percent"] is None
+        assert row["status"] == "UNAVAILABLE"
+    finally:
+        client.delete("/api/watchlist/NOPRICE")
+
+
+def test_announcement_detail_route_serves_simulated_permalink(client):
+    """The /announcements/:id page fetches one record by id. Pin the simulated
+    source here so the test never reaches the live mirror."""
+    listing = client.get("/api/psx/announcements", params={"source": "simulated", "page_size": 1}).json()
+    ann_id = listing["items"][0]["id"]
+    resp = client.get(f"/api/psx/announcements/{ann_id}", params={"source": "simulated"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["item"]["id"] == ann_id
+    assert body["source_status"] == "SIMULATED"
+    assert body["ai_disclaimer"] and body["source_disclaimer"]
+
+
+def test_announcement_detail_route_missing_id_is_404(client):
+    resp = client.get("/api/psx/announcements/ann-does-not-exist", params={"source": "simulated"})
+    assert resp.status_code == 404

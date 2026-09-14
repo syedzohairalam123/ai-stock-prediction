@@ -1,18 +1,23 @@
 import {FormEvent,useEffect,useState} from "react";
+import {useSearchParams} from "react-router-dom";
 import {getJSON,Num,Pct,Money,MetaBadge} from "../lib/api";
 type Valuation={trailing_pe:number|null;forward_pe:number|null;price_to_book:number|null;price_to_sales:number|null;eps_trailing:number|null;eps_forward:number|null;peg_ratio:number|null;market_cap:number|null;enterprise_value:number|null};
 type Report={ticker:string;valuation:Valuation;profitability:Record<string,number|null|string>;balance_sheet:Record<string,number|null|string>;dividends:Record<string,any>;analyst:Record<string,any>;price_context:Record<string,number>;employees:number|null;sector:string|null;industry:string|null;data_meta?:any;disclaimer:string};
-const EXAMPLES=["AAPL","MSFT","NVDA","JPM","XOM"];
+const EXAMPLES=["OGDC","LUCK","MEBL","ENGRO","AAPL","MSFT"];
 function Row({label,value,hint}:{label:string;value:React.ReactNode;hint?:string}){return <div className="kv"><span>{label}{hint&&<small className="dim"> {hint}</small>}</span><b>{value??"—"}</b></div>}
 export default function Company(){
-  const [ticker,setTicker]=useState("AAPL"),[data,setData]=useState<Report|null>(null),[err,setErr]=useState<string|null>(null),[busy,setBusy]=useState(false);
+  // Deep-linkable: /company?ticker=OGDC (used by the announcement cards).
+  const [params]=useSearchParams();
+  const initial=(params.get("ticker")||"AAPL").trim().toUpperCase();
+  const [ticker,setTicker]=useState(initial),[data,setData]=useState<Report|null>(null),[err,setErr]=useState<string|null>(null),[busy,setBusy]=useState(false);
   async function load(t:string){
     setBusy(true);setErr(null);setData(null);
     try{setData(await getJSON<Report>(`/api/stocks/${t}/fundamentals`))}
     catch(e:any){setErr(e.message)}
     finally{setBusy(false)}
   }
-  useEffect(()=>{load("AAPL")},[]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(()=>{load(initial)},[]);
   function submit(e:FormEvent){e.preventDefault();if(ticker.trim())load(ticker.trim().toUpperCase())}
   const p=data?.price_context||{},prof=data?.profitability||{};
   return <section>

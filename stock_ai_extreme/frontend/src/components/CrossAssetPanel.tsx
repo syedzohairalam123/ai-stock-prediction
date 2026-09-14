@@ -6,7 +6,7 @@ type Report={benchmark:string;correlation_matrix:Record<string,Record<string,num
   relative_strength_latest:Record<string,number>;asset_stats:Record<string,{total_return_pct:number;annualized_volatility_pct:number;avg_volume:number|null}>;
   unavailable?:Record<string,string>};
 export default function CrossAssetPanel({ticker}:{ticker:string}){
-  const [input,setInput]=useState(`${ticker}, MSFT, GOOGL, SPY`),[benchmark,setBenchmark]=useState("SPY"),
+  const [input,setInput]=useState(`${ticker}, LUCK, HBL, MEBL`),[benchmark,setBenchmark]=useState("SPY"),
         [report,setReport]=useState<Report|null>(null),[busy,setBusy]=useState(false),[err,setErr]=useState<string|null>(null);
   function run(e?:FormEvent){
     e?.preventDefault();
@@ -25,7 +25,7 @@ export default function CrossAssetPanel({ticker}:{ticker:string}){
   return <section className="panel cross-asset">
     <h2>Cross-Asset Intelligence</h2>
     <form onSubmit={run} className="cross-asset-form">
-      <input value={input} onChange={e=>setInput(e.target.value)} placeholder="AAPL, MSFT, GOOGL, SPY" aria-label="Tickers to compare"/>
+      <input value={input} onChange={e=>setInput(e.target.value)} placeholder="OGDC, LUCK, HBL, SPY" aria-label="Tickers to compare"/>
       <label>Benchmark <input className="benchmark-input" value={benchmark} onChange={e=>setBenchmark(e.target.value.toUpperCase())}/></label>
       <button disabled={busy}>{busy?"Analyzing…":"Compare"}</button>
     </form>

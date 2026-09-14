@@ -33,6 +33,12 @@ from . import fundamentals as fundamentals_mod
 from . import regime as regime_mod
 from . import crypto_pro as crypto_mod
 from . import screener as screener_mod
+from . import screener_classic as screener_classic_mod
+from .screener_classic import ScreenerFilters
+# Phase 4: PSX announcements/filings + rule-based AI intelligence (real feed,
+# labeled analysis, clearly-simulated demo mode).
+from . import announcements as announcements_mod
+from .announcements import AnnouncementFiltersModel
 
 # Configure structured logging
 configure_logging(log_level="INFO")
@@ -105,6 +111,59 @@ async def profile(ticker:str):
     try:
         return await data.profile(validate_ticker(ticker))
     except Exception as e: raise HTTPException(400,str(e))
+
+@app.get("/api/stocks/{ticker}/snapshot")
+async def stock_snapshot_route(ticker:str):
+ """Phase 5: one consolidated payload for the stock detail page — price,
+ absolute/percent change, day range, volume, traded value, 52-week range and
+ company profile — so the UI needs a single request. Every value comes from
+ real provider data; a field the provider doesn't return is null, never
+ invented. Unavailable tickers return a clean 4xx, not zeros."""
+ try:
+  ticker=validate_ticker(ticker)
+  end=date.today(); start=end-timedelta(days=400)
+  frame,source,status=await data.history(ticker,start,end)
+  frame=frame.dropna(subset=["Close"])
+  if frame.empty: raise HTTPException(404,f"No price history available for {ticker}.")
+
+  def _f(v):
+   try:
+    x=float(v); return None if math.isnan(x) else round(x,4)
+   except (TypeError,ValueError): return None
+
+  last=frame.iloc[-1]
+  prev=frame.iloc[-2] if len(frame)>1 else None
+  price=float(last["Close"])
+  prev_close=float(prev["Close"]) if prev is not None else None
+  change=(price-prev_close) if prev_close is not None else None
+  change_pct=((change/prev_close)*100.0) if prev_close else None
+  win=frame.tail(252)
+  volume=_f(last["Volume"]) if "Volume" in frame.columns else None
+  profile={}
+  try: profile=await data.profile(ticker)
+  except Exception as e: logger.debug("snapshot profile unavailable for %s: %s",ticker,e)
+
+  return {
+   "ticker":ticker,
+   "name":profile.get("name"),"sector":profile.get("sector"),"industry":profile.get("industry"),
+   "country":profile.get("country"),"currency":profile.get("currency"),"exchange":profile.get("exchange"),
+   "market_cap":profile.get("market_cap"),"website":profile.get("website"),"summary":profile.get("summary"),
+   "price":round(price,4),
+   "previous_close":round(prev_close,4) if prev_close is not None else None,
+   "change":round(change,4) if change is not None else None,
+   "change_percent":round(change_pct,4) if change_pct is not None else None,
+   "open":_f(last["Open"]) if "Open" in frame.columns else None,
+   "day_high":_f(last["High"]) if "High" in frame.columns else None,
+   "day_low":_f(last["Low"]) if "Low" in frame.columns else None,
+   "volume":volume,
+   "traded_value":round(volume*price,2) if volume is not None else None,
+   "week52_high":_f(win["High"].max()) if "High" in frame.columns else None,
+   "week52_low":_f(win["Low"].min()) if "Low" in frame.columns else None,
+   "last_date":str(pd.Timestamp(frame.index[-1]).date()),
+   "data_meta":{"source":source,"status":status.value},
+  }
+ except HTTPException: raise
+ except Exception as e: raise HTTPException(400,str(e))
 
 @app.get("/api/stocks/{ticker}/news")
 async def news_route(ticker:str,limit:int=10):
@@ -186,6 +245,29 @@ async def backtest(ticker:str,body:BacktestRequest):
 @app.get("/api/watchlist")
 def get_watchlist():
  try: return repo.list_watchlist()
+ except Exception as e: raise HTTPException(400,str(e))
+
+@app.get("/api/watchlist/quotes")
+async def watchlist_quotes_route():
+ """Phase 5: saved tickers with their latest price and % change. Prices are
+ fetched fresh at read time through the provider manager (never stored), and a
+ ticker whose quote can't be fetched keeps a null price — never a fabricated
+ number. This also resolves bare PSX symbols to their Karachi listings."""
+ try:
+  items=repo.list_watchlist()
+  out=[]
+  for it in items:
+   t=it["ticker"]; price=None; change_pct=None; status="UNAVAILABLE"
+   try:
+    q=await manager.quote(t)
+    if q.status!=DataStatus.UNAVAILABLE and not math.isnan(q.price):
+     price=round(q.price,4)
+     change_pct=None if q.change_percent is None else round(q.change_percent,4)
+     status=q.status.value
+   except Exception as e:
+    logger.debug("watchlist quote failed for %s: %s",t,e)
+   out.append({**it,"price":price,"change_percent":change_pct,"status":status})
+  return {"items":out,"count":len(out)}
  except Exception as e: raise HTTPException(400,str(e))
 
 @app.post("/api/watchlist")
@@ -468,6 +550,72 @@ async def screener_route(body:ScreenerRequest):
 @app.get("/api/screener/defaults")
 def screener_defaults_route():
  return {"tickers":[t.strip() for t in settings.screener_default_tickers.split(",") if t.strip()]}
+
+@app.get("/api/screener-classic/universe")
+def screener_classic_universe():
+ return {"tickers":screener_classic_mod.DEFAULT_UNIVERSE,"size":len(screener_classic_mod.DEFAULT_UNIVERSE)}
+
+@app.post("/api/screener-classic")
+async def screener_classic_route(body:screener_classic_mod.ScreenerFilters):
+ """Classic technical/price screener only — no fundamentals filters (P/E, market cap,
+ etc.), since there's no real fundamentals data source wired up yet. Every
+ filter here runs on the same real indicator pipeline the rest of the app uses."""
+ try:
+  universe=screener_classic_mod.DEFAULT_UNIVERSE
+  end=date.today(); start=end-timedelta(days=120)
+  async def fetcher(t): return await data.history(t,start,end)
+  return await screener_classic_mod.run_screener(fetcher,universe,body)
+ except Exception as e: raise HTTPException(400,str(e))
+
+@app.get("/api/psx/announcements")
+async def psx_announcements_route(
+    source:str="company",
+    event:Optional[str]=None,
+    sentiment:Optional[str]=None,
+    ticker:Optional[str]=None,
+    company:Optional[str]=None,
+    search:Optional[str]=None,
+    date_from:Optional[str]=None,
+    date_to:Optional[str]=None,
+    page:int=1,
+    page_size:int=20,
+):
+ """Phase 4: real PSX company announcements (ksestocks.com mirror of the
+ official feed) + rule-based AI analysis clearly labeled as such. `source`
+ selects 'company' (real feed) or 'simulated' (labeled demo dataset). A
+ failing upstream reports UNAVAILABLE — it never fabricates filings."""
+ try:
+  filters=AnnouncementFiltersModel(source=source,event=event,sentiment=sentiment,ticker=ticker,
+                                   company=company,search=search,date_from=date_from,date_to=date_to,
+                                   page=page,page_size=page_size)
+  return await announcements_mod.get_announcements_feed(filters)
+ except ValueError as e: raise HTTPException(400,str(e))
+ except Exception as e: raise HTTPException(400,str(e))
+
+@app.get("/api/psx/announcements/{announcement_id}")
+async def psx_announcement_detail_route(announcement_id:str,source:Optional[str]=None):
+ """Permalink lookup for one announcement (used by /announcements/:id). Ids
+ are deterministic hashes; we page through the requested source first, then
+ the other, and 404 honestly when the id isn't in the current feed. This
+ never fabricates a record to satisfy a link."""
+ try:
+  sources=[source] if source in ("company","simulated") else ["company","simulated"]
+  for src in sources:
+   page=1
+   while page<=20:
+    feed=await announcements_mod.get_announcements_feed(
+        AnnouncementFiltersModel(source=src,page=page,page_size=50))
+    for item in feed.get("items") or []:
+     if item.get("id")==announcement_id:
+      return {"item":item,"source":feed.get("source"),"source_status":feed.get("source_status"),
+              "fetched_at":feed.get("fetched_at"),"ai_disclaimer":feed.get("ai_disclaimer"),
+              "source_disclaimer":feed.get("source_disclaimer")}
+    if not feed.get("has_more"): break
+    page+=1
+  raise HTTPException(404,"Announcement not found in the current feed — it may have rolled off the feed window.")
+ except HTTPException: raise
+ except ValueError as e: raise HTTPException(400,str(e))
+ except Exception as e: raise HTTPException(400,str(e))
 
 @app.websocket("/ws/stock/{ticker}")
 async def stream(websocket:WebSocket,ticker:str):

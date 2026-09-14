@@ -25,9 +25,11 @@ interface UIState {
   sidebarOpen: boolean;
   loading: boolean;
   error: string | null;
+  mobileMenuOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  setMobileMenuOpen: (open: boolean) => void;
 }
 
 // Ticker Store
@@ -80,7 +82,9 @@ export const useUIStore = create<UIState>((set) => ({
   sidebarOpen: true,
   loading: false,
   error: null,
+  mobileMenuOpen: false,
   setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
+  setMobileMenuOpen: (mobileMenuOpen) => set({ mobileMenuOpen }),
 }));

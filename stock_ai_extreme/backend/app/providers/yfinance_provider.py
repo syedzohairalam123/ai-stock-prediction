@@ -18,6 +18,7 @@ from datetime import date, datetime, timedelta, timezone
 import pandas as pd
 import yfinance as yf
 
+from ..symbols import symbol_candidates
 from .base import DataStatus, MarketDataProvider, ProviderError, Quote
 
 
@@ -58,10 +59,13 @@ class YFinanceProvider(MarketDataProvider):
         return d
 
     async def get_history(self, ticker: str, start: date, end: date, interval: str = "1d") -> pd.DataFrame:
-        d = await self._with_retries(self._fetch, ticker, start, end, interval)
-        if d is None or d.empty:
-            raise ProviderError(self.name, "no data returned — verify ticker, date range, and provider availability")
-        return d
+        # Try every candidate symbol (bare → PSX `.KA` when needed) before
+        # giving up — Yahoo silently returns an empty frame for the wrong one.
+        for symbol in symbol_candidates(ticker):
+            d = await self._with_retries(self._fetch, symbol, start, end, interval)
+            if d is not None and not d.empty:
+                return d
+        raise ProviderError(self.name, "no data returned — verify ticker, date range, and provider availability")
 
     def _fetch_info(self, ticker: str) -> dict:
         return yf.Ticker(ticker.upper()).info or {}
@@ -69,7 +73,11 @@ class YFinanceProvider(MarketDataProvider):
     async def get_profile(self, ticker: str) -> dict:
         """Company profile fields (sector/country/website/summary) — the one
         thing the earlier 'Warren' project did that this dashboard didn't yet."""
-        info = await self._with_retries(self._fetch_info, ticker)
+        info: dict = {}
+        for symbol in symbol_candidates(ticker):
+            info = await self._with_retries(self._fetch_info, symbol)
+            if info:
+                break
         if not info:
             raise ProviderError(self.name, "no profile info returned for this ticker")
         return {
@@ -130,12 +138,23 @@ class YFinanceProvider(MarketDataProvider):
         An empty list is a valid, honest answer (some tickers simply have no
         news right now) — it is NOT converted into an error. Only a real
         fetch failure raises ProviderError after the retry budget."""
-        raw = await self._with_retries(self._fetch_news, ticker)
+        # An empty list is a normal answer here, so don't spend an extra
+        # request probing a `.KA` variant for unknown symbols.
+        raw: list[dict] = []
+        for symbol in symbol_candidates(ticker, suffix_fallback=False):
+            raw = await self._with_retries(self._fetch_news, symbol)
+            if raw:
+                break
         return [self._normalize_news_item(item) for item in raw]
 
     async def get_quote(self, ticker: str) -> Quote:
         end = date.today()
-        d = await self._with_retries(self._fetch, ticker, end - timedelta(days=10), end, "1d")
+        d = None
+        for symbol in symbol_candidates(ticker):
+            candidate = await self._with_retries(self._fetch, symbol, end - timedelta(days=10), end, "1d")
+            if candidate is not None and not candidate.empty:
+                d = candidate
+                break
         if d is None or d.empty:
             raise ProviderError(self.name, "no recent rows available for a quote")
         last_close = float(d["Close"].iloc[-1])

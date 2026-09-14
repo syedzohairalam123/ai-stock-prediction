@@ -1,5 +1,5 @@
 /** Shared API base + fetch helpers for every page. */
-export const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+export const API = import.meta.env.VITE_API_URL || "/api";
 
 export async function getJSON<T = any>(path: string, fallback?: T): Promise<T> {
   const res = await fetch(`${API}${path}`);

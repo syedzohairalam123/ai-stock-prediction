@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     anthropic_timeout_seconds: int = Field(default=30, ge=5, le=120)
     
     # Rate limiting
-    rate_limit_max_requests: int = Field(default=120, ge=10, le=1000)
+    rate_limit_max_requests: int = Field(default=120, ge=10, le=100000)
     rate_limit_window_seconds: int = Field(default=60, ge=10, le=600)
     
     # Background jobs + notifications (all optional)

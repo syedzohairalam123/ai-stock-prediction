@@ -42,7 +42,7 @@ export default function PortfolioPanel(){
     {error&&<p className="watchlist-error">{error}</p>}
     {data&&data.holdings.length===0&&<p className="empty">No holdings yet — add your first position above.</p>}
     {data&&data.holdings.length>0&&<table className="cross-asset-table portfolio-table">
-      <thead><tr><th>Ticker</th><th>Shares</th><th>Avg cost</th><th>Last price</th><th>Market value</th><th>P&L</th><th></th></tr></thead>
+      <thead><tr><th scope="col">Ticker</th><th scope="col">Shares</th><th scope="col">Avg cost</th><th scope="col">Last price</th><th scope="col">Market value</th><th scope="col">P&amp;L</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
       <tbody>
         {data.holdings.map(h=>{
           const pnlCls=h.pnl===null?"":h.pnl>=0?"pos":"neg";

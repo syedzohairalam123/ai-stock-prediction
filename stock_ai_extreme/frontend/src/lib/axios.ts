@@ -1,6 +1,6 @@
 import axios, { AxiosError, AxiosInstance } from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Create axios instance with base configuration
 export const apiClient: AxiosInstance = axios.create({
@@ -15,9 +15,7 @@ export const apiClient: AxiosInstance = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     // Add any auth tokens here if needed
-    if (import.meta.env.DEV) {
-      console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`);
-    }
+    // Silent operation - no console logging
     return config;
   },
   (error) => {
@@ -34,9 +32,8 @@ apiClient.interceptors.response.use(
     const errorData = error.response?.data as any;
     const errorMessage = errorData?.detail || error.message || 'An error occurred';
     
-    if (import.meta.env.DEV) {
-      console.error(`[API Error] ${error.config?.method?.toUpperCase()} ${error.config?.url}:`, errorMessage);
-    }
+    // Silent error handling - don't log to console to avoid spam
+    // The service layer will handle fallbacks gracefully
 
     // Handle specific error cases
     if (error.code === 'ECONNABORTED') {
