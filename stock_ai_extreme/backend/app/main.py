@@ -31,6 +31,7 @@ from .news import analyze_news
 from .portfolio import portfolio_summary
 from .providers import MarketDataManager,YFinanceProvider,FinnhubProvider,DataStatus,ProviderError
 from .providers import fx_rates
+from .forecast_markets import CATEGORIES as FORECAST_CATEGORIES, fetch_markets
 from . import macro as macro_mod
 from . import forex as forex_mod
 from . import commodities_pk as commodities_mod
@@ -115,6 +116,27 @@ def root(): return {"service":"Neural Market API","docs":"/docs","health":"/heal
 
 @app.get("/health")
 def health(): return {"status":"ok"}
+
+@app.get("/api/forecast/markets")
+async def forecast_markets():
+    """Return live public forecast probabilities for non-monetary analysis."""
+    try:
+        return await fetch_markets(settings.forecast_market_limit, settings.forecast_market_timeout_seconds)
+    except Exception as exc:
+        logger.warning("live forecast market provider unavailable: %s", exc)
+        raise HTTPException(503, "Live forecast market data is temporarily unavailable.") from exc
+
+@app.get("/api/forecast/markets/{market_id}")
+async def forecast_market(market_id: str):
+    markets = await forecast_markets()
+    for market in markets:
+        if market["id"] == market_id:
+            return market
+    raise HTTPException(404, "Forecast market not found.")
+
+@app.get("/api/forecast/categories")
+def forecast_categories():
+    return list(FORECAST_CATEGORIES)
 
 @app.get("/api/system/health")
 def system_health():

@@ -48,6 +48,9 @@ const Crypto = lazy(() => import("./pages/Crypto"));
 const ForexCommoditiesPage = lazy(() => import("./pages/ForexCommoditiesPage"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const SentimentPage = lazy(() => import("./pages/SentimentPage"));
+// Phase 14: non-monetary event probability forecasting
+const ForecastMarketsPage = lazy(() => import("./pages/ForecastMarketsPage"));
+const ForecastDetailPage = lazy(() => import("./pages/ForecastDetailPage"));
 
 export default function App() {
   return (
@@ -96,6 +99,8 @@ export default function App() {
               <Route path="/crypto" element={<Crypto />} />
               <Route path="/forex-commodities" element={<ForexCommoditiesPage />} />
               <Route path="/sentiment" element={<SentimentPage />} />
+              <Route path="/forecasts" element={<ForecastMarketsPage />} />
+              <Route path="/forecast/:id" element={<ForecastDetailPage />} />
 
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

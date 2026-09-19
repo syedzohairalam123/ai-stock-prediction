@@ -19,6 +19,7 @@ export default function PSXHeader({ theme, toggleTheme, isMobileMenuOpen, toggle
     { path: '/charts', label: 'Charts' },
     { path: '/forex-commodities', label: 'Forex & Commodities' },
     { path: '/sentiment', label: 'Sentiment' },
+    { path: '/forecasts', label: 'Forecasts' },
     { path: '/announcements', label: 'Announcements' },
     { path: '/news', label: 'News' },
     { path: '/watchlist', label: 'Watchlist' },

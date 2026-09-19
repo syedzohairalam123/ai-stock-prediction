@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     profile_cache_ttl_seconds: int = Field(default=3600, ge=300, le=86400)
     provider_max_retries: int = Field(default=3, ge=1, le=10)
     provider_timeout_seconds: int = Field(default=30, ge=5, le=120)
+
+    # Phase 15 — live public forecast-market source
+    forecast_market_timeout_seconds: float = Field(default=15.0, ge=5.0, le=60.0)
+    forecast_market_limit: int = Field(default=60, ge=5, le=100)
     
     # Persistence (SQLite by default; point this at Postgres later)
     database_url: str = "sqlite:///./neural_market.db"

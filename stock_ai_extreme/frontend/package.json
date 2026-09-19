@@ -5,6 +5,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test:chart": "node scripts/chart-engine-test.mjs",
+    "test:combination": "node scripts/combination-analysis-test.mjs",
     "audit:charts": "node scripts/chart-audit.mjs",
     "audit:pages": "node scripts/page-audit.mjs",
     "audit:assistant": "node scripts/assistant-audit.mjs"
