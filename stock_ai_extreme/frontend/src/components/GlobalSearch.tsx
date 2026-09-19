@@ -1,51 +1,12 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, X, TrendingUp, Building2, Layers, Hash } from 'lucide-react';
-import { INDICES, STOCKS } from '../lib/psxMarket';
-
-interface SearchResult {
-  id: string;
-  type: 'stock' | 'company' | 'sector' | 'index';
-  symbol: string;
-  name: string;
-  sub?: string;
-}
+import { Search, X, TrendingUp, Layers, Hash } from 'lucide-react';
+import { POPULAR_SEARCHES, searchGlobal, type SearchResult } from '../lib/searchService';
 
 interface GlobalSearchProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-// Real PSX search universe, built from the single source of truth in
-// `lib/psxMarket.ts` (same tickers the market/movers/screener pages use).
-// Stocks/companies open the live stock dashboard; sectors/indices open their
-// dedicated pages. No fabricated quote values are shown here — only symbols
-// and names, so the search never displays a made-up price.
-const searchUniverse: SearchResult[] = [
-  ...STOCKS.map((s) => ({
-    id: `stock-${s.symbol}`,
-    type: 'stock' as const,
-    symbol: s.symbol,
-    name: s.name,
-    sub: s.sector,
-  })),
-  ...INDICES.map((ix) => ({
-    id: `index-${ix.symbol}`,
-    type: 'index' as const,
-    symbol: ix.symbol,
-    name: ix.name,
-  })),
-  ...[...new Set(STOCKS.map((s) => s.sector))].map((sector) => ({
-    id: `sector-${sector}`,
-    type: 'sector' as const,
-    symbol: sector,
-    name: `${sector} sector`,
-  })),
-];
-
-const POPULAR = ['OGDC', 'LUCK', 'HBL', 'MEBL', 'SYS', 'PSO']
-  .map((sym) => searchUniverse.find((r) => r.type === 'stock' && r.symbol === sym))
-  .filter((r): r is SearchResult => Boolean(r));
 
 export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
   const navigate = useNavigate();
@@ -79,23 +40,6 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
     };
   }, [isOpen, onClose]);
 
-  // Client-side filter over the real PSX universe. Results are capped so a
-  // single-letter query ("S") can't render a wall of rows.
-  const filterUniverse = useMemo(
-    () => (q: string) => {
-      const needle = q.trim().toLowerCase();
-      if (!needle) return [];
-      return searchUniverse
-        .filter(
-          (item) =>
-            item.symbol.toLowerCase().includes(needle) ||
-            item.name.toLowerCase().includes(needle)
-        )
-        .slice(0, 40);
-    },
-    []
-  );
-
   const handleSearch = (searchQuery: string) => {
     setQuery(searchQuery);
     setIsLoading(true);
@@ -103,7 +47,7 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
     // Brief debounce keeps the autocomplete from thrashing while typing; the
     // search itself is local and instant, so this is presentation only.
     setTimeout(() => {
-      setResults(filterUniverse(searchQuery));
+      setResults(searchGlobal(searchQuery));
       setSelectedIndex(0);
       setIsLoading(false);
     }, 120);
@@ -128,7 +72,6 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
     // Navigate to the right page based on result type
     const routeMap = {
       stock: `/stock/${result.symbol}`,
-      company: `/stock/${result.symbol}`,
       sector: `/market?sector=${result.symbol}`,
       index: `/index/${result.symbol}`,
     };
@@ -140,8 +83,6 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
     switch (type) {
       case 'stock':
         return <TrendingUp size={16} />;
-      case 'company':
-        return <Building2 size={16} />;
       case 'sector':
         return <Layers size={16} />;
       case 'index':
@@ -155,8 +96,6 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
     switch (type) {
       case 'stock':
         return 'text-green-500';
-      case 'company':
-        return 'text-blue-500';
       case 'sector':
         return 'text-purple-500';
       case 'index':
@@ -203,7 +142,7 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
             <div className="global-search-hints">
               <p className="global-search-hints-title">Popular Searches</p>
               <div className="global-search-hints-list">
-                {POPULAR.map((result) => (
+                {POPULAR_SEARCHES.map((result) => (
                   <button
                     key={result.id}
                     onClick={() => handleSelectResult(result)}
@@ -231,7 +170,7 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                     <div className="global-search-result-symbol">{result.symbol}</div>
                     <div className="global-search-result-name">
                       {result.name}
-                      {result.sub ? ` · ${result.sub}` : ''}
+                      {result.sector ? ` · ${result.sector}` : ''}
                     </div>
                   </div>
                 </button>

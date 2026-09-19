@@ -206,7 +206,7 @@ function WidgetFrameInner({ widget, children }: WidgetFrameProps) {
           <span className="ws-widget-menu" data-widget-menu>
             <WidgetMenu widget={widget} />
           </span>
-          {bounds.minSize.w > 0 && (
+          {descriptor.removable && (
             <button type="button" className="ws-ctl" onClick={onClose} aria-label={`Close ${descriptor.name}`} title="Close (removes from layout)">
               <X size={13} aria-hidden />
             </button>

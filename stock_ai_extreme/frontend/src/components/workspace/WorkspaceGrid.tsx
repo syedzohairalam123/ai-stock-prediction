@@ -116,11 +116,14 @@ function WorkspaceGridInner() {
             x: maximized ? 0 : w.x,
             y: maximized ? 0 : w.y,
             w: maximized ? GRID_COLS : w.width,
-            h: maximized ? 24 : w.height,
-            minW: bounds.minSize.w,
-            minH: bounds.minSize.h,
+            // Keep the real size in the store while rendering a compact row.
+            // onLayoutChange ignores this synthetic height, so restoring a
+            // minimized widget returns it to its previous dimensions.
+            h: maximized ? 24 : w.minimized ? 1 : w.height,
+            minW: w.minimized || maximized ? 1 : bounds.minSize.w,
+            minH: w.minimized || maximized ? 1 : bounds.minSize.h,
             // Maximized widgets are pinned; everything else stays editable.
-            static: maximized,
+            static: maximized || w.minimized || !descriptorFor(w.type).resizable,
           };
         }),
     [gridWidgets, maximizedId]
@@ -134,6 +137,7 @@ function WorkspaceGridInner() {
       for (const w of widgets) {
         const item = byId.get(w.id);
         if (!item) continue;
+        if (w.maximized || w.minimized) continue;
         if (w.x !== item.x || w.y !== item.y) moveWidgetTo(w.id, item.x, item.y);
         else if (w.width !== item.w || w.height !== item.h) resizeWidgetTo(w.id, { w: item.w, h: item.h });
       }

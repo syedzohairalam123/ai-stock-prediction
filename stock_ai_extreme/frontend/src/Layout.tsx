@@ -6,6 +6,8 @@ import RouteFallback from "./components/RouteFallback";
 import { AIAssistantPanel } from "./components/ai/AIAssistantPanel";
 import { useAIStore } from "./store/useAIStore";
 import { useSettingsStore, useUIStore } from "./store/useStore";
+import SearchWatchlistSidebar from "./components/SearchWatchlistSidebar";
+import { useSearchSidebarStore } from "./store/useSearchSidebarStore";
 
 export default function Layout() {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -13,6 +15,8 @@ export default function Layout() {
   const setTheme = useSettingsStore((s) => s.setTheme);
   const mobileMenuOpen = useUIStore((s) => s.mobileMenuOpen);
   const setMobileMenuOpen = useUIStore((s) => s.setMobileMenuOpen);
+  const searchSidebarOpen = useSearchSidebarStore((s) => s.open);
+  const searchSidebarWidth = useSearchSidebarStore((s) => s.width);
 
   // Phase 10: when the assistant rail is open the page gets a gutter so no
   // content hides underneath it. Expanded mode overlays instead (it is a
@@ -32,7 +36,7 @@ export default function Layout() {
   }, [aiPanelOpen]);
 
   return (
-    <div className={`psx-app${aiDocked ? " ai-docked" : ""}`}>
+    <div className={`psx-app${aiDocked ? " ai-docked" : ""}${searchSidebarOpen ? " search-sidebar-open" : ""}`} style={{ "--search-sidebar-width": `${searchSidebarWidth}px` } as React.CSSProperties}>
       <PSXHeader
         theme={theme}
         toggleTheme={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -41,6 +45,7 @@ export default function Layout() {
         onSearchOpen={() => setSearchOpen(true)}
       />
       <GlobalSearch isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+      <SearchWatchlistSidebar />
       <main className="psx-main">
         {/* Pages are code-split; keep the shell mounted while a chunk loads. */}
         <Suspense fallback={<RouteFallback />}>
