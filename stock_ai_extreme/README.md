@@ -536,3 +536,368 @@ npm run preview        # local preview of the built bundle
 cd stock_ai_extreme/backend
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
 ```
+
+## Phase 7 — Advanced Forex & Commodities Market Data Center
+
+A new cross-market page (`/forex-commodities`, in the main nav) covering the eight required
+currencies and the four required metal purities. Nothing was removed and no earlier phase
+changed behaviour.
+
+**Real sources, no keys required.** Two genuine feeds sit behind one small provider module
+(`backend/app/providers/fx_rates.py`):
+
+| Source | What it provides | Cost |
+|---|---|---|
+| Yahoo Finance (via `yfinance`) | live FX **bid/ask** for all eight PKR crosses (`USDPKR=X`, `GBPPKR=X`, …) and the COMEX front-month metals (`GC=F`, `SI=F`, `PL=F`) | free, no key |
+| ExchangeRate-API open endpoint | 166 currencies incl. PKR/AED/SAR, published **once a day** — used only as a labelled fallback | free, no key |
+
+**Forex module (`backend/app/forex.py`, `ForexQuote`).** Each pair is quoted as `<CURRENCY>/PKR` with
+`bid`, `ask`, `mid = (bid+ask)/2`, `spread`, `spread %`, `change`, `change %`, the source's own
+timestamp, `source` and a `data_mode`. Validation matters more than it sounds: Yahoo really does
+return bid/ask **inverted** (bid > ask) for USD-quoted majors such as `EURUSD=X`. Those levels are
+**rejected outright** with the reason attached (`bid_ask_note`) instead of being shown as a negative
+spread, and `mid` falls back to the source's own traded price. Missing, zero, negative, `NaN` and
+`Infinity` sides are dropped individually; `bid`/`ask` stay `null` and the UI renders `—`.
+
+**Commodities module (`backend/app/commodities_pk.py`, `CommodityQuote`).** Gold 24K, Gold 22K, Silver
+and Platinum in PKR. No free, keyless API publishes the Karachi Sarafa Association board, so this is
+a **derivation from real inputs**, never a pretend feed:
+
+```
+price(PKR per unit) = (USD per troy ounce ÷ 31.1034768) × USD/PKR × grams_per_unit × purity_ratio
+22K gold = 24K × 22/24          tola = 11.6638125 g          10-gram and tola are separate rows
+```
+
+Every row carries an explicit unit (`PKR per gram`, `PKR per 10 gram`, `PKR per tola`) — per-gram and
+per-tola values are separate rows, never silently mixed. The response also returns the inputs it used
+(contract, USD/troy-oz, previous close, bid/ask, the USD/PKR leg with its source and timestamp) and
+states plainly that this is **not** the local retail board: retail adds dealer premiums, making
+charges and taxes, so shops are usually higher.
+
+**Freshness (spec O) and data modes (spec G).** `get_data_freshness()` returns FRESH/AGING/STALE/UNKNOWN
+against **configurable** thresholds (`FX_LIVE_THRESHOLD_SECONDS`, `FX_AGING_THRESHOLD_SECONDS`,
+`FX_STALE_THRESHOLD_SECONDS`), and `data_mode` is LIVE/DELAYED/DEMO/UNAVAILABLE. Two honesty rules are
+enforced in code: a source that publishes **daily can never be LIVE**, and a quote older than the
+stale window becomes **UNAVAILABLE** rather than being presented as a current rate. In practice the PKR
+crosses carry a timestamp from that morning's interbank open, so they correctly render **Delayed ·
+Aging** while the metals futures show **Live · Fresh** — the page reports what each feed actually is.
+
+**Frontend.** `lib/forexCommodities.ts` holds the types, validation, the freshness utility and the only
+place endpoint strings live (`ForexService` / `CommodityService`, with `getForexQuotes`,
+`getForexQuote`, `getCommodityQuotes`, `getCommodityQuote`, `refreshMarketRates`). The page itself adds:
+debounced search (USD / US Dollar / USD-PKR all match), sorting on **raw numeric values** with nulls
+sinking to the bottom, a manual Refresh plus an opt-in 60 s auto-refresh that is always torn down, a
+market-state/data-source pill per row that is visible at every breakpoint, metal cards with purity,
+unit-explicit prices, a 30-session sparkline built from real daily closes × the matching day's
+USD/PKR, and an expandable derivation panel. Forex and commodities are **independent sections**:
+an outage in one cannot blank out the other. Movement is always sign + arrow icon + the word up/down,
+never colour alone.
+
+**A project-wide mobile fix came out of this phase.** `frontend/index.html` had no doctype, `<head>` or
+viewport meta tag, so a real phone fell back to a ~980 px layout viewport and zoomed the whole terminal
+out — which also meant no `max-width` media query ever matched on mobile. Added
+`<meta name="viewport" content="width=device-width, initial-scale=1">` (plus charset, title,
+description). Verified by emulation: at 390 px the viewport is now 390 px, the card grid collapses to
+a single column, and the forex grid scrolls inside its own container with a sticky currency column
+instead of pushing the page sideways.
+
+**Testing.** 60 new backend tests (`tests/test_forex.py`, `tests/test_commodities_pk.py`) — all network
+mocked at the provider seam — covering a valid quote, missing bid, missing ask, zero/negative/NaN
+sides, inverted bid/ask, positive and negative change, stale and undated timestamps, invalid currency
+codes, an unknown unit, a daily source never being LIVE, a total outage yielding UNAVAILABLE instead of
+a number, and the tola/10-gram/22K conversions. Full suite: **324 passing**.
+
+**Honest limitations, stated rather than hidden:** Yahoo publishes no spot metal symbol (`XAUUSD=X`
+returns nothing), so the international leg is the COMEX front-month futures contract and is labelled as
+such. PKR crosses are illiquid and their timestamps can be hours old, which the freshness states report
+rather than paper over. Swapping in a licensed feed (or the official PSX Data Portal) means writing one
+provider and pointing the module at it.
+
+## Phase 8 addendum — the News Desk actually works now (this pass)
+
+The previous pass shipped Phase 8's *files*, and its own summary said it was
+"100% complete". It was not: **the backend did not import at all**, so no news
+feature had ever run. This pass fixed that and then built the newsroom out
+properly. Nothing was removed — every prior phase is untouched.
+
+**The blockers, found and fixed (these were real, not style nits):**
+
+| # | What was broken | Why it mattered |
+|---|---|---|
+| 1 | `news_service.py` did `from .db import get_db` — a function that has never existed | `main.py` imports this module at startup, so **the entire FastAPI app failed with `ImportError`**. Nothing in the project could run. |
+| 2 | `main.py` used `NewsArticle`, `func`, `desc`, `or_`, `and_` without importing any of them | Every one of the 8 news routes raised `NameError` → HTTP 500. `GET /api/news/categories` could never have returned 200. |
+| 3 | `aggregate_and_store` used `next(get_db())` with no such symbol | The refresh route was dead even after fixing the import. Now uses the existing `session_scope()`. |
+| 4 | `test_news_service.py` referenced `client` / `test_db` fixtures that do not exist | 5 tests errored on collection, so **none of the Phase 8 tests had ever executed**. The "tests pass" claim rested on them. |
+| 5 | The news desk only read from `NewsArticle`, which starts empty | A fresh install showed an empty newsroom until someone pressed Refresh — and without NewsAPI/Finnhub/Alpha Vantage keys, Refresh stayed empty too. |
+
+**What was added (nothing removed):**
+
+* **`news_sources.py` — keyless real publisher feeds.** 15 enabled RSS/Atom
+  feeds that need no key and no account: Dawn Business, The Express Tribune
+  Business, Google News queries scoped to PSX / KSE-100 / SBP / SECP / the
+  rupee / gold and the Pakistan economy, plus BBC Business, CNBC Markets, WSJ
+  Markets, Yahoo Finance and Investing.com. A hardened parser (DTD/entity
+  declarations rejected, response size capped, RSS 2.0 **and** Atom, two-digit
+  RFC-822 years, namespace-insensitive tags, media/enclosure/`<img>` image
+  extraction, Google News publisher attribution, placeholder-address bylines
+  cleaned) with **honest per-feed status**: `OK` / `EMPTY` / `ERROR` +
+  HTTP code + reason, or `DISABLED` with the reason kept. Business Recorder is
+  retained and reported as `DISABLED` (it answers this server with 403) rather
+  than deleted — a real coverage gap should be visible, not hidden.
+  Verified live: **~960–1,200 articles per ingest from 15/15 feeds.**
+* **`news_analytics.py` — the analysis engine, all pure stdlib.**
+  * **MinHash + LSH near-duplicate detection** (24-row signatures, 6 bands of 4)
+    and 64-bit **SimHash**. SimHash alone is *not* sufficient here and the module
+    measures why: on a 40-shingle article a one-word edit moves the SimHash
+    fingerprint ~11 bits — indistinguishable from an unrelated story at ~26–39
+    bits — while the MinHash Jaccard estimate stays above 0.5 and identical text
+    scores 1.0. Ingestion therefore gates on the signature. Real effect:
+    ~33 near-duplicates caught per ingest that URL-only de-duplication missed.
+  * **BM25 Okapi ranking** (k1=1.2, b=0.75) with headline field-boosting and
+    conservative fuzzy term expansion via the indexed vocabulary.
+  * **TF-IDF keyword extraction** with IDF computed over the live corpus.
+  * **Entity linking validated against the real PSX universe** — a bare token is
+    only accepted if it is in `symbols.PSX_SYMBOLS`, so the feed never produces
+    a ticker link for a company the terminal cannot price (spec H). Company
+    names resolve through an alias table that a test asserts maps only to real
+    symbols.
+  * **Event classification** (dividend, earnings, M&A, rights, regulatory,
+    monetary policy, macro data, insider, contract, rating, legal, management,
+    market update) and a **transparent 0–100 impact score** whose five weighted
+    components are returned with the total, so the ranking is inspectable.
+  * **Story clustering** — agglomerative TF-IDF cosine grouping, threshold 0.3
+    chosen against a live corpus (0.22 merged unrelated syndicated round-ups;
+    0.45 split genuinely-same stories).
+  * **Time-decayed trending** — `0.5 ** (age / half-life)` mentions, so six
+    mentions this morning outrank forty from last week.
+* **`models.py` + `db.py`** — new `news_articles` columns (`data_mode`,
+  `event_type`, `impact_score`, `keywords`, `entities`, `topics`, `simhash`,
+  `shingle_signature`, `word_count`, `reading_time_minutes`, `feed_key`) plus an
+  **append-only `ALTER TABLE ADD COLUMN` migration** in `init_db()`, because
+  `create_all()` never alters an existing table and the pre-existing
+  `neural_market.db` would otherwise fail on the first query. Conservative by
+  design: it never drops, renames or retypes, and skips a non-nullable column it
+  cannot supply a scalar default for rather than inventing values.
+* **`news_service.py`** — RSS + symbol-scoped ingestion, the enrichment
+  pipeline, the duplicate report (stored / duplicate_url / duplicate_title /
+  near_duplicate / failed), real de-duplication, and **every HTTP call moved off
+  the event loop** via `asyncio.to_thread` (the previous version did blocking
+  `httpx` inside `async def`, stalling the API on any slow publisher).
+* **`jobs.py`** — automatic ingestion on the existing background loop, throttled
+  by `NEWS_REFRESH_INTERVAL_SECONDS` (30 min), so the desk fills itself instead
+  of waiting for a button. A failed ingest deliberately does **not** consume the
+  interval, so the next tick retries.
+* **`main.py` routes** — relevance-ranked `POST /api/news/search` (sort by
+  `recent` / `impact` / `relevance`, plus `event_type`, `priority`, `min_impact`
+  and a `date_to` that includes the whole day), hero chosen by impact score with
+  a stated empty reason, `by-symbol` with a **live publisher fallback**, and four
+  new endpoints: `GET /api/news/trending`, `POST /api/news/clusters`,
+  `GET /api/news/{id}/related`, `GET /api/news/stats`, `GET /api/news/sources`.
+  Search also matches hyphen/space-insensitive forms, so `kse100` finds `KSE-100`
+  and `s&p500` finds `S&P 500`, and falls back to fuzzy BM25 ranking when a
+  literal substring match finds nothing (`dividnd` → 13 real results).
+* **`GET /api/news/image`** — an **allow-listed** image proxy used only as a
+  retry after a direct browser load fails (some CDNs 403 a cross-origin `<img>`
+  but serve a server request). https only, hostname must match a fixed list, no
+  credentials and no custom port, image content-type required, body size-capped,
+  cached. A non-allow-listed URL is refused *before* any request is made —
+  verified: `evil.example.com` and `http://127.0.0.1:8000/...` both return 400
+  with no outbound call.
+
+**Frontend:** `SafeImage` (lazy loading, reserved aspect-ratio box, a
+one-shot proxy retry, and a session memo so a host that has already refused both
+paths is not re-attempted on every render), shared news metadata components, a
+`TrendingStrip`, `StoryClusters` (with the terms that define each group, so the
+grouping is inspectable), a `NewsSourceHealth` panel showing the real HTTP
+result per feed, sort controls, a refresh result line, and **`RelatedNews` wired
+into the stock detail page** (spec I) — it existed before but was never imported
+anywhere. Ticker links are validated against the terminal's own universe and
+render as inert text when unknown, and every freshness/sentiment state carries a
+word or symbol as well as a colour.
+
+**Testing:** **519 backend tests** (up from 328 passing + 5 erroring) — new
+`test_news_analytics.py` (72 tests over MinHash/SimHash/BM25/TF-IDF/entities/
+impact/clustering/trending), `test_news_sources.py` (42 tests over RSS + Atom
+parsing, date formats, unsafe-XML rejection, author cleanup and every
+`OK`/`EMPTY`/`ERROR`/`DISABLED` path with a stubbed client) and
+`test_news_image_proxy.py` (34 tests over the SSRF guard, content-type and size
+limits, route status mapping, and the throttled background job). The previously
+non-running `test_news_service.py` was repaired **and extended** (30 tests, incl.
+de-duplication and freshness windows). Frontend: `npx tsc --noEmit` clean,
+`npm run build` succeeds.
+
+**Verification actually performed (not asserted):** a live backend and frontend
+on localhost, ingesting from real feeds and rendering the page in headless
+Chrome. Confirmed against real data: the hero carried a real Dawn headline with
+its image, excerpt and keywords; trending listed real entities (`monetary-policy`
+×23, `PPL` ×17, `inflation` ×15, `KSE100` ×8, `SYS` ×6); story clusters grouped
+the SBP policy-rate decision across 8 outlets; source health reported 15/15 live
+with per-feed HTTP 200 and item counts; `/api/news/by-symbol/OGDC` returned real
+OGDC coverage; and `/stock/OGDC` rendered its related-news block (the page-audit
+harness reports that route `ok`).
+
+**Known limitations, stated rather than hidden:**
+
+* A handful of publisher CDNs (notably `content-media.investing.com`) refuse the
+  image request from *both* the browser and this server, so those thumbnails fall
+  back to a labelled placeholder. The console still records the browser's 403
+  because it is the browser making that request — the app cannot suppress it
+  without proxying *every* image, which is not worth the bandwidth. About 7% of
+  current articles are affected; the layout and the article link are unaffected.
+  (The `page-audit.mjs` harness flags any failed request, including third-party
+  ones, so `/news` reports a failure for exactly this reason.)
+* Business Recorder, SBP and SECP answer this server with HTTP 403. Their content
+  is still covered through the Google News queries against their own published
+  headlines, and the feeds themselves are reported as `DISABLED` with the reason.
+* RSS items are headline + lede only. Deeper full-text extraction was not added:
+  it is a scraping problem with per-publisher rules, and the honest choice was
+  not to ship it half-done.
+* Index-level PSX data (KSE-100 etc.) remains the previously documented demo
+  dataset — that limitation is unchanged by this pass.
+
+### Run the Phase 8 addendum
+
+```bash
+# backend (feeds need no keys — the desk is non-empty out of the box)
+cd stock_ai_extreme/backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+
+# first ingest happens on its own (30 min); trigger it immediately with:
+curl -X POST http://127.0.0.1:8000/api/news/refresh
+
+# frontend
+cd ../frontend && npm install && npm run dev   # http://localhost:5173/news
+```
+
+Useful checks while it runs:
+
+```bash
+curl -s http://127.0.0.1:8000/api/news/sources   # real per-feed health
+curl -s http://127.0.0.1:8000/api/news/stats     # corpus statistics
+curl -s "http://127.0.0.1:8000/api/news/trending?window_hours=72"
+curl -s -X POST http://127.0.0.1:8000/api/news/clusters -H 'content-type: application/json' -d '{}'
+curl -s "http://127.0.0.1:8000/api/news/by-symbol/OGDC?limit=5"
+```
+
+New configuration (all optional, see `backend/.env.example`):
+`NEWS_RSS_ENABLED`, `NEWS_DEFAULT_REGION`, `NEWS_FETCH_CONCURRENCY`,
+`NEWS_REFRESH_INTERVAL_SECONDS`, `NEWS_SYMBOL_WATCHLIST`, `NEWS_SYMBOL_MAX`,
+`NEWS_DEDUPE_SCAN_LIMIT`, `NEWS_MINHASH_ROWS`, `NEWS_MINHASH_BAND_ROWS`,
+`NEWS_DEDUPE_JACCARD_THRESHOLD`, `NEWS_SIMHASH_BANDS`,
+`NEWS_SIMHASH_HAMMING_THRESHOLD`, `NEWS_SEARCH_TITLE_BOOST`, `NEWS_SEARCH_FUZZY`.
+
+## Phase 10 — Context-Aware AI Financial Assistant
+
+The assistant is a real chat surface, not a log console:
+
+* **Desktop** — a docked right rail (the page takes a gutter so nothing hides
+  behind it); **mobile** — a full-screen sheet with a keyboard-safe composer.
+* **Context chips** above the thread show what the assistant can see
+  (page, symbol/index, timeframe, session window, data families), and
+  "What is sent" spells out exactly what will be attached to the next question.
+* **Answers** render structured markdown, label every statement as
+  FACT / CALCULATION / INTERPRETATION / ESTIMATE / USER-SUPPLIED, list the
+  sources they used, and offer Copy and Retry.
+* **Streaming** with a Stop button that keeps the partial answer; errors always
+  resolve into a card with an action — never an endless spinner.
+* **Conversations** are stored server-side with search, rename, delete and
+  day grouping; agent task history is recorded separately.
+* **Voice input** uses the browser's speech recognition and states plainly when
+  the browser does not support it.
+
+```bash
+# backend: choose a provider and set its key
+cd stock_ai_extreme/backend
+#   AI_PROVIDER=openai        OPENAI_API_KEY=...
+#   AI_PROVIDER=openrouter    OPENROUTER_API_KEY=...
+#   AI_PROVIDER=anthropic     ANTHROPIC_API_KEY=...
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+
+# frontend
+cd ../frontend && npm install && npm run dev   # look for “Ask the assistant”
+```
+
+With no key set the assistant reports “not configured” and explains how to fix
+it; every other page keeps working. If the API itself is down the panel says so
+instead — a stopped backend is not blamed on a missing key.
+
+```bash
+# audit the assistant in a real browser (backend + dev server must be running,
+# Chrome launched with --remote-debugging-port=9222) — 63 checks, screenshots
+cd stock_ai_extreme/frontend && node scripts/assistant-audit.mjs
+```
+
+Full architecture, endpoints, context model and test results:
+[`PHASE_10_AI_ASSISTANT.md`](PHASE_10_AI_ASSISTANT.md).
+
+---
+
+## Phase 11 — Professional Charting & Technical Analysis Engine
+
+The existing chart is now a **multi-panel technical-analysis workspace** at
+`/charts`. Nothing from Phases 1–10 was removed, and no new charting library was
+introduced — it is built on the `plotly.js` / `react-plotly.js` pair and the
+project's existing `zustand` + `persist` store, React Query layer, timeframe
+system and market-data services.
+
+**Workspace.** Two independent panels — **Chart A** and **Chart B** — that can be
+viewed one at a time or stacked (single / split). Each panel owns its symbol,
+timeframe, chart style, indicators, drawings, price levels, viewport and display
+settings, so changing one never disturbs the other. On mobile the workspace shows
+exactly one panel with an explicit A/B switcher, and the drawing tools stay
+usable with touch input.
+
+**Chart styles.** Candlestick, volume candlesticks and line. Switching style
+preserves the symbol, timeframe, viewport, indicators, drawings and price levels.
+
+**Data.** Every candle passes through one normalizer that rejects malformed rows,
+collapses duplicate timestamps, re-sorts out-of-order bars, repairs incoherent
+OHLC relationships and records a missing volume as *missing* rather than zero —
+starting from real provider data (the market-history API for stocks, the PSX
+index series for indices). The panel states its source, its freshness and whether
+the normalizer had to clean anything; nothing is fabricated to fill a gap.
+
+**Indicators.** SMA 20, SMA 50, EMA 20 (configurable period), VWAP and Bollinger
+Bands 20/2 (configurable multiplier). SMA 20 and SMA 50 start on; the rest start
+off. Calculations are pure, memoized, and never run inside a render. Indicators
+that a dataset cannot support say so — on daily bars VWAP reports
+“VWAP unavailable for this dataset” instead of inventing a number. The legend and
+the crosshair readout show live values at the hovered bar, and insufficient
+history is labelled rather than drawn.
+
+**Charting tools.** Five drawing primitives — trend line, rectangle, circle,
+parabola, semicircle — plus five price-level types: support, resistance, entry,
+stop loss and target. Everything is stored in **data space** (time + price), never
+as screen pixels, so a drawing or a level stays exactly where it belongs through
+zoom, resize, timeframe changes and viewport moves. Drawings can be created,
+moved, reshaped, hidden, locked, deleted or cleared, with per-chart undo/redo
+(60 steps). A professional crosshair readout reports date/time, OHLCV and the
+active indicators, and any chart can go fullscreen with its state intact.
+
+**Persistence.** Layout, active panel, per-chart configuration, indicators,
+drawings, price levels and the saved zoom window survive a reload through the
+project's existing persistence architecture. A stored zoom is only re-applied
+when it still matches the exact dataset it was captured for.
+
+**Verification** (both harnesses are committed):
+
+```bash
+cd stock_ai_extreme/frontend
+node scripts/chart-engine-test.mjs     # 178 pure-engine assertions, no browser
+npx tsc --noEmit && npm run build      # typecheck + production build
+
+# audit the workspace in a real browser (dev server on :5173, Chrome launched
+# with --remote-debugging-port=9222) — 95 checks, real input events, screenshots
+node scripts/chart-audit.mjs
+```
+
+Two real defects were found and fixed while verifying: a Plotly `purge` /
+React-cleanup ordering race that threw from a passive unmount and blanked the
+whole workspace whenever a panel was unmounted (split → single, switching to
+mobile), and the footer's “Charts” link, which never navigated because it used a
+hash href under a `BrowserRouter`.
+
+Full architecture, data models, maths, bug analysis and test results:
+[`PHASE_11_COMPLETE.md`](PHASE_11_COMPLETE.md).

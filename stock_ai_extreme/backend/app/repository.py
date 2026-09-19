@@ -44,20 +44,67 @@ def get_prediction_history(ticker: str, limit: int = 50) -> list[dict]:
 
 
 def list_watchlist() -> list[dict]:
+    """Watchlist rows in display order: manually reordered rows first
+    (sort_order > 0, ascending), then never-reordered rows by add time."""
     with session_scope() as db:
-        rows = db.execute(select(WatchlistItem).order_by(WatchlistItem.added_at.asc())).scalars().all()
-        return [{"id": r.id, "ticker": r.ticker, "note": r.note, "added_at": r.added_at.isoformat()} for r in rows]
+        rows = db.execute(
+            select(WatchlistItem).order_by(WatchlistItem.sort_order.asc(), WatchlistItem.added_at.asc())
+        ).scalars().all()
+        return [_watchlist_to_dict(r) for r in rows]
+
+
+def _watchlist_to_dict(r: WatchlistItem) -> dict:
+    return {
+        "id": r.id,
+        "ticker": r.ticker,
+        "note": r.note,
+        "added_at": r.added_at.isoformat(),
+        "sort_order": r.sort_order,
+    }
 
 
 def add_to_watchlist(ticker: str, note: str | None = None) -> dict:
     with session_scope() as db:
-        item = WatchlistItem(ticker=ticker.upper(), note=note)
+        item = WatchlistItem(ticker=ticker.upper(), note=note, sort_order=0)
         db.add(item)
         try:
             db.flush()
         except IntegrityError as exc:
             raise ValueError(f"{ticker.upper()} is already on the watchlist.") from exc
-        return {"id": item.id, "ticker": item.ticker, "note": item.note, "added_at": item.added_at.isoformat()}
+        return _watchlist_to_dict(item)
+
+
+def reorder_watchlist(ordered_ids: list[int]) -> list[dict]:
+    """Persist a manual order: ids get sort_order 1..n in list order.
+    Unknown ids are ignored rather than erroring (the UI always sends the
+    current list). Returns the full watchlist in its new display order."""
+    with session_scope() as db:
+        rows = db.execute(select(WatchlistItem)).scalars().all()
+        by_id = {r.id: r for r in rows}
+        position = 0
+        for wid in ordered_ids:
+            row = by_id.get(int(wid))
+            if row is not None:
+                position += 1
+                row.sort_order = position
+    # Read back only after the ordering transaction has committed — reading
+    # inside the session returned the pre-commit state (SQLite snapshot),
+    # which made the reorder appear to silently do nothing.
+    return list_watchlist()
+
+
+def update_watchlist_note(ticker: str, note: str | None) -> dict | None:
+    """Set (or clear, with empty string) the note on a watchlist item.
+    Returns the updated row, or None if the ticker isn't on the list."""
+    with session_scope() as db:
+        row = db.execute(
+            select(WatchlistItem).where(WatchlistItem.ticker == ticker.upper())
+        ).scalar_one_or_none()
+        if row is None:
+            return None
+        row.note = (note or None)
+        db.flush()
+        return _watchlist_to_dict(row)
 
 
 def remove_from_watchlist(ticker: str) -> bool:
@@ -195,4 +242,142 @@ def _holding_to_dict(h: PortfolioHolding) -> dict:
     return {
         "id": h.id, "ticker": h.ticker, "shares": h.shares, "avg_cost": h.avg_cost,
         "note": h.note, "created_at": h.created_at.isoformat(), "updated_at": h.updated_at.isoformat(),
+    }
+
+
+# Phase 9 — Transaction management for portfolio tracking
+
+def create_transaction(symbol: str, transaction_type: str, quantity: float, price: float,
+                      fees: float, transaction_date, notes: str | None = None,
+                      broker: str | None = None, account: str | None = None,
+                      user_id: str | None = None) -> dict:
+    """Create a new BUY or SELL transaction."""
+    from .models import Transaction
+    
+    # Calculate total amount
+    if transaction_type.upper() == "BUY":
+        total_amount = (quantity * price) + fees
+    else:  # SELL
+        total_amount = (quantity * price) - fees
+    
+    with session_scope() as db:
+        tx = Transaction(
+            user_id=user_id,
+            symbol=symbol.upper(),
+            transaction_type=transaction_type.upper(),
+            quantity=quantity,
+            price=price,
+            fees=fees,
+            total_amount=total_amount,
+            transaction_date=transaction_date,
+            notes=notes,
+            broker=broker,
+            account=account
+        )
+        db.add(tx)
+        db.flush()
+        return _transaction_to_dict(tx)
+
+
+def list_transactions(symbol: str | None = None, transaction_type: str | None = None,
+                     user_id: str | None = None, limit: int = 500,
+                     date_from=None, date_to=None) -> list[dict]:
+    """List transactions with optional filtering.
+
+    date_from/date_to are inclusive date bounds (accept anything
+    ``datetime.fromisoformat`` parses); the comparison is on the transaction
+    date itself so a from/to pair returns every transaction on both endpoint
+    days. Spec M requires BUY/SELL + symbol + date filtering.
+    """
+    from .models import Transaction
+    from datetime import datetime, time, timezone
+
+    with session_scope() as db:
+        stmt = select(Transaction)
+
+        if symbol:
+            stmt = stmt.where(Transaction.symbol == symbol.upper())
+        if transaction_type:
+            stmt = stmt.where(Transaction.transaction_type == transaction_type.upper())
+        if user_id:
+            stmt = stmt.where(Transaction.user_id == user_id)
+        if date_from is not None:
+            d = datetime.fromisoformat(str(date_from))
+            stmt = stmt.where(Transaction.transaction_date >= datetime.combine(d.date() if hasattr(d, "date") else d, time.min, tzinfo=timezone.utc))
+        if date_to is not None:
+            d = datetime.fromisoformat(str(date_to))
+            stmt = stmt.where(Transaction.transaction_date <= datetime.combine(d.date() if hasattr(d, "date") else d, time.max, tzinfo=timezone.utc))
+
+        rows = db.execute(
+            stmt.order_by(Transaction.transaction_date.desc()).limit(max(1, min(int(limit), 2000)))
+        ).scalars().all()
+
+        return [_transaction_to_dict(tx) for tx in rows]
+
+
+def get_transaction(transaction_id: int) -> dict | None:
+    """Get a single transaction by ID."""
+    from .models import Transaction
+    
+    with session_scope() as db:
+        tx = db.get(Transaction, transaction_id)
+        return _transaction_to_dict(tx) if tx else None
+
+
+def delete_transaction(transaction_id: int) -> bool:
+    """Delete a transaction."""
+    from .models import Transaction
+    
+    with session_scope() as db:
+        result = db.execute(delete(Transaction).where(Transaction.id == transaction_id))
+        return result.rowcount > 0
+
+
+def update_transaction(transaction_id: int, quantity: float | None = None,
+                      price: float | None = None, fees: float | None = None,
+                      notes: str | None = None) -> dict | None:
+    """Update a transaction."""
+    from .models import Transaction
+    
+    with session_scope() as db:
+        tx = db.get(Transaction, transaction_id)
+        if tx is None:
+            return None
+        
+        if quantity is not None:
+            tx.quantity = quantity
+        if price is not None:
+            tx.price = price
+        if fees is not None:
+            tx.fees = fees
+        if notes is not None:
+            tx.notes = notes or None
+        
+        # Recalculate total amount
+        if tx.transaction_type == "BUY":
+            tx.total_amount = (tx.quantity * tx.price) + tx.fees
+        else:
+            tx.total_amount = (tx.quantity * tx.price) - tx.fees
+        
+        db.flush()
+        return _transaction_to_dict(tx)
+
+
+def _transaction_to_dict(tx) -> dict:
+    """Convert Transaction model to dict."""
+    return {
+        "id": tx.id,
+        "user_id": tx.user_id,
+        "symbol": tx.symbol,
+        "transaction_type": tx.transaction_type,
+        "quantity": tx.quantity,
+        "price": tx.price,
+        "fees": tx.fees,
+        "total_amount": tx.total_amount,
+        "transaction_date": tx.transaction_date.isoformat(),
+        "notes": tx.notes,
+        "broker": tx.broker,
+        "account": tx.account,
+        "created_at": tx.created_at.isoformat(),
+        "updated_at": tx.updated_at.isoformat()
     }

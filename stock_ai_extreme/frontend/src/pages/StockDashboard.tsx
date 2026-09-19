@@ -11,6 +11,7 @@ import AlertsPanel from "../components/AlertsPanel";
 import BriefingPanel from "../components/BriefingPanel";
 import DriftIndicator from "../components/DriftIndicator";
 import NewsPanel from "../components/NewsPanel";
+import RelatedNews from "../components/RelatedNews";
 import ShariahBadge from "../components/ShariahBadge";
 import MarketStatusBadge from "../components/MarketStatusBadge";
 import BaseButton from "../components/BaseButton";
@@ -418,6 +419,9 @@ export default function StockDashboard() {
       </section>
 
       <NewsPanel ticker={upperTicker} />
+      {/* Phase 8 spec I: news scoped to this ticker. The backend falls back to a
+          live publisher query when the stored corpus has nothing for it yet. */}
+      <RelatedNews symbol={upperTicker} limit={6} />
       <BacktestPanel ticker={upperTicker} />
       <BriefingPanel ticker={upperTicker} />
     </main>

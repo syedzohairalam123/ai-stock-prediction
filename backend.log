@@ -1,0 +1,948 @@
+background maintenance loop started (interval 300s)
+HTTP Request: GET https://tribune.com.pk/feed/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.dawn.com/feeds/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+bank+profit+deposits&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+economy+inflation+GDP&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22KSE-100%22+OR+KSE100&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22Pakistan+Stock+Exchange%22+OR+PSX&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=SECP+Pakistan+regulation&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+rupee+dollar+interbank+rate&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+gold+price+oil+commodities&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22State+Bank+of+Pakistan%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.bbci.co.uk/news/business/rss.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664 "HTTP/1.1 200 OK"
+HTTP Request: GET https://finance.yahoo.com/news/rssindex "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.investing.com/rss/news_25.rss "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.a.dj.com/rss/RSSMarketsMain.xml "HTTP/1.1 200 OK"
+{"event": "rss ingest: 954 article(s) from 15/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T11:57:31.579925Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+HTTP Request: GET https://news.google.com/rss/search?q=%22PPL%22+OR+%22Pakistan+Petroleum%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HBL%22+OR+%22Habib+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22OGDC%22+OR+%22Oil+and+Gas+Development+Company%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MCB%22+OR+%22MCB+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22UBL%22+OR+%22United+Bank+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22LUCK%22+OR+%22Lucky+Cement%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MEBL%22+OR+%22Meezan+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22PSO%22+OR+%22Pakistan+State+Oil%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22ENGRO%22+OR+%22Engro+Corporation%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22SYS%22+OR+%22Systems+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HUBC%22+OR+%22Hub+Power%22+OR+%22Hubco%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22FFC%22+OR+%22Fauji+Fertilizer%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MARI%22+OR+%22Mari+Petroleum%22+OR+%22Mari+Energies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22NETSOL%22+OR+%22NetSol+Technologies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22BAFL%22+OR+%22Bank+Alfalah%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+{"event": "watchlist news: 1233 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T11:57:38.402433Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+background news ingest failed: (sqlite3.IntegrityError) UNIQUE constraint failed: news_articles.source_url
+[SQL: INSERT INTO news_articles (title, slug, publisher, author, published_at, image_url, excerpt, content, category, tags, related_symbols, related_indices, source_url, source_type, priority, data_source, sentiment_score, sentiment_label, data_mode, event ... 158 characters truncated ...  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id]
+[parameters: ('PM Shehbaz orders measures for bringing Pakistani exports up to global standards', 'pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'Dawn', 'News Desk', '2026-09-15 14:15:38.000000', 'https://i.dawn.com/large/2026/09/15132919a27df1c.webp', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (295 characters truncated) ... roducts up to international standards, make the quality assurance system more effective, and ensure full compliance with international standards and…', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (3637 characters truncated) ... provement over the last four years. Furthermore, the trade deficit widened amid a rise in imports and a decline in exports, the PBS had said in July.', 'Business', '["dawn_business"]', '[]', '[]', 'https://www.dawn.com/news/2030104/pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'ARTICLE', 'NORMAL', 'rss:dawn_business', 1.0, 'bullish', 'RECENT', 'REGULATORY', 58.3, '["exports", "minister", "international", "standards", "products", "measures", "quality", "pakistani", "taken", "shehbaz"]', '[{"type": "TOPIC", "value": "trade", "label": "Trade"}, {"type": "TOPIC", "value": "regulatory", "label": "Regulatory"}]', '["trade", "regulatory"]', 6136640611928775878, '00090ee22c15bf60,0006c73bde5b87b9,0005a225c8575ef8,001969e8c0484259,0012244549c98682,000360613a2aaea6,0023e97b18a5a794,003a0e6c9b812035,0002da8da4777 ... (109 characters truncated) ... dc6305f81e51c,00152649e5692de4,0000256d8046704e,0025aaf68885a6e8,001645435e77cdcd,002bdb3b6f1aaa17,001b85017386228b,000eedc841b3e479,000d460ec764ad5a', 686, 3, 'dawn_business', '2026-09-17 11:57:40.024065', '2026-09-17 11:57:40.024065')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+HTTP Request: GET https://www.dawn.com/feeds/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://tribune.com.pk/feed/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+bank+profit+deposits&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22Pakistan+Stock+Exchange%22+OR+PSX&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+economy+inflation+GDP&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22KSE-100%22+OR+KSE100&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=SECP+Pakistan+regulation&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22State+Bank+of+Pakistan%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+rupee+dollar+interbank+rate&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+gold+price+oil+commodities&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.bbci.co.uk/news/business/rss.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664 "HTTP/1.1 200 OK"
+HTTP Request: GET https://finance.yahoo.com/news/rssindex "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.investing.com/rss/news_25.rss "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.a.dj.com/rss/RSSMarketsMain.xml "HTTP/1.1 200 OK"
+{"event": "rss ingest: 954 article(s) from 15/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:02:31.316511Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+{"event": "watchlist news: 1233 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:02:31.317668Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+background news ingest failed: (sqlite3.IntegrityError) UNIQUE constraint failed: news_articles.source_url
+[SQL: INSERT INTO news_articles (title, slug, publisher, author, published_at, image_url, excerpt, content, category, tags, related_symbols, related_indices, source_url, source_type, priority, data_source, sentiment_score, sentiment_label, data_mode, event ... 158 characters truncated ...  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id]
+[parameters: ('PM Shehbaz orders measures for bringing Pakistani exports up to global standards', 'pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'Dawn', 'News Desk', '2026-09-15 14:15:38.000000', 'https://i.dawn.com/large/2026/09/15132919a27df1c.webp', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (295 characters truncated) ... roducts up to international standards, make the quality assurance system more effective, and ensure full compliance with international standards and…', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (3637 characters truncated) ... provement over the last four years. Furthermore, the trade deficit widened amid a rise in imports and a decline in exports, the PBS had said in July.', 'Business', '["dawn_business"]', '[]', '[]', 'https://www.dawn.com/news/2030104/pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'ARTICLE', 'NORMAL', 'rss:dawn_business', 1.0, 'bullish', 'RECENT', 'REGULATORY', 58.3, '["exports", "minister", "international", "standards", "products", "measures", "quality", "pakistani", "taken", "shehbaz"]', '[{"type": "TOPIC", "value": "trade", "label": "Trade"}, {"type": "TOPIC", "value": "regulatory", "label": "Regulatory"}]', '["trade", "regulatory"]', 6136640611928775878, '00090ee22c15bf60,0006c73bde5b87b9,0005a225c8575ef8,001969e8c0484259,0012244549c98682,000360613a2aaea6,0023e97b18a5a794,003a0e6c9b812035,0002da8da4777 ... (109 characters truncated) ... dc6305f81e51c,00152649e5692de4,0000256d8046704e,0025aaf68885a6e8,001645435e77cdcd,002bdb3b6f1aaa17,001b85017386228b,000eedc841b3e479,000d460ec764ad5a', 686, 3, 'dawn_business', '2026-09-17 12:02:33.344460', '2026-09-17 12:02:33.344460')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+HTTP Request: GET https://www.dawn.com/feeds/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://tribune.com.pk/feed/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22KSE-100%22+OR+KSE100&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22Pakistan+Stock+Exchange%22+OR+PSX&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+economy+inflation+GDP&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+bank+profit+deposits&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22State+Bank+of+Pakistan%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=SECP+Pakistan+regulation&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.bbci.co.uk/news/business/rss.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+rupee+dollar+interbank+rate&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.a.dj.com/rss/RSSMarketsMain.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664 "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+gold+price+oil+commodities&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://finance.yahoo.com/news/rssindex "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.investing.com/rss/news_25.rss "HTTP/1.1 200 OK"
+{"event": "rss ingest: 954 article(s) from 15/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:07:30.852136Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+HTTP Request: GET https://news.google.com/rss/search?q=%22PPL%22+OR+%22Pakistan+Petroleum%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22LUCK%22+OR+%22Lucky+Cement%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MCB%22+OR+%22MCB+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HBL%22+OR+%22Habib+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22UBL%22+OR+%22United+Bank+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22OGDC%22+OR+%22Oil+and+Gas+Development+Company%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MEBL%22+OR+%22Meezan+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22ENGRO%22+OR+%22Engro+Corporation%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22FFC%22+OR+%22Fauji+Fertilizer%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HUBC%22+OR+%22Hub+Power%22+OR+%22Hubco%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22PSO%22+OR+%22Pakistan+State+Oil%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22SYS%22+OR+%22Systems+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22NETSOL%22+OR+%22NetSol+Technologies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MARI%22+OR+%22Mari+Petroleum%22+OR+%22Mari+Energies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22BAFL%22+OR+%22Bank+Alfalah%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+{"event": "watchlist news: 1230 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:07:36.653818Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+background news ingest failed: (sqlite3.IntegrityError) UNIQUE constraint failed: news_articles.source_url
+[SQL: INSERT INTO news_articles (title, slug, publisher, author, published_at, image_url, excerpt, content, category, tags, related_symbols, related_indices, source_url, source_type, priority, data_source, sentiment_score, sentiment_label, data_mode, event ... 158 characters truncated ...  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id]
+[parameters: ('PM Shehbaz orders measures for bringing Pakistani exports up to global standards', 'pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'Dawn', 'News Desk', '2026-09-15 14:15:38.000000', 'https://i.dawn.com/large/2026/09/15132919a27df1c.webp', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (295 characters truncated) ... roducts up to international standards, make the quality assurance system more effective, and ensure full compliance with international standards and…', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (3637 characters truncated) ... provement over the last four years. Furthermore, the trade deficit widened amid a rise in imports and a decline in exports, the PBS had said in July.', 'Business', '["dawn_business"]', '[]', '[]', 'https://www.dawn.com/news/2030104/pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'ARTICLE', 'NORMAL', 'rss:dawn_business', 1.0, 'bullish', 'RECENT', 'REGULATORY', 58.29, '["exports", "minister", "international", "standards", "products", "measures", "quality", "pakistani", "taken", "shehbaz"]', '[{"type": "TOPIC", "value": "trade", "label": "Trade"}, {"type": "TOPIC", "value": "regulatory", "label": "Regulatory"}]', '["trade", "regulatory"]', 6136640611928775878, '00090ee22c15bf60,0006c73bde5b87b9,0005a225c8575ef8,001969e8c0484259,0012244549c98682,000360613a2aaea6,0023e97b18a5a794,003a0e6c9b812035,0002da8da4777 ... (109 characters truncated) ... dc6305f81e51c,00152649e5692de4,0000256d8046704e,0025aaf68885a6e8,001645435e77cdcd,002bdb3b6f1aaa17,001b85017386228b,000eedc841b3e479,000d460ec764ad5a', 686, 3, 'dawn_business', '2026-09-17 12:07:38.179944', '2026-09-17 12:07:38.179944')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+HTTP Request: GET https://www.dawn.com/feeds/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://tribune.com.pk/feed/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+bank+profit+deposits&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22KSE-100%22+OR+KSE100&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22Pakistan+Stock+Exchange%22+OR+PSX&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=SECP+Pakistan+regulation&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+economy+inflation+GDP&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22State+Bank+of+Pakistan%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.bbci.co.uk/news/business/rss.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.a.dj.com/rss/RSSMarketsMain.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664 "HTTP/1.1 200 OK"
+HTTP Request: GET https://finance.yahoo.com/news/rssindex "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+rupee+dollar+interbank+rate&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.investing.com/rss/news_25.rss "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+gold+price+oil+commodities&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+{"event": "rss ingest: 953 article(s) from 15/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:12:34.299175Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+HTTP Request: GET https://news.google.com/rss/search?q=%22MCB%22+OR+%22MCB+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HBL%22+OR+%22Habib+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22OGDC%22+OR+%22Oil+and+Gas+Development+Company%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22PPL%22+OR+%22Pakistan+Petroleum%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22LUCK%22+OR+%22Lucky+Cement%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22UBL%22+OR+%22United+Bank+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22ENGRO%22+OR+%22Engro+Corporation%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MEBL%22+OR+%22Meezan+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22SYS%22+OR+%22Systems+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HUBC%22+OR+%22Hub+Power%22+OR+%22Hubco%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22PSO%22+OR+%22Pakistan+State+Oil%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22FFC%22+OR+%22Fauji+Fertilizer%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22BAFL%22+OR+%22Bank+Alfalah%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22NETSOL%22+OR+%22NetSol+Technologies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MARI%22+OR+%22Mari+Petroleum%22+OR+%22Mari+Energies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+{"event": "watchlist news: 1229 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:12:47.879124Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+background news ingest failed: (sqlite3.IntegrityError) UNIQUE constraint failed: news_articles.source_url
+[SQL: INSERT INTO news_articles (title, slug, publisher, author, published_at, image_url, excerpt, content, category, tags, related_symbols, related_indices, source_url, source_type, priority, data_source, sentiment_score, sentiment_label, data_mode, event ... 158 characters truncated ...  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id]
+[parameters: ('PM Shehbaz orders measures for bringing Pakistani exports up to global standards', 'pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'Dawn', 'News Desk', '2026-09-15 14:15:38.000000', 'https://i.dawn.com/large/2026/09/15132919a27df1c.webp', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (295 characters truncated) ... roducts up to international standards, make the quality assurance system more effective, and ensure full compliance with international standards and…', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (3637 characters truncated) ... provement over the last four years. Furthermore, the trade deficit widened amid a rise in imports and a decline in exports, the PBS had said in July.', 'Business', '["dawn_business"]', '[]', '[]', 'https://www.dawn.com/news/2030104/pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'ARTICLE', 'NORMAL', 'rss:dawn_business', 1.0, 'bullish', 'RECENT', 'REGULATORY', 58.29, '["exports", "minister", "international", "standards", "products", "measures", "quality", "pakistani", "taken", "shehbaz"]', '[{"type": "TOPIC", "value": "trade", "label": "Trade"}, {"type": "TOPIC", "value": "regulatory", "label": "Regulatory"}]', '["trade", "regulatory"]', 6136640611928775878, '00090ee22c15bf60,0006c73bde5b87b9,0005a225c8575ef8,001969e8c0484259,0012244549c98682,000360613a2aaea6,0023e97b18a5a794,003a0e6c9b812035,0002da8da4777 ... (109 characters truncated) ... dc6305f81e51c,00152649e5692de4,0000256d8046704e,0025aaf68885a6e8,001645435e77cdcd,002bdb3b6f1aaa17,001b85017386228b,000eedc841b3e479,000d460ec764ad5a', 686, 3, 'dawn_business', '2026-09-17 12:12:49.203355', '2026-09-17 12:12:49.203355')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+HTTP Request: GET https://tribune.com.pk/feed/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.dawn.com/feeds/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+bank+profit+deposits&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22Pakistan+Stock+Exchange%22+OR+PSX&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+economy+inflation+GDP&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22KSE-100%22+OR+KSE100&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22State+Bank+of+Pakistan%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=SECP+Pakistan+regulation&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.bbci.co.uk/news/business/rss.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+rupee+dollar+interbank+rate&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664 "HTTP/1.1 200 OK"
+HTTP Request: GET https://finance.yahoo.com/news/rssindex "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.a.dj.com/rss/RSSMarketsMain.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+gold+price+oil+commodities&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.investing.com/rss/news_25.rss "HTTP/1.1 200 OK"
+{"event": "rss ingest: 950 article(s) from 15/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:17:32.334586Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+{"event": "watchlist news: 1229 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:17:32.336584Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+background news ingest failed: (sqlite3.IntegrityError) UNIQUE constraint failed: news_articles.source_url
+[SQL: INSERT INTO news_articles (title, slug, publisher, author, published_at, image_url, excerpt, content, category, tags, related_symbols, related_indices, source_url, source_type, priority, data_source, sentiment_score, sentiment_label, data_mode, event ... 158 characters truncated ...  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id]
+[parameters: ('PM Shehbaz orders measures for bringing Pakistani exports up to global standards', 'pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'Dawn', 'News Desk', '2026-09-15 14:15:38.000000', 'https://i.dawn.com/large/2026/09/15132919a27df1c.webp', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (295 characters truncated) ... roducts up to international standards, make the quality assurance system more effective, and ensure full compliance with international standards and…', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (3637 characters truncated) ... provement over the last four years. Furthermore, the trade deficit widened amid a rise in imports and a decline in exports, the PBS had said in July.', 'Business', '["dawn_business"]', '[]', '[]', 'https://www.dawn.com/news/2030104/pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'ARTICLE', 'NORMAL', 'rss:dawn_business', 1.0, 'bullish', 'RECENT', 'REGULATORY', 58.29, '["exports", "minister", "international", "standards", "products", "measures", "quality", "pakistani", "taken", "shehbaz"]', '[{"type": "TOPIC", "value": "trade", "label": "Trade"}, {"type": "TOPIC", "value": "regulatory", "label": "Regulatory"}]', '["trade", "regulatory"]', 6136640611928775878, '00090ee22c15bf60,0006c73bde5b87b9,0005a225c8575ef8,001969e8c0484259,0012244549c98682,000360613a2aaea6,0023e97b18a5a794,003a0e6c9b812035,0002da8da4777 ... (109 characters truncated) ... dc6305f81e51c,00152649e5692de4,0000256d8046704e,0025aaf68885a6e8,001645435e77cdcd,002bdb3b6f1aaa17,001b85017386228b,000eedc841b3e479,000d460ec764ad5a', 686, 3, 'dawn_business', '2026-09-17 12:17:34.282195', '2026-09-17 12:17:34.282195')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+HTTP Request: GET https://www.dawn.com/feeds/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://tribune.com.pk/feed/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22Pakistan+Stock+Exchange%22+OR+PSX&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+economy+inflation+GDP&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22KSE-100%22+OR+KSE100&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+bank+profit+deposits&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=SECP+Pakistan+regulation&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22State+Bank+of+Pakistan%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.bbci.co.uk/news/business/rss.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664 "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.a.dj.com/rss/RSSMarketsMain.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+gold+price+oil+commodities&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://finance.yahoo.com/news/rssindex "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+rupee+dollar+interbank+rate&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.investing.com/rss/news_25.rss "HTTP/1.1 200 OK"
+{"event": "rss ingest: 953 article(s) from 15/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:22:30.861188Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+HTTP Request: GET https://news.google.com/rss/search?q=%22OGDC%22+OR+%22Oil+and+Gas+Development+Company%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MCB%22+OR+%22MCB+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22UBL%22+OR+%22United+Bank+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HBL%22+OR+%22Habib+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22PPL%22+OR+%22Pakistan+Petroleum%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22LUCK%22+OR+%22Lucky+Cement%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MEBL%22+OR+%22Meezan+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22FFC%22+OR+%22Fauji+Fertilizer%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22SYS%22+OR+%22Systems+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22ENGRO%22+OR+%22Engro+Corporation%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22PSO%22+OR+%22Pakistan+State+Oil%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HUBC%22+OR+%22Hub+Power%22+OR+%22Hubco%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MARI%22+OR+%22Mari+Petroleum%22+OR+%22Mari+Energies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22BAFL%22+OR+%22Bank+Alfalah%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22NETSOL%22+OR+%22NetSol+Technologies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+{"event": "watchlist news: 1229 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:22:36.787419Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+background news ingest failed: (sqlite3.IntegrityError) UNIQUE constraint failed: news_articles.source_url
+[SQL: INSERT INTO news_articles (title, slug, publisher, author, published_at, image_url, excerpt, content, category, tags, related_symbols, related_indices, source_url, source_type, priority, data_source, sentiment_score, sentiment_label, data_mode, event ... 158 characters truncated ...  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id]
+[parameters: ('PM Shehbaz orders measures for bringing Pakistani exports up to global standards', 'pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'Dawn', 'News Desk', '2026-09-15 14:15:38.000000', 'https://i.dawn.com/large/2026/09/15132919a27df1c.webp', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (295 characters truncated) ... roducts up to international standards, make the quality assurance system more effective, and ensure full compliance with international standards and…', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (3637 characters truncated) ... provement over the last four years. Furthermore, the trade deficit widened amid a rise in imports and a decline in exports, the PBS had said in July.', 'Business', '["dawn_business"]', '[]', '[]', 'https://www.dawn.com/news/2030104/pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'ARTICLE', 'NORMAL', 'rss:dawn_business', 1.0, 'bullish', 'RECENT', 'REGULATORY', 58.28, '["exports", "minister", "international", "standards", "products", "measures", "quality", "pakistani", "taken", "shehbaz"]', '[{"type": "TOPIC", "value": "trade", "label": "Trade"}, {"type": "TOPIC", "value": "regulatory", "label": "Regulatory"}]', '["trade", "regulatory"]', 6136640611928775878, '00090ee22c15bf60,0006c73bde5b87b9,0005a225c8575ef8,001969e8c0484259,0012244549c98682,000360613a2aaea6,0023e97b18a5a794,003a0e6c9b812035,0002da8da4777 ... (109 characters truncated) ... dc6305f81e51c,00152649e5692de4,0000256d8046704e,0025aaf68885a6e8,001645435e77cdcd,002bdb3b6f1aaa17,001b85017386228b,000eedc841b3e479,000d460ec764ad5a', 686, 3, 'dawn_business', '2026-09-17 12:22:38.771988', '2026-09-17 12:22:38.771988')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+HTTP Request: GET https://tribune.com.pk/feed/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.dawn.com/feeds/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+economy+inflation+GDP&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22Pakistan+Stock+Exchange%22+OR+PSX&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22KSE-100%22+OR+KSE100&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+bank+profit+deposits&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22State+Bank+of+Pakistan%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.bbci.co.uk/news/business/rss.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=SECP+Pakistan+regulation&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664 "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.a.dj.com/rss/RSSMarketsMain.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+gold+price+oil+commodities&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+rupee+dollar+interbank+rate&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.investing.com/rss/news_25.rss "HTTP/1.1 200 OK"
+HTTP Request: GET https://finance.yahoo.com/news/rssindex "HTTP/1.1 200 OK"
+{"event": "rss ingest: 953 article(s) from 15/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:27:31.682848Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+{"event": "watchlist news: 1229 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:27:31.687377Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+background news ingest failed: (sqlite3.IntegrityError) UNIQUE constraint failed: news_articles.source_url
+[SQL: INSERT INTO news_articles (title, slug, publisher, author, published_at, image_url, excerpt, content, category, tags, related_symbols, related_indices, source_url, source_type, priority, data_source, sentiment_score, sentiment_label, data_mode, event ... 158 characters truncated ...  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id]
+[parameters: ('PM Shehbaz orders measures for bringing Pakistani exports up to global standards', 'pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'Dawn', 'News Desk', '2026-09-15 14:15:38.000000', 'https://i.dawn.com/large/2026/09/15132919a27df1c.webp', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (295 characters truncated) ... roducts up to international standards, make the quality assurance system more effective, and ensure full compliance with international standards and…', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (3637 characters truncated) ... provement over the last four years. Furthermore, the trade deficit widened amid a rise in imports and a decline in exports, the PBS had said in July.', 'Business', '["dawn_business"]', '[]', '[]', 'https://www.dawn.com/news/2030104/pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'ARTICLE', 'NORMAL', 'rss:dawn_business', 1.0, 'bullish', 'RECENT', 'REGULATORY', 58.28, '["exports", "minister", "international", "standards", "products", "measures", "quality", "pakistani", "taken", "shehbaz"]', '[{"type": "TOPIC", "value": "trade", "label": "Trade"}, {"type": "TOPIC", "value": "regulatory", "label": "Regulatory"}]', '["trade", "regulatory"]', 6136640611928775878, '00090ee22c15bf60,0006c73bde5b87b9,0005a225c8575ef8,001969e8c0484259,0012244549c98682,000360613a2aaea6,0023e97b18a5a794,003a0e6c9b812035,0002da8da4777 ... (109 characters truncated) ... dc6305f81e51c,00152649e5692de4,0000256d8046704e,0025aaf68885a6e8,001645435e77cdcd,002bdb3b6f1aaa17,001b85017386228b,000eedc841b3e479,000d460ec764ad5a', 686, 3, 'dawn_business', '2026-09-17 12:27:34.705420', '2026-09-17 12:27:34.705420')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+background maintenance: purged 6 cache entries, dropped 0 rate-limit buckets
+{"event": "rss ingest: 0 article(s) from 0/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:32:28.715874Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+{"event": "symbol news fetch for UBL: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:32:29.815744Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for PPL: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:32:29.834620Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for MCB: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:32:29.835615Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for LUCK: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:32:29.835615Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for OGDC: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:32:29.836613Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for HBL: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:32:29.836613Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for SYS: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:32:30.942611Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for PSO: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:32:30.943610Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for ENGRO: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:32:30.944609Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for FFC: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:32:30.944609Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for HUBC: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:32:30.945612Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for MEBL: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:32:30.946610Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for BAFL: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:32:31.569776Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for NETSOL: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:32:31.580339Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for MARI: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:32:31.580987Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "watchlist news: 0 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T12:32:31.581526Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+$OGDC.KA: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+
+1 Failed download:
+['OGDC.KA']: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+$HUBC.KA: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+
+1 Failed download:
+['HUBC.KA']: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+background maintenance: purged 15 cache entries, dropped 0 rate-limit buckets
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+$OGDC.KA: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+
+1 Failed download:
+['OGDC.KA']: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+$HUBC.KA: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+
+1 Failed download:
+['HUBC.KA']: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+{"event": "rss ingest: 0 article(s) from 0/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T13:02:31.576737Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+{"event": "symbol news fetch for UBL: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T13:02:33.103348Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for HBL: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T13:02:34.015803Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for LUCK: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T13:02:34.136461Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for PPL: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T13:02:34.149470Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for MCB: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T13:02:34.188045Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for OGDC: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T13:02:34.246924Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for MEBL: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T13:02:35.495715Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for SYS: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T13:02:35.516456Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for ENGRO: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T13:02:36.496072Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for FFC: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T13:02:36.504081Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for PSO: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T13:02:36.559166Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for HUBC: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T13:02:36.650106Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for MARI: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T13:02:37.203408Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for BAFL: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T13:02:37.206438Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for NETSOL: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T13:02:37.469747Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "watchlist news: 0 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T13:02:37.470747Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+$OGDC.KA: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+
+1 Failed download:
+['OGDC.KA']: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+$HUBC.KA: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+
+1 Failed download:
+['HUBC.KA']: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+$OGDC.KA: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+
+1 Failed download:
+['OGDC.KA']: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+$HUBC.KA: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+
+1 Failed download:
+['HUBC.KA']: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+{"event": "rss ingest: 0 article(s) from 0/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T15:31:36.605388Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+{"event": "symbol news fetch for OGDC: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T15:31:37.754931Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for PPL: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T15:31:37.755991Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for HBL: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T15:31:37.758993Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for MCB: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T15:31:37.761948Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for UBL: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T15:31:37.769273Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for LUCK: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T15:31:37.844661Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for MEBL: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T15:31:38.759052Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for ENGRO: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T15:31:38.784415Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for PSO: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T15:31:38.785370Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for FFC: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T15:31:38.786539Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for SYS: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T15:31:38.790437Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for HUBC: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T15:31:38.854246Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for MARI: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T15:31:39.523396Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for NETSOL: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T15:31:39.541319Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "symbol news fetch for BAFL: ERROR (ConnectError: [Errno 11001] getaddrinfo failed)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T15:31:39.541319Z", "filename": "news_service.py", "func_name": "fetch_symbol_news", "lineno": 553}
+{"event": "watchlist news: 0 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T15:31:39.543312Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+$OGDC.KA: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+
+1 Failed download:
+['OGDC.KA']: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+$HUBC.KA: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+
+1 Failed download:
+['HUBC.KA']: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background maintenance: purged 2 cache entries, dropped 0 rate-limit buckets
+{"event": "rss ingest: 0 article(s) from 0/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T15:31:43.247978Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+{"event": "watchlist news: 0 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T15:31:43.249493Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+$OGDC.KA: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+
+1 Failed download:
+['OGDC.KA']: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for OGDC @ 2026-09-17: [manager] all providers failed for history(OGDC): [yfinance] no data returned — verify ticker, date range, and provider availability
+$HUBC.KA: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+
+1 Failed download:
+['HUBC.KA']: possibly delisted; no price data found  (1d 2026-09-12 -> 2026-09-20)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for HUBC @ 2026-09-17: [manager] all providers failed for history(HUBC): [yfinance] no data returned — verify ticker, date range, and provider availability
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+background maintenance: purged 15 cache entries, dropped 0 rate-limit buckets
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+HTTP Request: GET https://tribune.com.pk/feed/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.dawn.com/feeds/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22Pakistan+Stock+Exchange%22+OR+PSX&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22KSE-100%22+OR+KSE100&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+economy+inflation+GDP&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+bank+profit+deposits&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22State+Bank+of+Pakistan%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=SECP+Pakistan+regulation&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+rupee+dollar+interbank+rate&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.bbci.co.uk/news/business/rss.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+gold+price+oil+commodities&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.investing.com/rss/news_25.rss "HTTP/1.1 200 OK"
+HTTP Request: GET https://finance.yahoo.com/news/rssindex "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.a.dj.com/rss/RSSMarketsMain.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664 "HTTP/1.1 200 OK"
+{"event": "rss ingest: 950 article(s) from 15/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:01:58.148406Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+HTTP Request: GET https://news.google.com/rss/search?q=%22LUCK%22+OR+%22Lucky+Cement%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22UBL%22+OR+%22United+Bank+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HBL%22+OR+%22Habib+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22OGDC%22+OR+%22Oil+and+Gas+Development+Company%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MCB%22+OR+%22MCB+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22PPL%22+OR+%22Pakistan+Petroleum%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MEBL%22+OR+%22Meezan+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22ENGRO%22+OR+%22Engro+Corporation%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22SYS%22+OR+%22Systems+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22PSO%22+OR+%22Pakistan+State+Oil%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HUBC%22+OR+%22Hub+Power%22+OR+%22Hubco%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22FFC%22+OR+%22Fauji+Fertilizer%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22BAFL%22+OR+%22Bank+Alfalah%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MARI%22+OR+%22Mari+Petroleum%22+OR+%22Mari+Energies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22NETSOL%22+OR+%22NetSol+Technologies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+{"event": "watchlist news: 1236 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:02:05.273734Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+background news ingest failed: (sqlite3.IntegrityError) UNIQUE constraint failed: news_articles.source_url
+[SQL: INSERT INTO news_articles (title, slug, publisher, author, published_at, image_url, excerpt, content, category, tags, related_symbols, related_indices, source_url, source_type, priority, data_source, sentiment_score, sentiment_label, data_mode, event ... 158 characters truncated ...  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id]
+[parameters: ('PM Shehbaz orders measures for bringing Pakistani exports up to global standards', 'pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'Dawn', 'News Desk', '2026-09-15 14:15:38.000000', 'https://i.dawn.com/large/2026/09/15132919a27df1c.webp', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (295 characters truncated) ... roducts up to international standards, make the quality assurance system more effective, and ensure full compliance with international standards and…', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (3637 characters truncated) ... provement over the last four years. Furthermore, the trade deficit widened amid a rise in imports and a decline in exports, the PBS had said in July.', 'Business', '["dawn_business"]', '[]', '[]', 'https://www.dawn.com/news/2030104/pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'ARTICLE', 'NORMAL', 'rss:dawn_business', 1.0, 'bullish', 'RECENT', 'REGULATORY', 58.13, '["exports", "minister", "international", "standards", "products", "measures", "quality", "pakistani", "taken", "shehbaz"]', '[{"type": "TOPIC", "value": "trade", "label": "Trade"}, {"type": "TOPIC", "value": "regulatory", "label": "Regulatory"}]', '["trade", "regulatory"]', 6136640611928775878, '00090ee22c15bf60,0006c73bde5b87b9,0005a225c8575ef8,001969e8c0484259,0012244549c98682,000360613a2aaea6,0023e97b18a5a794,003a0e6c9b812035,0002da8da4777 ... (109 characters truncated) ... dc6305f81e51c,00152649e5692de4,0000256d8046704e,0025aaf68885a6e8,001645435e77cdcd,002bdb3b6f1aaa17,001b85017386228b,000eedc841b3e479,000d460ec764ad5a', 686, 3, 'dawn_business', '2026-09-17 16:02:08.233342', '2026-09-17 16:02:08.233342')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+HTTP Request: GET https://www.dawn.com/feeds/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://tribune.com.pk/feed/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+economy+inflation+GDP&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22Pakistan+Stock+Exchange%22+OR+PSX&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+bank+profit+deposits&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22KSE-100%22+OR+KSE100&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22State+Bank+of+Pakistan%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=SECP+Pakistan+regulation&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.bbci.co.uk/news/business/rss.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+rupee+dollar+interbank+rate&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+gold+price+oil+commodities&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.a.dj.com/rss/RSSMarketsMain.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664 "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.investing.com/rss/news_25.rss "HTTP/1.1 200 OK"
+HTTP Request: GET https://finance.yahoo.com/news/rssindex "HTTP/1.1 200 OK"
+{"event": "rss ingest: 950 article(s) from 15/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:06:58.224642Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+{"event": "watchlist news: 1236 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:06:58.226160Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+background news ingest failed: (sqlite3.IntegrityError) UNIQUE constraint failed: news_articles.source_url
+[SQL: INSERT INTO news_articles (title, slug, publisher, author, published_at, image_url, excerpt, content, category, tags, related_symbols, related_indices, source_url, source_type, priority, data_source, sentiment_score, sentiment_label, data_mode, event ... 158 characters truncated ...  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id]
+[parameters: ('PM Shehbaz orders measures for bringing Pakistani exports up to global standards', 'pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'Dawn', 'News Desk', '2026-09-15 14:15:38.000000', 'https://i.dawn.com/large/2026/09/15132919a27df1c.webp', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (295 characters truncated) ... roducts up to international standards, make the quality assurance system more effective, and ensure full compliance with international standards and…', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (3637 characters truncated) ... provement over the last four years. Furthermore, the trade deficit widened amid a rise in imports and a decline in exports, the PBS had said in July.', 'Business', '["dawn_business"]', '[]', '[]', 'https://www.dawn.com/news/2030104/pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'ARTICLE', 'NORMAL', 'rss:dawn_business', 1.0, 'bullish', 'RECENT', 'REGULATORY', 58.13, '["exports", "minister", "international", "standards", "products", "measures", "quality", "pakistani", "taken", "shehbaz"]', '[{"type": "TOPIC", "value": "trade", "label": "Trade"}, {"type": "TOPIC", "value": "regulatory", "label": "Regulatory"}]', '["trade", "regulatory"]', 6136640611928775878, '00090ee22c15bf60,0006c73bde5b87b9,0005a225c8575ef8,001969e8c0484259,0012244549c98682,000360613a2aaea6,0023e97b18a5a794,003a0e6c9b812035,0002da8da4777 ... (109 characters truncated) ... dc6305f81e51c,00152649e5692de4,0000256d8046704e,0025aaf68885a6e8,001645435e77cdcd,002bdb3b6f1aaa17,001b85017386228b,000eedc841b3e479,000d460ec764ad5a', 686, 3, 'dawn_business', '2026-09-17 16:07:01.878872', '2026-09-17 16:07:01.878872')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+background maintenance: purged 6 cache entries, dropped 0 rate-limit buckets
+HTTP Request: GET https://www.dawn.com/feeds/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://tribune.com.pk/feed/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22Pakistan+Stock+Exchange%22+OR+PSX&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+economy+inflation+GDP&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22KSE-100%22+OR+KSE100&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+bank+profit+deposits&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22State+Bank+of+Pakistan%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+rupee+dollar+interbank+rate&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=SECP+Pakistan+regulation&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.bbci.co.uk/news/business/rss.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.a.dj.com/rss/RSSMarketsMain.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+gold+price+oil+commodities&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.investing.com/rss/news_25.rss "HTTP/1.1 200 OK"
+HTTP Request: GET https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664 "HTTP/1.1 200 OK"
+HTTP Request: GET https://finance.yahoo.com/news/rssindex "HTTP/1.1 200 OK"
+{"event": "rss ingest: 951 article(s) from 15/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:11:57.444137Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+HTTP Request: GET https://news.google.com/rss/search?q=%22UBL%22+OR+%22United+Bank+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22PPL%22+OR+%22Pakistan+Petroleum%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HBL%22+OR+%22Habib+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22OGDC%22+OR+%22Oil+and+Gas+Development+Company%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22LUCK%22+OR+%22Lucky+Cement%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MCB%22+OR+%22MCB+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MEBL%22+OR+%22Meezan+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22ENGRO%22+OR+%22Engro+Corporation%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22PSO%22+OR+%22Pakistan+State+Oil%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22SYS%22+OR+%22Systems+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22FFC%22+OR+%22Fauji+Fertilizer%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HUBC%22+OR+%22Hub+Power%22+OR+%22Hubco%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22BAFL%22+OR+%22Bank+Alfalah%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MARI%22+OR+%22Mari+Petroleum%22+OR+%22Mari+Energies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22NETSOL%22+OR+%22NetSol+Technologies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+{"event": "watchlist news: 1236 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:12:04.557491Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+background news ingest failed: (sqlite3.IntegrityError) UNIQUE constraint failed: news_articles.source_url
+[SQL: INSERT INTO news_articles (title, slug, publisher, author, published_at, image_url, excerpt, content, category, tags, related_symbols, related_indices, source_url, source_type, priority, data_source, sentiment_score, sentiment_label, data_mode, event ... 158 characters truncated ...  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id]
+[parameters: ('PM Shehbaz orders measures for bringing Pakistani exports up to global standards', 'pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'Dawn', 'News Desk', '2026-09-15 14:15:38.000000', 'https://i.dawn.com/large/2026/09/15132919a27df1c.webp', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (295 characters truncated) ... roducts up to international standards, make the quality assurance system more effective, and ensure full compliance with international standards and…', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (3637 characters truncated) ... provement over the last four years. Furthermore, the trade deficit widened amid a rise in imports and a decline in exports, the PBS had said in July.', 'Business', '["dawn_business"]', '[]', '[]', 'https://www.dawn.com/news/2030104/pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'ARTICLE', 'NORMAL', 'rss:dawn_business', 1.0, 'bullish', 'RECENT', 'REGULATORY', 58.13, '["exports", "minister", "international", "standards", "products", "measures", "quality", "pakistani", "taken", "shehbaz"]', '[{"type": "TOPIC", "value": "trade", "label": "Trade"}, {"type": "TOPIC", "value": "regulatory", "label": "Regulatory"}]', '["trade", "regulatory"]', 6136640611928775878, '00090ee22c15bf60,0006c73bde5b87b9,0005a225c8575ef8,001969e8c0484259,0012244549c98682,000360613a2aaea6,0023e97b18a5a794,003a0e6c9b812035,0002da8da4777 ... (109 characters truncated) ... dc6305f81e51c,00152649e5692de4,0000256d8046704e,0025aaf68885a6e8,001645435e77cdcd,002bdb3b6f1aaa17,001b85017386228b,000eedc841b3e479,000d460ec764ad5a', 686, 3, 'dawn_business', '2026-09-17 16:12:07.456255', '2026-09-17 16:12:07.456255')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+HTTP Request: GET https://www.dawn.com/feeds/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://tribune.com.pk/feed/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+economy+inflation+GDP&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+bank+profit+deposits&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22KSE-100%22+OR+KSE100&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22Pakistan+Stock+Exchange%22+OR+PSX&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.bbci.co.uk/news/business/rss.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+rupee+dollar+interbank+rate&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=SECP+Pakistan+regulation&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22State+Bank+of+Pakistan%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664 "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+gold+price+oil+commodities&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.a.dj.com/rss/RSSMarketsMain.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://finance.yahoo.com/news/rssindex "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.investing.com/rss/news_25.rss "HTTP/1.1 200 OK"
+{"event": "rss ingest: 951 article(s) from 15/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:16:57.560190Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+{"event": "watchlist news: 1236 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:16:57.562378Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+background news ingest failed: (sqlite3.IntegrityError) UNIQUE constraint failed: news_articles.source_url
+[SQL: INSERT INTO news_articles (title, slug, publisher, author, published_at, image_url, excerpt, content, category, tags, related_symbols, related_indices, source_url, source_type, priority, data_source, sentiment_score, sentiment_label, data_mode, event ... 158 characters truncated ...  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id]
+[parameters: ('PM Shehbaz orders measures for bringing Pakistani exports up to global standards', 'pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'Dawn', 'News Desk', '2026-09-15 14:15:38.000000', 'https://i.dawn.com/large/2026/09/15132919a27df1c.webp', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (295 characters truncated) ... roducts up to international standards, make the quality assurance system more effective, and ensure full compliance with international standards and…', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (3637 characters truncated) ... provement over the last four years. Furthermore, the trade deficit widened amid a rise in imports and a decline in exports, the PBS had said in July.', 'Business', '["dawn_business"]', '[]', '[]', 'https://www.dawn.com/news/2030104/pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'ARTICLE', 'NORMAL', 'rss:dawn_business', 1.0, 'bullish', 'RECENT', 'REGULATORY', 58.12, '["exports", "minister", "international", "standards", "products", "measures", "quality", "pakistani", "taken", "shehbaz"]', '[{"type": "TOPIC", "value": "trade", "label": "Trade"}, {"type": "TOPIC", "value": "regulatory", "label": "Regulatory"}]', '["trade", "regulatory"]', 6136640611928775878, '00090ee22c15bf60,0006c73bde5b87b9,0005a225c8575ef8,001969e8c0484259,0012244549c98682,000360613a2aaea6,0023e97b18a5a794,003a0e6c9b812035,0002da8da4777 ... (109 characters truncated) ... dc6305f81e51c,00152649e5692de4,0000256d8046704e,0025aaf68885a6e8,001645435e77cdcd,002bdb3b6f1aaa17,001b85017386228b,000eedc841b3e479,000d460ec764ad5a', 686, 3, 'dawn_business', '2026-09-17 16:16:59.967474', '2026-09-17 16:16:59.967474')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+background maintenance: purged 2 cache entries, dropped 0 rate-limit buckets
+HTTP Request: GET https://tribune.com.pk/feed/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.dawn.com/feeds/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+economy+inflation+GDP&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+bank+profit+deposits&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22KSE-100%22+OR+KSE100&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22Pakistan+Stock+Exchange%22+OR+PSX&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22State+Bank+of+Pakistan%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=SECP+Pakistan+regulation&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+rupee+dollar+interbank+rate&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.bbci.co.uk/news/business/rss.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://finance.yahoo.com/news/rssindex "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.a.dj.com/rss/RSSMarketsMain.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664 "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+gold+price+oil+commodities&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.investing.com/rss/news_25.rss "HTTP/1.1 200 OK"
+{"event": "rss ingest: 952 article(s) from 15/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:21:57.305554Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+HTTP Request: GET https://news.google.com/rss/search?q=%22UBL%22+OR+%22United+Bank+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22LUCK%22+OR+%22Lucky+Cement%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HBL%22+OR+%22Habib+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22PPL%22+OR+%22Pakistan+Petroleum%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22OGDC%22+OR+%22Oil+and+Gas+Development+Company%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MCB%22+OR+%22MCB+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22PSO%22+OR+%22Pakistan+State+Oil%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HUBC%22+OR+%22Hub+Power%22+OR+%22Hubco%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22ENGRO%22+OR+%22Engro+Corporation%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MEBL%22+OR+%22Meezan+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22FFC%22+OR+%22Fauji+Fertilizer%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22SYS%22+OR+%22Systems+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MARI%22+OR+%22Mari+Petroleum%22+OR+%22Mari+Energies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22NETSOL%22+OR+%22NetSol+Technologies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22BAFL%22+OR+%22Bank+Alfalah%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+{"event": "watchlist news: 1232 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:22:03.950788Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+background news ingest failed: (sqlite3.IntegrityError) UNIQUE constraint failed: news_articles.source_url
+[SQL: INSERT INTO news_articles (title, slug, publisher, author, published_at, image_url, excerpt, content, category, tags, related_symbols, related_indices, source_url, source_type, priority, data_source, sentiment_score, sentiment_label, data_mode, event ... 158 characters truncated ...  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id]
+[parameters: ('PM Shehbaz orders measures for bringing Pakistani exports up to global standards', 'pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'Dawn', 'News Desk', '2026-09-15 14:15:38.000000', 'https://i.dawn.com/large/2026/09/15132919a27df1c.webp', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (295 characters truncated) ... roducts up to international standards, make the quality assurance system more effective, and ensure full compliance with international standards and…', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (3637 characters truncated) ... provement over the last four years. Furthermore, the trade deficit widened amid a rise in imports and a decline in exports, the PBS had said in July.', 'Business', '["dawn_business"]', '[]', '[]', 'https://www.dawn.com/news/2030104/pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'ARTICLE', 'NORMAL', 'rss:dawn_business', 1.0, 'bullish', 'RECENT', 'REGULATORY', 58.12, '["exports", "minister", "international", "standards", "products", "measures", "quality", "pakistani", "taken", "shehbaz"]', '[{"type": "TOPIC", "value": "trade", "label": "Trade"}, {"type": "TOPIC", "value": "regulatory", "label": "Regulatory"}]', '["trade", "regulatory"]', 6136640611928775878, '00090ee22c15bf60,0006c73bde5b87b9,0005a225c8575ef8,001969e8c0484259,0012244549c98682,000360613a2aaea6,0023e97b18a5a794,003a0e6c9b812035,0002da8da4777 ... (109 characters truncated) ... dc6305f81e51c,00152649e5692de4,0000256d8046704e,0025aaf68885a6e8,001645435e77cdcd,002bdb3b6f1aaa17,001b85017386228b,000eedc841b3e479,000d460ec764ad5a', 686, 3, 'dawn_business', '2026-09-17 16:22:06.598817', '2026-09-17 16:22:06.598817')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+HTTP Request: GET https://www.dawn.com/feeds/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://tribune.com.pk/feed/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+economy+inflation+GDP&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+bank+profit+deposits&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22KSE-100%22+OR+KSE100&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22Pakistan+Stock+Exchange%22+OR+PSX&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22State+Bank+of+Pakistan%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+rupee+dollar+interbank+rate&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=SECP+Pakistan+regulation&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.bbci.co.uk/news/business/rss.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.a.dj.com/rss/RSSMarketsMain.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://finance.yahoo.com/news/rssindex "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+gold+price+oil+commodities&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.investing.com/rss/news_25.rss "HTTP/1.1 200 OK"
+HTTP Request: GET https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664 "HTTP/1.1 200 OK"
+{"event": "rss ingest: 952 article(s) from 15/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:26:57.430955Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+{"event": "watchlist news: 1232 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:26:57.432968Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+background news ingest failed: (sqlite3.IntegrityError) UNIQUE constraint failed: news_articles.source_url
+[SQL: INSERT INTO news_articles (title, slug, publisher, author, published_at, image_url, excerpt, content, category, tags, related_symbols, related_indices, source_url, source_type, priority, data_source, sentiment_score, sentiment_label, data_mode, event ... 158 characters truncated ...  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id]
+[parameters: ('PM Shehbaz orders measures for bringing Pakistani exports up to global standards', 'pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'Dawn', 'News Desk', '2026-09-15 14:15:38.000000', 'https://i.dawn.com/large/2026/09/15132919a27df1c.webp', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (295 characters truncated) ... roducts up to international standards, make the quality assurance system more effective, and ensure full compliance with international standards and…', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (3637 characters truncated) ... provement over the last four years. Furthermore, the trade deficit widened amid a rise in imports and a decline in exports, the PBS had said in July.', 'Business', '["dawn_business"]', '[]', '[]', 'https://www.dawn.com/news/2030104/pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'ARTICLE', 'NORMAL', 'rss:dawn_business', 1.0, 'bullish', 'RECENT', 'REGULATORY', 58.12, '["exports", "minister", "international", "standards", "products", "measures", "quality", "pakistani", "taken", "shehbaz"]', '[{"type": "TOPIC", "value": "trade", "label": "Trade"}, {"type": "TOPIC", "value": "regulatory", "label": "Regulatory"}]', '["trade", "regulatory"]', 6136640611928775878, '00090ee22c15bf60,0006c73bde5b87b9,0005a225c8575ef8,001969e8c0484259,0012244549c98682,000360613a2aaea6,0023e97b18a5a794,003a0e6c9b812035,0002da8da4777 ... (109 characters truncated) ... dc6305f81e51c,00152649e5692de4,0000256d8046704e,0025aaf68885a6e8,001645435e77cdcd,002bdb3b6f1aaa17,001b85017386228b,000eedc841b3e479,000d460ec764ad5a', 686, 3, 'dawn_business', '2026-09-17 16:26:59.309331', '2026-09-17 16:26:59.309331')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+background maintenance: purged 3 cache entries, dropped 0 rate-limit buckets
+HTTP Request: GET https://tribune.com.pk/feed/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.dawn.com/feeds/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+economy+inflation+GDP&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22KSE-100%22+OR+KSE100&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+bank+profit+deposits&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22Pakistan+Stock+Exchange%22+OR+PSX&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22State+Bank+of+Pakistan%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=SECP+Pakistan+regulation&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.bbci.co.uk/news/business/rss.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+gold+price+oil+commodities&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+rupee+dollar+interbank+rate&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664 "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.a.dj.com/rss/RSSMarketsMain.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://finance.yahoo.com/news/rssindex "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.investing.com/rss/news_25.rss "HTTP/1.1 200 OK"
+{"event": "rss ingest: 952 article(s) from 15/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:31:58.684786Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+HTTP Request: GET https://news.google.com/rss/search?q=%22MCB%22+OR+%22MCB+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22PPL%22+OR+%22Pakistan+Petroleum%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22OGDC%22+OR+%22Oil+and+Gas+Development+Company%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22LUCK%22+OR+%22Lucky+Cement%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22UBL%22+OR+%22United+Bank+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HBL%22+OR+%22Habib+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MEBL%22+OR+%22Meezan+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HUBC%22+OR+%22Hub+Power%22+OR+%22Hubco%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22PSO%22+OR+%22Pakistan+State+Oil%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22ENGRO%22+OR+%22Engro+Corporation%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22FFC%22+OR+%22Fauji+Fertilizer%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22SYS%22+OR+%22Systems+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MARI%22+OR+%22Mari+Petroleum%22+OR+%22Mari+Energies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22NETSOL%22+OR+%22NetSol+Technologies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22BAFL%22+OR+%22Bank+Alfalah%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+{"event": "watchlist news: 1240 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:32:05.925606Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+background news ingest failed: (sqlite3.IntegrityError) UNIQUE constraint failed: news_articles.source_url
+[SQL: INSERT INTO news_articles (title, slug, publisher, author, published_at, image_url, excerpt, content, category, tags, related_symbols, related_indices, source_url, source_type, priority, data_source, sentiment_score, sentiment_label, data_mode, event ... 158 characters truncated ...  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id]
+[parameters: ('PM Shehbaz orders measures for bringing Pakistani exports up to global standards', 'pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'Dawn', 'News Desk', '2026-09-15 14:15:38.000000', 'https://i.dawn.com/large/2026/09/15132919a27df1c.webp', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (295 characters truncated) ... roducts up to international standards, make the quality assurance system more effective, and ensure full compliance with international standards and…', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (3637 characters truncated) ... provement over the last four years. Furthermore, the trade deficit widened amid a rise in imports and a decline in exports, the PBS had said in July.', 'Business', '["dawn_business"]', '[]', '[]', 'https://www.dawn.com/news/2030104/pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'ARTICLE', 'NORMAL', 'rss:dawn_business', 1.0, 'bullish', 'RECENT', 'REGULATORY', 58.12, '["exports", "minister", "international", "standards", "products", "measures", "quality", "pakistani", "taken", "shehbaz"]', '[{"type": "TOPIC", "value": "trade", "label": "Trade"}, {"type": "TOPIC", "value": "regulatory", "label": "Regulatory"}]', '["trade", "regulatory"]', 6136640611928775878, '00090ee22c15bf60,0006c73bde5b87b9,0005a225c8575ef8,001969e8c0484259,0012244549c98682,000360613a2aaea6,0023e97b18a5a794,003a0e6c9b812035,0002da8da4777 ... (109 characters truncated) ... dc6305f81e51c,00152649e5692de4,0000256d8046704e,0025aaf68885a6e8,001645435e77cdcd,002bdb3b6f1aaa17,001b85017386228b,000eedc841b3e479,000d460ec764ad5a', 686, 3, 'dawn_business', '2026-09-17 16:32:08.027321', '2026-09-17 16:32:08.027321')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+HTTP Request: GET https://www.dawn.com/feeds/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://tribune.com.pk/feed/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22KSE-100%22+OR+KSE100&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22Pakistan+Stock+Exchange%22+OR+PSX&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+economy+inflation+GDP&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+bank+profit+deposits&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22State+Bank+of+Pakistan%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=SECP+Pakistan+regulation&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.bbci.co.uk/news/business/rss.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664 "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+gold+price+oil+commodities&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+rupee+dollar+interbank+rate&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.a.dj.com/rss/RSSMarketsMain.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://finance.yahoo.com/news/rssindex "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.investing.com/rss/news_25.rss "HTTP/1.1 200 OK"
+{"event": "rss ingest: 952 article(s) from 15/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:36:57.332503Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+{"event": "watchlist news: 1240 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:36:57.333504Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+background news ingest failed: (sqlite3.IntegrityError) UNIQUE constraint failed: news_articles.source_url
+[SQL: INSERT INTO news_articles (title, slug, publisher, author, published_at, image_url, excerpt, content, category, tags, related_symbols, related_indices, source_url, source_type, priority, data_source, sentiment_score, sentiment_label, data_mode, event ... 158 characters truncated ...  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id]
+[parameters: ('PM Shehbaz orders measures for bringing Pakistani exports up to global standards', 'pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'Dawn', 'News Desk', '2026-09-15 14:15:38.000000', 'https://i.dawn.com/large/2026/09/15132919a27df1c.webp', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (295 characters truncated) ... roducts up to international standards, make the quality assurance system more effective, and ensure full compliance with international standards and…', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (3637 characters truncated) ... provement over the last four years. Furthermore, the trade deficit widened amid a rise in imports and a decline in exports, the PBS had said in July.', 'Business', '["dawn_business"]', '[]', '[]', 'https://www.dawn.com/news/2030104/pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'ARTICLE', 'NORMAL', 'rss:dawn_business', 1.0, 'bullish', 'RECENT', 'REGULATORY', 58.11, '["exports", "minister", "international", "standards", "products", "measures", "quality", "pakistani", "taken", "shehbaz"]', '[{"type": "TOPIC", "value": "trade", "label": "Trade"}, {"type": "TOPIC", "value": "regulatory", "label": "Regulatory"}]', '["trade", "regulatory"]', 6136640611928775878, '00090ee22c15bf60,0006c73bde5b87b9,0005a225c8575ef8,001969e8c0484259,0012244549c98682,000360613a2aaea6,0023e97b18a5a794,003a0e6c9b812035,0002da8da4777 ... (109 characters truncated) ... dc6305f81e51c,00152649e5692de4,0000256d8046704e,0025aaf68885a6e8,001645435e77cdcd,002bdb3b6f1aaa17,001b85017386228b,000eedc841b3e479,000d460ec764ad5a', 686, 3, 'dawn_business', '2026-09-17 16:36:59.706371', '2026-09-17 16:36:59.706371')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+HTTP Request: GET https://www.dawn.com/feeds/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+economy+inflation+GDP&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://tribune.com.pk/feed/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+bank+profit+deposits&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22Pakistan+Stock+Exchange%22+OR+PSX&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22KSE-100%22+OR+KSE100&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22State+Bank+of+Pakistan%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=SECP+Pakistan+regulation&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.bbci.co.uk/news/business/rss.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+gold+price+oil+commodities&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+rupee+dollar+interbank+rate&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664 "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.a.dj.com/rss/RSSMarketsMain.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://finance.yahoo.com/news/rssindex "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.investing.com/rss/news_25.rss "HTTP/1.1 200 OK"
+{"event": "rss ingest: 952 article(s) from 15/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:41:57.801443Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+HTTP Request: GET https://news.google.com/rss/search?q=%22UBL%22+OR+%22United+Bank+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22OGDC%22+OR+%22Oil+and+Gas+Development+Company%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HBL%22+OR+%22Habib+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MCB%22+OR+%22MCB+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22LUCK%22+OR+%22Lucky+Cement%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22PPL%22+OR+%22Pakistan+Petroleum%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22ENGRO%22+OR+%22Engro+Corporation%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MEBL%22+OR+%22Meezan+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22SYS%22+OR+%22Systems+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HUBC%22+OR+%22Hub+Power%22+OR+%22Hubco%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22FFC%22+OR+%22Fauji+Fertilizer%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22PSO%22+OR+%22Pakistan+State+Oil%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MARI%22+OR+%22Mari+Petroleum%22+OR+%22Mari+Energies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22NETSOL%22+OR+%22NetSol+Technologies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22BAFL%22+OR+%22Bank+Alfalah%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+{"event": "watchlist news: 1221 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:42:04.648683Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+background news ingest failed: (sqlite3.IntegrityError) UNIQUE constraint failed: news_articles.source_url
+[SQL: INSERT INTO news_articles (title, slug, publisher, author, published_at, image_url, excerpt, content, category, tags, related_symbols, related_indices, source_url, source_type, priority, data_source, sentiment_score, sentiment_label, data_mode, event ... 158 characters truncated ...  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id]
+[parameters: ('PM Shehbaz orders measures for bringing Pakistani exports up to global standards', 'pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'Dawn', 'News Desk', '2026-09-15 14:15:38.000000', 'https://i.dawn.com/large/2026/09/15132919a27df1c.webp', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (295 characters truncated) ... roducts up to international standards, make the quality assurance system more effective, and ensure full compliance with international standards and…', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (3637 characters truncated) ... provement over the last four years. Furthermore, the trade deficit widened amid a rise in imports and a decline in exports, the PBS had said in July.', 'Business', '["dawn_business"]', '[]', '[]', 'https://www.dawn.com/news/2030104/pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'ARTICLE', 'NORMAL', 'rss:dawn_business', 1.0, 'bullish', 'RECENT', 'REGULATORY', 58.11, '["exports", "minister", "international", "standards", "products", "measures", "quality", "pakistani", "taken", "shehbaz"]', '[{"type": "TOPIC", "value": "trade", "label": "Trade"}, {"type": "TOPIC", "value": "regulatory", "label": "Regulatory"}]', '["trade", "regulatory"]', 6136640611928775878, '00090ee22c15bf60,0006c73bde5b87b9,0005a225c8575ef8,001969e8c0484259,0012244549c98682,000360613a2aaea6,0023e97b18a5a794,003a0e6c9b812035,0002da8da4777 ... (109 characters truncated) ... dc6305f81e51c,00152649e5692de4,0000256d8046704e,0025aaf68885a6e8,001645435e77cdcd,002bdb3b6f1aaa17,001b85017386228b,000eedc841b3e479,000d460ec764ad5a', 686, 3, 'dawn_business', '2026-09-17 16:42:07.471665', '2026-09-17 16:42:07.471665')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+HTTP Request: GET https://tribune.com.pk/feed/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.dawn.com/feeds/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22KSE-100%22+OR+KSE100&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+bank+profit+deposits&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+economy+inflation+GDP&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22Pakistan+Stock+Exchange%22+OR+PSX&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=SECP+Pakistan+regulation&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.bbci.co.uk/news/business/rss.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22State+Bank+of+Pakistan%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+rupee+dollar+interbank+rate&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+gold+price+oil+commodities&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664 "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.investing.com/rss/news_25.rss "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.a.dj.com/rss/RSSMarketsMain.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://finance.yahoo.com/news/rssindex "HTTP/1.1 200 OK"
+{"event": "rss ingest: 951 article(s) from 15/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:46:57.621255Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+{"event": "watchlist news: 1221 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:46:57.622255Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+background news ingest failed: (sqlite3.IntegrityError) UNIQUE constraint failed: news_articles.source_url
+[SQL: INSERT INTO news_articles (title, slug, publisher, author, published_at, image_url, excerpt, content, category, tags, related_symbols, related_indices, source_url, source_type, priority, data_source, sentiment_score, sentiment_label, data_mode, event ... 158 characters truncated ...  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id]
+[parameters: ('PM Shehbaz orders measures for bringing Pakistani exports up to global standards', 'pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'Dawn', 'News Desk', '2026-09-15 14:15:38.000000', 'https://i.dawn.com/large/2026/09/15132919a27df1c.webp', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (295 characters truncated) ... roducts up to international standards, make the quality assurance system more effective, and ensure full compliance with international standards and…', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (3637 characters truncated) ... provement over the last four years. Furthermore, the trade deficit widened amid a rise in imports and a decline in exports, the PBS had said in July.', 'Business', '["dawn_business"]', '[]', '[]', 'https://www.dawn.com/news/2030104/pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'ARTICLE', 'NORMAL', 'rss:dawn_business', 1.0, 'bullish', 'RECENT', 'REGULATORY', 58.11, '["exports", "minister", "international", "standards", "products", "measures", "quality", "pakistani", "taken", "shehbaz"]', '[{"type": "TOPIC", "value": "trade", "label": "Trade"}, {"type": "TOPIC", "value": "regulatory", "label": "Regulatory"}]', '["trade", "regulatory"]', 6136640611928775878, '00090ee22c15bf60,0006c73bde5b87b9,0005a225c8575ef8,001969e8c0484259,0012244549c98682,000360613a2aaea6,0023e97b18a5a794,003a0e6c9b812035,0002da8da4777 ... (109 characters truncated) ... dc6305f81e51c,00152649e5692de4,0000256d8046704e,0025aaf68885a6e8,001645435e77cdcd,002bdb3b6f1aaa17,001b85017386228b,000eedc841b3e479,000d460ec764ad5a', 686, 3, 'dawn_business', '2026-09-17 16:47:00.216805', '2026-09-17 16:47:00.216805')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+background maintenance: purged 2 cache entries, dropped 0 rate-limit buckets
+HTTP Request: GET https://tribune.com.pk/feed/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.dawn.com/feeds/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+bank+profit+deposits&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22Pakistan+Stock+Exchange%22+OR+PSX&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+economy+inflation+GDP&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22KSE-100%22+OR+KSE100&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22State+Bank+of+Pakistan%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=SECP+Pakistan+regulation&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+rupee+dollar+interbank+rate&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+gold+price+oil+commodities&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.bbci.co.uk/news/business/rss.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.a.dj.com/rss/RSSMarketsMain.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664 "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.investing.com/rss/news_25.rss "HTTP/1.1 200 OK"
+HTTP Request: GET https://finance.yahoo.com/news/rssindex "HTTP/1.1 200 OK"
+{"event": "rss ingest: 951 article(s) from 15/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:51:57.616585Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+HTTP Request: GET https://news.google.com/rss/search?q=%22UBL%22+OR+%22United+Bank+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22PPL%22+OR+%22Pakistan+Petroleum%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22LUCK%22+OR+%22Lucky+Cement%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22OGDC%22+OR+%22Oil+and+Gas+Development+Company%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MCB%22+OR+%22MCB+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HBL%22+OR+%22Habib+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MEBL%22+OR+%22Meezan+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22ENGRO%22+OR+%22Engro+Corporation%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22FFC%22+OR+%22Fauji+Fertilizer%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22PSO%22+OR+%22Pakistan+State+Oil%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HUBC%22+OR+%22Hub+Power%22+OR+%22Hubco%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22SYS%22+OR+%22Systems+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MARI%22+OR+%22Mari+Petroleum%22+OR+%22Mari+Energies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22BAFL%22+OR+%22Bank+Alfalah%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22NETSOL%22+OR+%22NetSol+Technologies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+{"event": "watchlist news: 1206 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:52:04.163383Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+background news ingest failed: (sqlite3.IntegrityError) UNIQUE constraint failed: news_articles.source_url
+[SQL: INSERT INTO news_articles (title, slug, publisher, author, published_at, image_url, excerpt, content, category, tags, related_symbols, related_indices, source_url, source_type, priority, data_source, sentiment_score, sentiment_label, data_mode, event ... 158 characters truncated ...  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id]
+[parameters: ('PM Shehbaz orders measures for bringing Pakistani exports up to global standards', 'pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'Dawn', 'News Desk', '2026-09-15 14:15:38.000000', 'https://i.dawn.com/large/2026/09/15132919a27df1c.webp', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (295 characters truncated) ... roducts up to international standards, make the quality assurance system more effective, and ensure full compliance with international standards and…', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (3637 characters truncated) ... provement over the last four years. Furthermore, the trade deficit widened amid a rise in imports and a decline in exports, the PBS had said in July.', 'Business', '["dawn_business"]', '[]', '[]', 'https://www.dawn.com/news/2030104/pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'ARTICLE', 'NORMAL', 'rss:dawn_business', 1.0, 'bullish', 'RECENT', 'REGULATORY', 58.1, '["exports", "minister", "international", "standards", "products", "measures", "quality", "pakistani", "taken", "shehbaz"]', '[{"type": "TOPIC", "value": "trade", "label": "Trade"}, {"type": "TOPIC", "value": "regulatory", "label": "Regulatory"}]', '["trade", "regulatory"]', 6136640611928775878, '00090ee22c15bf60,0006c73bde5b87b9,0005a225c8575ef8,001969e8c0484259,0012244549c98682,000360613a2aaea6,0023e97b18a5a794,003a0e6c9b812035,0002da8da4777 ... (109 characters truncated) ... dc6305f81e51c,00152649e5692de4,0000256d8046704e,0025aaf68885a6e8,001645435e77cdcd,002bdb3b6f1aaa17,001b85017386228b,000eedc841b3e479,000d460ec764ad5a', 686, 3, 'dawn_business', '2026-09-17 16:52:06.864462', '2026-09-17 16:52:06.864462')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+HTTP Request: GET https://tribune.com.pk/feed/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.dawn.com/feeds/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22KSE-100%22+OR+KSE100&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+economy+inflation+GDP&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22State+Bank+of+Pakistan%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+bank+profit+deposits&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22Pakistan+Stock+Exchange%22+OR+PSX&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=SECP+Pakistan+regulation&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+rupee+dollar+interbank+rate&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.bbci.co.uk/news/business/rss.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.a.dj.com/rss/RSSMarketsMain.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664 "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.investing.com/rss/news_25.rss "HTTP/1.1 200 OK"
+HTTP Request: GET https://finance.yahoo.com/news/rssindex "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+gold+price+oil+commodities&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+{"event": "rss ingest: 951 article(s) from 15/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:56:57.282479Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+{"event": "watchlist news: 1206 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T16:56:57.285018Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+background news ingest failed: (sqlite3.IntegrityError) UNIQUE constraint failed: news_articles.source_url
+[SQL: INSERT INTO news_articles (title, slug, publisher, author, published_at, image_url, excerpt, content, category, tags, related_symbols, related_indices, source_url, source_type, priority, data_source, sentiment_score, sentiment_label, data_mode, event ... 158 characters truncated ...  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id]
+[parameters: ('PM Shehbaz orders measures for bringing Pakistani exports up to global standards', 'pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'Dawn', 'News Desk', '2026-09-15 14:15:38.000000', 'https://i.dawn.com/large/2026/09/15132919a27df1c.webp', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (295 characters truncated) ... roducts up to international standards, make the quality assurance system more effective, and ensure full compliance with international standards and…', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (3637 characters truncated) ... provement over the last four years. Furthermore, the trade deficit widened amid a rise in imports and a decline in exports, the PBS had said in July.', 'Business', '["dawn_business"]', '[]', '[]', 'https://www.dawn.com/news/2030104/pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'ARTICLE', 'NORMAL', 'rss:dawn_business', 1.0, 'bullish', 'RECENT', 'REGULATORY', 58.1, '["exports", "minister", "international", "standards", "products", "measures", "quality", "pakistani", "taken", "shehbaz"]', '[{"type": "TOPIC", "value": "trade", "label": "Trade"}, {"type": "TOPIC", "value": "regulatory", "label": "Regulatory"}]', '["trade", "regulatory"]', 6136640611928775878, '00090ee22c15bf60,0006c73bde5b87b9,0005a225c8575ef8,001969e8c0484259,0012244549c98682,000360613a2aaea6,0023e97b18a5a794,003a0e6c9b812035,0002da8da4777 ... (109 characters truncated) ... dc6305f81e51c,00152649e5692de4,0000256d8046704e,0025aaf68885a6e8,001645435e77cdcd,002bdb3b6f1aaa17,001b85017386228b,000eedc841b3e479,000d460ec764ad5a', 686, 3, 'dawn_business', '2026-09-17 16:56:59.524072', '2026-09-17 16:56:59.524072')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+background maintenance: purged 2 cache entries, dropped 0 rate-limit buckets
+HTTP Request: GET https://tribune.com.pk/feed/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.dawn.com/feeds/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+economy+inflation+GDP&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22KSE-100%22+OR+KSE100&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+bank+profit+deposits&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22Pakistan+Stock+Exchange%22+OR+PSX&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=SECP+Pakistan+regulation&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22State+Bank+of+Pakistan%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.bbci.co.uk/news/business/rss.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+rupee+dollar+interbank+rate&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+gold+price+oil+commodities&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.investing.com/rss/news_25.rss "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.a.dj.com/rss/RSSMarketsMain.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://finance.yahoo.com/news/rssindex "HTTP/1.1 200 OK"
+HTTP Request: GET https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664 "HTTP/1.1 200 OK"
+{"event": "rss ingest: 952 article(s) from 15/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T17:01:57.597567Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+HTTP Request: GET https://news.google.com/rss/search?q=%22UBL%22+OR+%22United+Bank+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HBL%22+OR+%22Habib+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22LUCK%22+OR+%22Lucky+Cement%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22PPL%22+OR+%22Pakistan+Petroleum%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MCB%22+OR+%22MCB+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22OGDC%22+OR+%22Oil+and+Gas+Development+Company%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MEBL%22+OR+%22Meezan+Bank%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22FFC%22+OR+%22Fauji+Fertilizer%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22HUBC%22+OR+%22Hub+Power%22+OR+%22Hubco%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22SYS%22+OR+%22Systems+Limited%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22ENGRO%22+OR+%22Engro+Corporation%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22PSO%22+OR+%22Pakistan+State+Oil%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22MARI%22+OR+%22Mari+Petroleum%22+OR+%22Mari+Energies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22BAFL%22+OR+%22Bank+Alfalah%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22NETSOL%22+OR+%22NetSol+Technologies%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+{"event": "watchlist news: 1240 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T17:02:04.822869Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+background news ingest failed: (sqlite3.IntegrityError) UNIQUE constraint failed: news_articles.source_url
+[SQL: INSERT INTO news_articles (title, slug, publisher, author, published_at, image_url, excerpt, content, category, tags, related_symbols, related_indices, source_url, source_type, priority, data_source, sentiment_score, sentiment_label, data_mode, event ... 158 characters truncated ...  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id]
+[parameters: ('PM Shehbaz orders measures for bringing Pakistani exports up to global standards', 'pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'Dawn', 'News Desk', '2026-09-15 14:15:38.000000', 'https://i.dawn.com/large/2026/09/15132919a27df1c.webp', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (295 characters truncated) ... roducts up to international standards, make the quality assurance system more effective, and ensure full compliance with international standards and…', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (3637 characters truncated) ... provement over the last four years. Furthermore, the trade deficit widened amid a rise in imports and a decline in exports, the PBS had said in July.', 'Business', '["dawn_business"]', '[]', '[]', 'https://www.dawn.com/news/2030104/pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'ARTICLE', 'NORMAL', 'rss:dawn_business', 1.0, 'bullish', 'RECENT', 'REGULATORY', 58.1, '["exports", "minister", "international", "standards", "products", "measures", "quality", "pakistani", "taken", "shehbaz"]', '[{"type": "TOPIC", "value": "trade", "label": "Trade"}, {"type": "TOPIC", "value": "regulatory", "label": "Regulatory"}]', '["trade", "regulatory"]', 6136640611928775878, '00090ee22c15bf60,0006c73bde5b87b9,0005a225c8575ef8,001969e8c0484259,0012244549c98682,000360613a2aaea6,0023e97b18a5a794,003a0e6c9b812035,0002da8da4777 ... (109 characters truncated) ... dc6305f81e51c,00152649e5692de4,0000256d8046704e,0025aaf68885a6e8,001645435e77cdcd,002bdb3b6f1aaa17,001b85017386228b,000eedc841b3e479,000d460ec764ad5a', 686, 3, 'dawn_business', '2026-09-17 17:02:06.825772', '2026-09-17 17:02:06.825772')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+HTTP Request: GET https://www.dawn.com/feeds/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://tribune.com.pk/feed/business "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22KSE-100%22+OR+KSE100&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+economy+inflation+GDP&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22Pakistan+Stock+Exchange%22+OR+PSX&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+bank+profit+deposits&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=%22State+Bank+of+Pakistan%22&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=SECP+Pakistan+regulation&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.bbci.co.uk/news/business/rss.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+rupee+dollar+interbank+rate&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://news.google.com/rss/search?q=Pakistan+gold+price+oil+commodities&hl=en-PK&gl=PK&ceid=PK:en "HTTP/1.1 200 OK"
+HTTP Request: GET https://www.investing.com/rss/news_25.rss "HTTP/1.1 200 OK"
+HTTP Request: GET https://feeds.a.dj.com/rss/RSSMarketsMain.xml "HTTP/1.1 200 OK"
+HTTP Request: GET https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664 "HTTP/1.1 200 OK"
+HTTP Request: GET https://finance.yahoo.com/news/rssindex "HTTP/1.1 200 OK"
+{"event": "rss ingest: 954 article(s) from 15/16 feeds", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T17:06:58.656548Z", "filename": "news_service.py", "func_name": "fetch_rss_feeds", "lineno": 268}
+{"event": "watchlist news: 1240 article(s) across 15 ticker(s)", "level": "info", "logger": "neural_market.news_service", "timestamp": "2026-09-17T17:06:58.660566Z", "filename": "news_service.py", "func_name": "fetch_watchlist_news", "lineno": 794}
+background news ingest failed: (sqlite3.IntegrityError) UNIQUE constraint failed: news_articles.source_url
+[SQL: INSERT INTO news_articles (title, slug, publisher, author, published_at, image_url, excerpt, content, category, tags, related_symbols, related_indices, source_url, source_type, priority, data_source, sentiment_score, sentiment_label, data_mode, event ... 158 characters truncated ...  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id]
+[parameters: ('PM Shehbaz orders measures for bringing Pakistani exports up to global standards', 'pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'Dawn', 'News Desk', '2026-09-15 14:15:38.000000', 'https://i.dawn.com/large/2026/09/15132919a27df1c.webp', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (295 characters truncated) ... roducts up to international standards, make the quality assurance system more effective, and ensure full compliance with international standards and…', 'Prime Minister Shehbaz Sharif on Tuesday directed that effective measures be taken to bring the quality of Pakistani products up to international sta ... (3637 characters truncated) ... provement over the last four years. Furthermore, the trade deficit widened amid a rise in imports and a decline in exports, the PBS had said in July.', 'Business', '["dawn_business"]', '[]', '[]', 'https://www.dawn.com/news/2030104/pm-shehbaz-orders-measures-for-bringing-pakistani-exports-up-to-global-standards', 'ARTICLE', 'NORMAL', 'rss:dawn_business', 1.0, 'bullish', 'RECENT', 'REGULATORY', 58.1, '["exports", "minister", "international", "standards", "products", "measures", "quality", "pakistani", "taken", "shehbaz"]', '[{"type": "TOPIC", "value": "trade", "label": "Trade"}, {"type": "TOPIC", "value": "regulatory", "label": "Regulatory"}]', '["trade", "regulatory"]', 6136640611928775878, '00090ee22c15bf60,0006c73bde5b87b9,0005a225c8575ef8,001969e8c0484259,0012244549c98682,000360613a2aaea6,0023e97b18a5a794,003a0e6c9b812035,0002da8da4777 ... (109 characters truncated) ... dc6305f81e51c,00152649e5692de4,0000256d8046704e,0025aaf68885a6e8,001645435e77cdcd,002bdb3b6f1aaa17,001b85017386228b,000eedc841b3e479,000d460ec764ad5a', 686, 3, 'dawn_business', '2026-09-17 17:07:00.916481', '2026-09-17 17:07:00.916481')]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+$ENGRO.KA: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+
+1 Failed download:
+['ENGRO.KA']: possibly delisted; no price data found  (1d 2025-01-09 -> 2025-01-17)
+history provider failed, trying next: [yfinance] no data returned — verify ticker, date range, and provider availability
+background resolve failed for ENGRO @ 2025-01-14: [manager] all providers failed for history(ENGRO): [yfinance] no data returned — verify ticker, date range, and provider availability
+background maintenance: purged 6 cache entries, dropped 0 rate-limit buckets

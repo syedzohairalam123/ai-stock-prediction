@@ -1,1 +1,23 @@
-<div id="root"></div><script type="module" src="/src/main.tsx"></script>
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Without a viewport tag mobile browsers fall back to a ~980px layout
+         viewport and zoom the whole terminal out, which also stops every
+         max-width media query from ever matching on a real phone. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="description" content="Neural Market — PSX financial terminal: live market analytics, forecasts and PSX corporate announcements." />
+    <!-- Inline SVG favicon: no /favicon.ico request, so the browser console and
+         the page-audit harness stay clean without shipping a binary asset. -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23191919'/%3E%3Cpath d='M6 21l5-6 4 3 5-8 6 11' fill='none' stroke='%2372BC8F' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
+    <title>Neural Market — PSX Financial Terminal</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

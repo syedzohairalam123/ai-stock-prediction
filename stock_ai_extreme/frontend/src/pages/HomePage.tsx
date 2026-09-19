@@ -25,6 +25,8 @@ export default function HomePage(){
         <button onClick={()=>navigate("/screener")}>🔎 Advanced Screener — analytical ranking with composite scores</button>
         <button onClick={()=>navigate("/compare")}>📊 Compare — correlation, beta, 3D market map</button>
         <button onClick={()=>navigate("/watchlist")}>⭐ Watchlist — track your tickers</button>
+        <button onClick={()=>navigate("/popular")}>🔥 Popular Stocks — live PSX discovery cards</button>
+        <button onClick={()=>navigate("/portfolio/transactions")}>💼 Portfolio Engine — transactions, positions & P&L</button>
         <button onClick={()=>navigate("/alerts")}>🔔 Alerts — see everything you're watching for</button>
       </div>
     </section>

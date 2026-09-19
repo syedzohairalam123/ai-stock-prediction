@@ -14,7 +14,8 @@
       "Exec(find)",
       "Exec(npx tsc)",
       "Exec(python3)",
-      "Exec(git config)"
+      "Exec(git config)",
+      "Exec(dir)"
     ]
   }
 }

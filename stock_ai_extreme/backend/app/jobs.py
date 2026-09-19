@@ -2,12 +2,15 @@
 Background maintenance jobs (started in FastAPI's lifespan).
 
 A single asyncio task that periodically:
-  1. checks every active alert against freshly fetched data — the same
+  1. ingests real news from every enabled keyless publisher feed (and any
+     configured paid API), so the Financial Intelligence Desk fills itself
+     instead of waiting for someone to press Refresh
+  2. checks every active alert against freshly fetched data — the same
      evaluation the manual /alerts/check route runs — and sends a
      notification (Telegram/email, if configured) when something fires
-  2. resolves prediction records whose target date has passed, so the
+  3. resolves prediction records whose target date has passed, so the
      drift-monitoring numbers stay current without anyone clicking a button
-  3. purges expired-but-still-usable TTL cache entries and cleans up stale
+  4. purges expired-but-still-usable TTL cache entries and cleans up stale
      rate-limiter buckets (bounded memory on long-running servers)
 
 Everything is best-effort and isolated — one failing job never takes down
@@ -25,10 +28,55 @@ import pandas as pd
 from . import repository as repo
 from .alerts import evaluate_alerts
 from .config import settings
+from .db import session_scope
 from .monitoring import resolve_predictions
+from .news_service import get_news_service
 from .notifications import notify
+from .providers import fx_rates
 
 logger = logging.getLogger("neural_market.jobs")
+
+#: Timestamp of the last successful news ingest, so the maintenance loop can
+#: run on a different (much faster) cadence than the news refresh interval.
+_last_news_ingest: float = 0.0
+
+
+async def ingest_news(*, force: bool = False) -> int:
+    """Pull real news from every enabled source and store it.
+
+    Throttled by ``NEWS_REFRESH_INTERVAL_SECONDS`` (default 30 min) because the
+    maintenance loop itself ticks far more often than publishers update. Returns
+    the number of newly stored articles, or 0 when the interval has not elapsed.
+    """
+    global _last_news_ingest
+
+    if not settings.news_rss_enabled and not any(
+        (settings.newsapi_key, settings.finnhub_api_key, settings.alpha_vantage_key)
+    ):
+        return 0
+
+    interval = max(int(settings.news_refresh_interval_seconds), 300)
+    now = time.monotonic()
+    if not force and _last_news_ingest and (now - _last_news_ingest) < interval:
+        return 0
+
+    sources = ["rss", "symbols"] if settings.news_rss_enabled else []
+    sources += ["newsapi", "finnhub", "alpha_vantage"]
+    region = None if settings.news_default_region.upper() == "ALL" else settings.news_default_region
+
+    try:
+        service = get_news_service()
+        with session_scope() as db:
+            stored = await service.aggregate_and_store(db, sources=sources, region=region)
+        # Only mark the interval as elapsed once the attempt completed; a failure
+        # should be retried on the next tick, not suppressed for half an hour.
+        _last_news_ingest = now
+        if stored:
+            logger.info("background job ingested %d new news article(s)", stored)
+        return int(stored)
+    except Exception as exc:
+        logger.warning("background news ingest failed: %s", exc)
+        return 0
 
 
 async def check_all_alerts(manager) -> list[dict]:
@@ -102,6 +150,10 @@ async def run_background_loop(manager, limiter) -> None:
     while True:
         started = time.monotonic()
         try:
+            await ingest_news()
+        except Exception as exc:
+            logger.warning("background job error (news): %s", exc)
+        try:
             await check_all_alerts(manager)
         except Exception as exc:
             logger.warning("background job error (alerts): %s", exc)
@@ -111,6 +163,11 @@ async def run_background_loop(manager, limiter) -> None:
             logger.warning("background job error (resolve): %s", exc)
         try:
             purged = await manager.purge_caches()
+            # Phase 7: the forex/commodities rate caches are long-lived too, so
+            # they expire on the same loop instead of growing unbounded.
+            purged += await fx_rates.purge_caches()
+            # Phase 8: the news service caches per-symbol feed results too.
+            purged += get_news_service().purge_cache()
             dropped = limiter.cleanup()
             if purged or dropped:
                 logger.info(

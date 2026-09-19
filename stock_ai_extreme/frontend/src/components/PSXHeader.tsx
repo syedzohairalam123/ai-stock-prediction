@@ -16,11 +16,14 @@ export default function PSXHeader({ theme, toggleTheme, isMobileMenuOpen, toggle
   const navLinks = [
     { path: '/', label: 'Home' },
     { path: '/market', label: 'Market' },
+    { path: '/charts', label: 'Charts' },
+    { path: '/forex-commodities', label: 'Forex & Commodities' },
     { path: '/sentiment', label: 'Sentiment' },
     { path: '/announcements', label: 'Announcements' },
     { path: '/news', label: 'News' },
     { path: '/watchlist', label: 'Watchlist' },
-    { path: '/portfolio', label: 'Portfolio' },
+    { path: '/popular', label: 'Popular' },
+    { path: '/portfolio/transactions', label: 'Portfolio' },
   ];
 
   const isActive = (path: string) => {

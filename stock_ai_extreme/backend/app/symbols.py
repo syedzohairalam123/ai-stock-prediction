@@ -48,6 +48,10 @@ PSX_SYMBOLS: frozenset[str] = frozenset({
     "NESTLE", "FFL", "MTL", "INDU", "GHGL", "GHNI", "ISL",
     # Others frequently traded on PSX
     "THALL", "MUGHAL", "ASTL", "ITTEFAQ", "PIAA", "PNSC", "SHEL", "NATF",
+    # Additional real Karachi listings, added so the news desk's entity linker
+    # and the symbol-scoped news queries cover the companies the local press
+    # actually writes about (auto, pharma, steel).
+    "ABBOTT", "AGP", "GSK", "HCAR", "PSMC", "SEARL", "ASL",
 })
 
 
