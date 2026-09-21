@@ -20,6 +20,7 @@
  * on a screen whose price/time scales are wildly different.
  */
 import type { DrawingShape, Point2D } from "./types";
+import { fibonacciLevels } from "./drawings";
 
 /** Plot area (the rectangle inside the axes), in container-relative pixels. */
 export interface PlotRect {
@@ -133,6 +134,15 @@ function pathFromPoints(points: PixelPoint[], closed: boolean): string {
     .map((p) => `L ${p.x.toFixed(2)} ${p.y.toFixed(2)}`)
     .join(" ");
   return closed ? `${head} ${rest} Z` : `${head} ${rest}`;
+}
+
+/** One SVG path carrying several independent subpaths (Fibonacci levels, a channel). */
+function pathFromSegments(segments: PixelPoint[][]): string {
+  return segments
+    .filter((segment) => segment.length > 0)
+    .map((segment) => pathFromPoints(segment, false))
+    .join(" ")
+    .trim();
 }
 
 /**
@@ -254,6 +264,79 @@ export function drawingGeometry(shape: DrawingShape, tf: PlotTransform): Drawing
     case "parabola": {
       const pts = parabolaPoints(aData, bData, tf);
       return { path: pathFromPoints(pts, false), closed: false, anchors, bounds: boundsOf(pts) };
+    }
+    case "ray": {
+      // Extend the A→B direction well past the plot so the ray always reaches
+      // the right edge (and beyond) at any zoom.
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const len = Math.hypot(dx, dy);
+      if (len < 1e-6) {
+        return { path: pathFromPoints([a, b], false), closed: false, anchors, bounds: boundsOf([a, b]) };
+      }
+      const reach = (tf.rect.width + tf.rect.height) * 2;
+      const far: PixelPoint = { x: a.x + (dx / len) * reach, y: a.y + (dy / len) * reach };
+      return { path: pathFromPoints([a, far], false), closed: false, anchors, bounds: boundsOf([a, far]) };
+    }
+    case "hline": {
+      const left: PixelPoint = { x: tf.rect.left, y: a.y };
+      const right: PixelPoint = { x: tf.rect.left + tf.rect.width, y: a.y };
+      return { path: pathFromPoints([left, right], false), closed: false, anchors, bounds: boundsOf([left, right]) };
+    }
+    case "vline": {
+      const top: PixelPoint = { x: a.x, y: tf.rect.top };
+      const bottom: PixelPoint = { x: a.x, y: tf.rect.top + tf.rect.height };
+      return { path: pathFromPoints([top, bottom], false), closed: false, anchors, bounds: boundsOf([top, bottom]) };
+    }
+    case "channel": {
+      // A parallel channel needs a width. A third anchor, when present, sets the
+      // offset price; otherwise a 25% band of the A→B swing is used so a freshly
+      // drawn channel is immediately visible and can be dragged into place.
+      const hasThird = coords.length >= 3 && Number.isFinite(coords[2].p);
+      const offsetPrice = hasThird ? coords[2].p : aData.p + (bData.p - aData.p) * 0.25;
+      const offsetPixel = priceToY(offsetPrice, tf) - a.y;
+      const quad: PixelPoint[] = [
+        a,
+        b,
+        { x: b.x, y: b.y + offsetPixel },
+        { x: a.x, y: a.y + offsetPixel },
+      ];
+      const parallel: PixelPoint[] = [
+        { x: a.x, y: a.y + offsetPixel },
+        { x: b.x, y: b.y + offsetPixel },
+      ];
+      return { path: pathFromSegments([quad, parallel]), closed: true, anchors, bounds: boundsOf(quad) };
+    }
+    case "fib-retracement":
+    case "fib-extension": {
+      const mode = shape.type === "fib-retracement" ? "retracement" : "extension";
+      const levels = fibonacciLevels(aData, bData, mode);
+      const fromX = Math.min(a.x, b.x);
+      const toX = Math.max(a.x, b.x);
+      const segments: PixelPoint[][] = [];
+      const allPoints: PixelPoint[] = [];
+      for (const level of levels) {
+        const y = priceToY(level.price, tf);
+        const segment: PixelPoint[] = [
+          { x: fromX, y },
+          { x: toX, y },
+        ];
+        segments.push(segment);
+        allPoints.push(segment[0], segment[1]);
+      }
+      // The A→B rail makes the measured swing explicit.
+      segments.push([a, b]);
+      allPoints.push(a, b);
+      return { path: pathFromSegments(segments), closed: false, anchors, bounds: boundsOf(allPoints) };
+    }
+    case "measure": {
+      const quad: PixelPoint[] = [
+        { x: a.x, y: a.y },
+        { x: b.x, y: a.y },
+        { x: b.x, y: b.y },
+        { x: a.x, y: b.y },
+      ];
+      return { path: pathFromSegments([quad, [a, b]]), closed: true, anchors, bounds: boundsOf(quad) };
     }
     default:
       return null;

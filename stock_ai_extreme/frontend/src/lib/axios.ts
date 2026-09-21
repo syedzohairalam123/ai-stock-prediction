@@ -1,6 +1,7 @@
 import axios, { AxiosError, AxiosInstance } from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+const configuredApiUrl = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
+const API_URL = /\/api$/i.test(configuredApiUrl) ? configuredApiUrl : `${configuredApiUrl}/api`;
 
 // Create axios instance with base configuration
 export const apiClient: AxiosInstance = axios.create({
@@ -14,6 +15,9 @@ export const apiClient: AxiosInstance = axios.create({
 // Request interceptor for logging and auth
 apiClient.interceptors.request.use(
   (config) => {
+    if (config.url && /^\/api(?:\/|$)/i.test(config.url) && typeof config.baseURL === 'string' && /\/api$/i.test(config.baseURL)) {
+      config.url = config.url.slice(4) || '/';
+    }
     // Add any auth tokens here if needed
     // Silent operation - no console logging
     return config;

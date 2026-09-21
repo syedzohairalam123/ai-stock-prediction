@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, TrendingUp, Layers, Hash } from 'lucide-react';
-import { POPULAR_SEARCHES, searchGlobal, type SearchResult } from '../lib/searchService';
+import { POPULAR_SEARCHES, searchGlobal, searchGlobalSmart, type SearchResult, type SearchSource } from '../lib/searchService';
 
 interface GlobalSearchProps {
   isOpen: boolean;
@@ -14,13 +14,18 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  // Phase 13 — which layer answered (exact local / server BM25 / local fuzzy).
+  const [source, setSource] = useState<SearchSource | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+  /** Guards against a slow server response overwriting a newer query's results. */
+  const requestRef = useRef(0);
 
   useEffect(() => {
     if (!isOpen) {
       setQuery('');
       setResults([]);
       setSelectedIndex(0);
+      setSource(null);
     }
   }, [isOpen]);
 
@@ -43,13 +48,30 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
   const handleSearch = (searchQuery: string) => {
     setQuery(searchQuery);
     setIsLoading(true);
+    const requestId = requestRef.current + 1;
+    requestRef.current = requestId;
 
     // Brief debounce keeps the autocomplete from thrashing while typing; the
-    // search itself is local and instant, so this is presentation only.
+    // exact local matcher is instant, so it renders immediately. Only when it
+    // finds nothing do we consult the ranked layers (server BM25, then the
+    // local BK-tree), and a stale response is discarded.
     setTimeout(() => {
-      setResults(searchGlobal(searchQuery));
+      if (requestRef.current !== requestId) return;
+      const exact = searchGlobal(searchQuery);
+      setResults(exact);
       setSelectedIndex(0);
       setIsLoading(false);
+
+      if (exact.length > 0 || !searchQuery.trim()) {
+        setSource(exact.length > 0 ? "LOCAL_EXACT" : null);
+        return;
+      }
+
+      void searchGlobalSmart(searchQuery).then((smart) => {
+        if (requestRef.current !== requestId) return;
+        setResults(smart.results);
+        setSource(smart.results.length > 0 ? smart.source : null);
+      });
     }, 120);
   };
 
@@ -157,6 +179,11 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
             </div>
           ) : (
             <div className="global-search-results">
+              {(source === 'SERVER_BM25' || source === 'LOCAL_FUZZY') && (
+                <div className="global-search-source" role="status">
+                  {source === 'SERVER_BM25' ? 'Ranked matches (server)' : 'Approximate matches (typo tolerance)'}
+                </div>
+              )}
               {results.map((result, index) => (
                 <button
                   key={result.id}

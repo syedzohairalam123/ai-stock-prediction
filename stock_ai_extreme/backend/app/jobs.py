@@ -25,6 +25,8 @@ from datetime import date, timedelta
 
 import pandas as pd
 
+from . import forecast_history
+from . import forecast_resolutions
 from . import repository as repo
 from .alerts import evaluate_alerts
 from .config import settings
@@ -142,6 +144,24 @@ async def resolve_all_predictions(manager) -> int:
     return len(resolved)
 
 
+async def poll_forecast_resolutions() -> int:
+    """Phase 14.2 — refresh the settled-market slice so resolution lookups are
+    warm and RESOLVED states stay current without a button press.
+
+    Returns the number of settled records seen; 0 on any failure (never raises,
+    like every other job here).
+    """
+    try:
+        records = await forecast_resolutions.get_resolutions(force=True, resolved_only=False)
+        settled = [r for r in records if r.get("resolution") in ("YES", "NO")]
+        if settled:
+            logger.info("background job refreshed %d settled forecast market(s)", len(settled))
+        return len(settled)
+    except Exception as exc:
+        logger.warning("background job error (forecast resolutions): %s", exc)
+        return 0
+
+
 async def run_background_loop(manager, limiter) -> None:
     """Infinite maintenance loop. `manager` is the provider manager and
     `limiter` the app's rate limiter (both created in main.py)."""
@@ -154,6 +174,18 @@ async def run_background_loop(manager, limiter) -> None:
         except Exception as exc:
             logger.warning("background job error (news): %s", exc)
         try:
+            # Phase 17: rebuild the breaking/news-topic feed from the corpus that
+            # ingest_news() just refreshed, and re-run observed market-impact
+            # analysis for the highest-scoring events. Throttled internally by
+            # BREAKING_NEWS_REFRESH_INTERVAL_SECONDS.
+            from .breaking_news import run_periodic_refresh
+
+            stats = await run_periodic_refresh()
+            if stats:
+                logger.info("background job refreshed breaking news: %s", stats)
+        except Exception as exc:
+            logger.warning("background job error (breaking news): %s", exc)
+        try:
             await check_all_alerts(manager)
         except Exception as exc:
             logger.warning("background job error (alerts): %s", exc)
@@ -162,12 +194,21 @@ async def run_background_loop(manager, limiter) -> None:
         except Exception as exc:
             logger.warning("background job error (resolve): %s", exc)
         try:
+            # Phase 14.2: keep the settled-market slice fresh so RESOLVED states
+            # render without a manual refresh.
+            await poll_forecast_resolutions()
+        except Exception as exc:
+            logger.warning("background job error (forecast resolutions): %s", exc)
+        try:
             purged = await manager.purge_caches()
             # Phase 7: the forex/commodities rate caches are long-lived too, so
             # they expire on the same loop instead of growing unbounded.
             purged += await fx_rates.purge_caches()
             # Phase 8: the news service caches per-symbol feed results too.
             purged += get_news_service().purge_cache()
+            # Phase 14: forecast history / resolution caches.
+            purged += await forecast_history.purge_cache()
+            purged += await forecast_resolutions.purge_cache()
             dropped = limiter.cleanup()
             if purged or dropped:
                 logger.info(

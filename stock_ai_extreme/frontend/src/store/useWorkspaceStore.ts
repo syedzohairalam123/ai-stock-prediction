@@ -34,7 +34,7 @@ import {
 } from "../lib/workspace/engine";
 import { PRESETS, PRESET_ORDER, defaultLayouts } from "../lib/workspace/presets";
 import { boundsFor } from "../lib/workspace/registry";
-import { getWorkspaceStorage } from "../lib/workspace/storage";
+import { duplicateSavedWorkspace as duplicateSavedRecord, getWorkspaceStorage } from "../lib/workspace/storage";
 import type {
   PresetId,
   SavedWorkspace,
@@ -68,6 +68,10 @@ interface WorkspaceState {
   loadSavedWorkspace: (id: string) => void;
   renameSavedWorkspace: (id: string, name: string) => void;
   deleteSavedWorkspace: (id: string) => void;
+  /** Phase 12: copy a saved workspace under a fresh id/name. Returns the new id. */
+  duplicateSavedWorkspace: (id: string) => string | null;
+  /** Phase 12: merge imported workspaces (id-deduplicated). Returns how many landed. */
+  importSavedWorkspaces: (records: SavedWorkspace[]) => number;
 }
 
 /** Debounced persistence — a drag fires dozens of mutations, storage gets one. */
@@ -210,6 +214,37 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     const { saved } = get();
     set({ saved: deleteSaved(saved, id) });
     persistSoon(get);
+  },
+
+  /**
+   * Phase 12 — duplicate a saved workspace into a new custom preset.
+   *
+   * The copy gets a new id *and* a new `workspaceId` in its layout, so the two
+   * records never alias each other through the grid's react keys.
+   */
+  duplicateSavedWorkspace(id) {
+    const { saved } = get();
+    const record = saved.find((entry) => entry.id === id);
+    if (!record) return null;
+    const copy = duplicateSavedRecord(record);
+    set({ saved: upsertSaved(saved, copy) });
+    persistSoon(get);
+    return copy.id;
+  },
+
+  /**
+   * Phase 12 — merge imported workspaces. Imported records carry their own ids,
+   * and an id already present is replaced rather than duplicated, so importing
+   * the same file twice (or importing an updated export) is idempotent.
+   */
+  importSavedWorkspaces(records) {
+    if (!records || records.length === 0) return 0;
+    const { saved } = get();
+    let next = saved;
+    for (const record of records) next = upsertSaved(next, record);
+    set({ saved: next });
+    persistSoon(get);
+    return records.length;
   },
 }));
 

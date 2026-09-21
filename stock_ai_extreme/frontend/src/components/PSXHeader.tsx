@@ -20,6 +20,8 @@ export default function PSXHeader({ theme, toggleTheme, isMobileMenuOpen, toggle
     { path: '/forex-commodities', label: 'Forex & Commodities' },
     { path: '/sentiment', label: 'Sentiment' },
     { path: '/forecasts', label: 'Forecasts' },
+    // Phase 17: breaking news + trending topics + market impact desk
+    { path: '/breaking-news', label: 'Breaking' },
     { path: '/announcements', label: 'Announcements' },
     { path: '/news', label: 'News' },
     { path: '/watchlist', label: 'Watchlist' },

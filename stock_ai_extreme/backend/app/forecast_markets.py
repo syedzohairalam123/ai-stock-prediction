@@ -8,6 +8,10 @@ from typing import Any
 
 import httpx
 
+from .logging_config import get_logger
+
+logger = get_logger("neural_market.forecast_markets")
+
 
 GAMMA_MARKETS_URL = "https://gamma-api.polymarket.com/markets"
 SOURCE_NAME = "Polymarket public market data"
@@ -75,9 +79,23 @@ def normalize_market(raw: dict[str, Any], fetched_at: datetime | None = None) ->
     closed = bool(raw.get("closed"))
     status = "CLOSED" if closed else "OPEN"
     resolution = raw.get("resolution") if raw.get("resolution") in ("YES", "NO") else None
+    # Gamma sometimes reports the resolved outcome via `outcomePrices` (a fully
+    # settled YES/NO price of 1/0) before `resolution` is populated. Reading it
+    # lets a market show RESOLVED even when the explicit field lags.
+    if resolution is None and closed:
+        if indexed.get("YES") == 1.0 and indexed.get("NO") == 0.0:
+            resolution = "YES"
+        elif indexed.get("NO") == 1.0 and indexed.get("YES") == 0.0:
+            resolution = "NO"
     if resolution:
         status = "RESOLVED"
     fetched_iso = (fetched_at or datetime.now(timezone.utc)).isoformat()
+    # Phase 14.1 — the on-chain outcome-token ids. Index 0 is YES for a binary
+    # market; the CLOB price-history API is keyed on these. Kept as a list of
+    # strings; empty when gamma omits them (history is then unavailable rather
+    # than guessed).
+    clob_token_ids = [str(token) for token in _parse_array(raw.get("clobTokenIds")) if str(token).strip()]
+    condition_id = str(raw.get("conditionId") or raw.get("condition_id") or "").strip()
     traders = raw.get("uniquePseudonymousTraders")
     participant_count = int(traders) if str(traders or "").isdigit() else None
     yes_percent = round(yes * 100, 2)
@@ -95,21 +113,87 @@ def normalize_market(raw: dict[str, Any], fetched_at: datetime | None = None) ->
         "createdAt": str(raw.get("createdAt") or observed_at), "updatedAt": observed_at,
         "dataMode": "LIVE", "updateCount": 1, "participantCount": participant_count,
         "resolutionSource": None, "resolutionDate": str(raw.get("closedTime") or "") or None,
+        # Phase 14.1/14.2 — additive fields the history + resolution engines use.
+        "clobTokenIds": clob_token_ids, "conditionId": condition_id,
     }
 
 
-async def fetch_markets(limit: int, timeout_seconds: float) -> list[dict[str, Any]]:
-    params = {"active": "true", "closed": "false", "limit": max(1, min(limit, 100)), "order": "volume24hr", "ascending": "false"}
+async def _gamma_rows(params: dict[str, Any], timeout_seconds: float) -> list[dict[str, Any]]:
+    """One Gamma request, normalized to a list of dict rows."""
     async with httpx.AsyncClient(timeout=timeout_seconds, headers={"User-Agent": "NeuralMarket/2.3 forecast-analysis"}) as client:
         response = await client.get(GAMMA_MARKETS_URL, params=params)
         response.raise_for_status()
         payload = response.json()
     rows = payload if isinstance(payload, list) else payload.get("markets", []) if isinstance(payload, dict) else []
+    return [row for row in rows if isinstance(row, dict)]
+
+
+async def fetch_markets(limit: int, timeout_seconds: float) -> list[dict[str, Any]]:
+    params = {"active": "true", "closed": "false", "limit": max(1, min(limit, 100)), "order": "volume24hr", "ascending": "false"}
+    rows = await _gamma_rows(params, timeout_seconds)
     fetched_at = datetime.now(timezone.utc)
     normalized: list[dict[str, Any]] = []
     for raw in rows:
-        if isinstance(raw, dict):
+        market = normalize_market(raw, fetched_at)
+        if market is not None:
+            normalized.append(market)
+    return normalized
+
+
+async def fetch_market_by_id(market_id: str, timeout_seconds: float) -> dict[str, Any] | None:
+    """Resolve one market directly from Gamma by id (then condition id, then slug).
+
+    The active list is capped and only contains open markets, so a *closed*
+    market's history or resolution could not be reached by scanning it. This
+    queries Gamma by identity instead, which works for open and closed markets
+    alike. Returns the normalized market, or None when nothing matches.
+    """
+    cleaned = str(market_id or "").strip()
+    if not cleaned:
+        return None
+    fetched_at = datetime.now(timezone.utc)
+    for params in (
+        {"id": cleaned, "limit": 5},
+        {"condition_ids": cleaned, "limit": 5},
+        {"slug": cleaned, "limit": 5},
+    ):
+        try:
+            rows = await _gamma_rows(params, timeout_seconds)
+        except Exception as exc:
+            logger.debug("gamma lookup %s failed: %s", params, exc)
+            continue
+        for raw in rows:
+            market = normalize_market(raw, fetched_at)
+            if market is not None and market.get("id") == cleaned:
+                return market
+        # Fall back to the first normalized row when Gamma returns a near match
+        # (e.g. the id we stored was the conditionId while the row id differs).
+        for raw in rows:
             market = normalize_market(raw, fetched_at)
             if market is not None:
-                normalized.append(market)
-    return normalized
+                return market
+    return None
+
+
+async def fetch_closed_markets(limit: int, timeout_seconds: float) -> list[dict[str, Any]]:
+    """Recently CLOSED/RESOLVED markets, newest first.
+
+    Phase 14.2: the open-market query deliberately filters `closed=false`, so
+    resolutions were never visible. This is the separate, lightweight query
+    that sees them. `closed=true` markets carry `closedTime` and (usually)
+    `resolution` once Gamma has settled them.
+    """
+    params = {
+        "closed": "true",
+        "limit": max(1, min(int(limit), 500)),
+        "order": "closedTime",
+        "ascending": "false",
+    }
+    rows = await _gamma_rows(params, timeout_seconds)
+    fetched_at = datetime.now(timezone.utc)
+    out: list[dict[str, Any]] = []
+    for raw in rows:
+        market = normalize_market(raw, fetched_at)
+        if market is not None:
+            out.append(market)
+    return out

@@ -7,13 +7,20 @@
  * panel. Every control has a tooltip and an explicit active state.
  */
 import {
+  AlignJustify,
+  ArrowUpRight,
   Circle,
   Eraser,
   Eye,
   EyeOff,
+  Layers,
   Lock,
+  Minus,
   MousePointer2,
+  MoveUpRight,
+  MoveVertical,
   Redo2,
+  Ruler,
   Spline,
   Square,
   Trash2,
@@ -29,10 +36,17 @@ import { DRAWING_COLORS, DRAWING_TOOL_META } from "../../lib/charting/drawings";
 const ICONS: Record<DrawingTool, ReactNode> = {
   select: <MousePointer2 size={15} />,
   trendline: <TrendingUp size={15} />,
+  ray: <MoveUpRight size={15} />,
+  hline: <Minus size={15} />,
+  vline: <MoveVertical size={15} />,
+  channel: <Layers size={15} />,
   rectangle: <Square size={15} />,
   circle: <Circle size={15} />,
   parabola: <Spline size={15} />,
   semicircle: <Waves size={15} />,
+  "fib-retracement": <AlignJustify size={15} />,
+  "fib-extension": <ArrowUpRight size={15} />,
+  measure: <Ruler size={15} />,
 };
 
 interface DrawingToolbarProps {

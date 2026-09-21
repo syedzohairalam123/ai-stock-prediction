@@ -191,11 +191,21 @@ function formatProbability(value) {
   }
   return `${value.toFixed(1)}%`;
 }
+function describeCorrelationStrength(value) {
+  if (!Number.isFinite(value)) return "unknown";
+  const magnitude = Math.abs(value);
+  const direction = value >= 0 ? "positive" : "negative";
+  if (magnitude >= 0.75) return `strong ${direction}`;
+  if (magnitude >= 0.4) return `moderate ${direction}`;
+  if (magnitude >= 0.15) return `weak ${direction}`;
+  return "negligible";
+}
 export {
   CombinationCalculator,
   CombinationService,
   CombinationStorage,
   CorrelationService,
+  describeCorrelationStrength,
   formatProbability,
   isMarketFresh
 };

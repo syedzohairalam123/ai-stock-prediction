@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     debug: bool = False
     
     # CORS settings
-    cors_origins: str = "http://localhost:5173"
+    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     
     # Core settings
     default_prediction_horizon: int = Field(default=7, ge=1, le=30)
@@ -30,6 +30,30 @@ class Settings(BaseSettings):
     # Phase 15 — live public forecast-market source
     forecast_market_timeout_seconds: float = Field(default=15.0, ge=5.0, le=60.0)
     forecast_market_limit: int = Field(default=60, ge=5, le=100)
+
+    # Phase 14.1 — real probability history (Polymarket CLOB price series).
+    # The Gamma market payload carries `clobTokenIds`; the CLOB REST API then
+    # serves the real, tick-by-tick traded probability for that token. The
+    # fidelity is the sampling granularity in minutes, TTL the cache lifetime.
+    forecast_clob_url: str = "https://clob.polymarket.com"
+    forecast_history_timeout_seconds: float = Field(default=15.0, ge=5.0, le=60.0)
+    forecast_history_cache_ttl_seconds: int = Field(default=120, ge=15, le=3600)
+    forecast_history_fidelity: int = Field(default=60, ge=1, le=1440)
+    forecast_history_max_points: int = Field(default=2000, ge=60, le=10000)
+
+    # Phase 14.2 — resolution tracking (closed markets, polled separately).
+    forecast_resolution_cache_ttl_seconds: int = Field(default=600, ge=60, le=86400)
+    forecast_resolution_scan_limit: int = Field(default=200, ge=10, le=1000)
+
+    # Phase 14.3 — Monte-Carlo probability simulation.
+    forecast_simulation_paths: int = Field(default=10000, ge=500, le=100000)
+    forecast_simulation_max_steps: int = Field(default=180, ge=5, le=2000)
+
+    # Phase 15 — correlation-adjusted multi-event combination analysis.
+    combination_max_events: int = Field(default=12, ge=2, le=40)
+    combination_min_overlap_points: int = Field(default=8, ge=4, le=500)
+    combination_monte_carlo_draws: int = Field(default=20000, ge=1000, le=200000)
+    combination_sensitivity_delta_pp: float = Field(default=10.0, ge=1.0, le=50.0)
     
     # Persistence (SQLite by default; point this at Postgres later)
     database_url: str = "sqlite:///./neural_market.db"

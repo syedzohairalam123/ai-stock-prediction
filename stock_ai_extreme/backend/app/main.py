@@ -53,6 +53,12 @@ from .news_service import get_news_service
 from . import popular_stocks as popular_stocks_mod
 # Phase 10: AI Financial Assistant
 from . import ai_controller
+# Phase 14/15: forecast analysis (real probability history, Monte-Carlo
+# simulation, correlation-adjusted combinations) + Phase 13 server search +
+# Phase 11/12 workspace persistence. All additive routers.
+from . import forecast_routes as forecast_routes_mod
+from . import search as search_mod
+from . import workspace as workspace_mod
 
 # Configure structured logging
 configure_logging(log_level="INFO")
@@ -80,6 +86,21 @@ app.add_middleware(RateLimitMiddleware,limiter=rate_limiter)
 
 # Phase 10: AI Financial Assistant router
 app.include_router(ai_controller.router)
+# Phase 14/15: forecast analysis routers (additive; original forecast routes above stay)
+app.include_router(forecast_routes_mod.router)
+# Phase 13: ranked server-side search
+app.include_router(search_mod.router)
+# Phase 11/12: workspace + chart-workspace persistence
+app.include_router(workspace_mod.router)
+app.include_router(workspace_mod.chart_router)
+# Phase 16: Advanced Live Perpetual Futures Analytics + Paper Simulation Engine
+from . import derivatives as derivatives_mod
+app.include_router(derivatives_mod.derivatives_router)
+# Phase 17: Real-Time Breaking News + Trending Topics + Market Impact Intelligence
+# (the router is mounted here; its provider manager is injected after the
+# provider manager is constructed further down — see configure_breaking_news).
+from . import breaking_news as breaking_news_mod
+app.include_router(breaking_news_mod.breaking_news_router)
 
 # Phase 2: provider manager. yfinance is primary; Finnhub is an optional live-quote
 # fallback that only activates if FINNHUB_API_KEY is set (skipped otherwise — no
@@ -92,6 +113,11 @@ manager=MarketDataManager(
     profile_cache_ttl=settings.profile_cache_ttl_seconds,
     news_cache_ttl=settings.news_cache_ttl_seconds,
 )
+# Phase 17: give the breaking-news engine the same provider manager used for
+# market-impact analysis, and bind its streaming snapshot producer. Without this
+# the feed still works from the stored corpus; market-impact windows simply
+# report UNAVAILABLE instead of reaching for data it cannot get.
+breaking_news_mod.configure_breaking_news(manager)
 data,predictor,insighter,lstm,gru=DataAgent(manager),PredictionAgent(),InsightAgent(),LSTMPredictionAgent(),GRUPredictionAgent()
 
 class HistoryRequest(BaseModel): start:date; end:date; interval:str="1d"

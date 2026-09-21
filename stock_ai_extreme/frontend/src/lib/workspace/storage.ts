@@ -119,7 +119,207 @@ export function createBackendStorage(baseUrl: string = "/api/workspace"): Worksp
   };
 }
 
-/** Active storage — localStorage now; swap the return for the backend later. */
+/**
+ * Phase 12 — is there an authenticated session?
+ *
+ * Auth is not wired into this build yet, so this reads the token key the app
+ * will set (`neural-market-auth-token`). Until then it returns false and every
+ * caller keeps using localStorage — which is exactly why no existing behaviour
+ * changes.
+ */
+export function hasAuthSession(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return Boolean(window.localStorage.getItem("neural-market-auth-token"));
+  } catch {
+    return false;
+  }
+}
+
+let activeStorage: WorkspaceStorage | null = null;
+
+/**
+ * Active storage. Prefers the backend adapter when a session exists (it already
+ * degrades to localStorage on any network failure, so no layout is ever lost);
+ * otherwise localStorage directly.
+ */
 export function getWorkspaceStorage(): WorkspaceStorage {
-  return localStorageWorkspaceStorage;
+  if (activeStorage) return activeStorage;
+  activeStorage = hasAuthSession() ? createBackendStorage() : localStorageWorkspaceStorage;
+  return activeStorage;
+}
+
+/** Test/seam hook — force a specific storage implementation. */
+export function setWorkspaceStorage(storage: WorkspaceStorage | null): void {
+  activeStorage = storage;
+}
+
+// ---------------------------------------------------------------------------
+// Phase 12 — import / export / permalink + custom workspace presets
+// ---------------------------------------------------------------------------
+
+export interface WorkspaceExport {
+  version: number;
+  exportedAt: string;
+  workspaces: SavedWorkspace[];
+}
+
+const EXPORT_FORMAT_VERSION = 1;
+
+/** Serialize saved workspaces to a portable, self-describing JSON document. */
+export function exportWorkspacesJSON(workspaces: readonly SavedWorkspace[]): string {
+  const document: WorkspaceExport = {
+    version: EXPORT_FORMAT_VERSION,
+    exportedAt: new Date().toISOString(),
+    workspaces: workspaces.map((workspace) => ({ ...workspace })),
+  };
+  return JSON.stringify(document, null, 2);
+}
+
+/**
+ * Parse an exported document back into saved workspaces.
+ *
+ * Accepts both the wrapped document above and a bare array (someone hand-editing
+ * the file should not be punished for dropping the envelope). Throws with an
+ * actionable message on anything that is not a valid, current-version layout.
+ */
+export function parseWorkspacesJSON(raw: string): SavedWorkspace[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error("That file is not valid JSON.");
+  }
+
+  const candidate = Array.isArray(parsed)
+    ? parsed
+    : typeof parsed === "object" && parsed !== null && Array.isArray((parsed as WorkspaceExport).workspaces)
+      ? (parsed as WorkspaceExport).workspaces
+      : null;
+
+  if (!candidate) {
+    throw new Error("No workspaces found in that file.");
+  }
+
+  const workspaces = candidate.filter(
+    (entry): entry is SavedWorkspace =>
+      Boolean(entry) &&
+      typeof entry === "object" &&
+      typeof (entry as SavedWorkspace).id === "string" &&
+      typeof (entry as SavedWorkspace).name === "string" &&
+      versionOk((entry as SavedWorkspace).layout)
+  );
+
+  if (workspaces.length === 0) {
+    throw new Error("That file contains no workspaces compatible with this version.");
+  }
+  return workspaces;
+}
+
+/** A shareable link that opens the workspace by id. */
+export function buildWorkspacePermalink(workspaceId: string, baseUrl?: string): string {
+  const base = baseUrl ?? (typeof window !== "undefined" ? window.location.origin : "");
+  return `${base}/workspace?ws=${encodeURIComponent(workspaceId)}`;
+}
+
+/** Read the `?ws=` share id from a query string (or the current URL). */
+export function readWorkspaceIdFromLocation(search?: string): string | null {
+  const query = search ?? (typeof window !== "undefined" ? window.location.search : "");
+  if (!query) return null;
+  const params = new URLSearchParams(query.startsWith("?") ? query : `?${query}`);
+  const id = params.get("ws");
+  return id && id.trim() ? id.trim() : null;
+}
+
+/** Duplicate a saved workspace under a new id/name (custom preset from an existing one). */
+export function duplicateSavedWorkspace(record: SavedWorkspace, name?: string): SavedWorkspace {
+  const now = new Date().toISOString();
+  const copyId = `ws-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  return {
+    ...record,
+    id: copyId,
+    name: name?.trim() || `${record.name} copy`,
+    layout: { ...record.layout, workspaceId: copyId, updatedAt: now },
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+/** Rename a saved workspace in place (id and layout are untouched). */
+export function renameSavedWorkspace(record: SavedWorkspace, name: string): SavedWorkspace {
+  const trimmed = name.trim();
+  return { ...record, name: trimmed || record.name, updatedAt: new Date().toISOString() };
+}
+
+// ---------------------------------------------------------------------------
+// Portable share links
+//
+// A link that carries only a workspace *id* can only ever resolve on the device
+// that saved it (localStorage is per-browser). The payload below is therefore
+// self-contained: the layout travels inside the URL, so a link opened on another
+// machine imports the workspace and opens it. `?ws=` is kept alongside so a
+// same-device link resolves to the existing record instead of duplicating it.
+// ---------------------------------------------------------------------------
+
+const SHARE_FORMAT_VERSION = 1;
+
+/** UTF-8-safe base64url (URLs allow neither `+` `/` nor padding `=`). */
+function toBase64Url(value: string): string {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function fromBase64Url(value: string): string {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+  const binary = atob(padded);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+/** Encode a workspace into a URL-safe, self-describing payload. */
+export function encodeWorkspaceShare(record: SavedWorkspace): string {
+  return toBase64Url(JSON.stringify({ v: SHARE_FORMAT_VERSION, workspace: record }));
+}
+
+/**
+ * A shareable link that opens the workspace — on this device via `ws`, and on
+ * any other via the embedded `w` payload.
+ */
+export function buildWorkspaceShareLink(record: SavedWorkspace, baseUrl?: string): string {
+  const base =
+    baseUrl ??
+    (typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}` : "");
+  return `${base}?ws=${encodeURIComponent(record.id)}&w=${encodeWorkspaceShare(record)}`;
+}
+
+/**
+ * Decode a shared workspace from a query string, or `null` when absent/invalid.
+ * Version and layout are validated so a hand-edited or truncated link is
+ * rejected rather than half-loaded.
+ */
+export function readSharedWorkspace(search?: string): SavedWorkspace | null {
+  const query = search ?? (typeof window !== "undefined" ? window.location.search : "");
+  if (!query) return null;
+  const params = new URLSearchParams(query.startsWith("?") ? query : `?${query}`);
+  const encoded = params.get("w");
+  if (!encoded) return null;
+  try {
+    const decoded = JSON.parse(fromBase64Url(encoded)) as { v?: number; workspace?: SavedWorkspace };
+    if (decoded?.v !== SHARE_FORMAT_VERSION) return null;
+    const workspace = decoded.workspace;
+    if (
+      !workspace ||
+      typeof workspace.id !== "string" ||
+      typeof workspace.name !== "string" ||
+      !versionOk(workspace.layout)
+    ) {
+      return null;
+    }
+    return workspace;
+  } catch {
+    return null;
+  }
 }

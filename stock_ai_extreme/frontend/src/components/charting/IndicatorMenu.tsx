@@ -138,6 +138,10 @@ export default function IndicatorMenu({
             <option value="SMA">SMA</option>
             <option value="EMA">EMA</option>
             <option value="BB">Bollinger Bands</option>
+            <option value="RSI">RSI</option>
+            <option value="MACD">MACD</option>
+            <option value="STOCH">Stochastic</option>
+            <option value="ATR">ATR</option>
           </select>
           <input
             type="number"

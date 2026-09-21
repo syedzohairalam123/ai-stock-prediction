@@ -51,6 +51,11 @@ const SentimentPage = lazy(() => import("./pages/SentimentPage"));
 // Phase 14: non-monetary event probability forecasting
 const ForecastMarketsPage = lazy(() => import("./pages/ForecastMarketsPage"));
 const ForecastDetailPage = lazy(() => import("./pages/ForecastDetailPage"));
+// Phase 16: Advanced Live Perpetual Futures Analytics + Paper Simulation Engine
+const DerivativesTerminalPage = lazy(() => import("./pages/DerivativesTerminalPage"));
+// Phase 17: Real-Time Breaking News + Trending Topics + Market Impact Intelligence
+const BreakingNewsPage = lazy(() => import("./pages/BreakingNewsPage"));
+const TopicDetailPage = lazy(() => import("./pages/TopicDetailPage"));
 
 export default function App() {
   return (
@@ -101,6 +106,10 @@ export default function App() {
               <Route path="/sentiment" element={<SentimentPage />} />
               <Route path="/forecasts" element={<ForecastMarketsPage />} />
               <Route path="/forecast/:id" element={<ForecastDetailPage />} />
+              <Route path="/derivatives" element={<DerivativesTerminalPage />} />
+              <Route path="/breaking-news" element={<BreakingNewsPage />} />
+              {/* Phase 17 §14: a topic opened from the breaking desk */}
+              <Route path="/topics/:topicId" element={<TopicDetailPage />} />
 
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

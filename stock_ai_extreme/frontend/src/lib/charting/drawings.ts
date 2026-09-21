@@ -11,6 +11,8 @@ import type {
   DrawingStyle,
   DrawingTool,
   DrawingType,
+  FibonacciLevel,
+  MeasurementResult,
   Point2D,
   PriceLevel,
   PriceLevelType,
@@ -48,10 +50,17 @@ export interface DrawingToolMeta {
 export const DRAWING_TOOL_META: DrawingToolMeta[] = [
   { id: "select", label: "Select", hint: "Select, move and resize existing drawings" },
   { id: "trendline", label: "Trend Line", hint: "Click a start point, then an end point" },
+  { id: "ray", label: "Ray", hint: "A line from the first anchor through the second, extended right" },
+  { id: "hline", label: "Horizontal Line", hint: "Click once to pin a horizontal price level" },
+  { id: "vline", label: "Vertical Line", hint: "Click once to pin a vertical time marker" },
+  { id: "channel", label: "Parallel Channel", hint: "Two anchors set the base line; the channel extends in parallel" },
   { id: "rectangle", label: "Rectangle", hint: "Drag two opposite corners of the zone" },
   { id: "circle", label: "Circle", hint: "Drag the circle's bounding box" },
   { id: "parabola", label: "Parabola", hint: "First click sets the vertex, second a point on the curve" },
   { id: "semicircle", label: "Semicircle", hint: "Drag the semicircle's diameter" },
+  { id: "fib-retracement", label: "Fib Retracement", hint: "Anchors the swing: levels run from 0% at the second point back to 100%" },
+  { id: "fib-extension", label: "Fib Extension", hint: "Anchors the impulse: projections beyond the swing at 127.2%, 161.8%, 200%, 261.8%" },
+  { id: "measure", label: "Measure", hint: "Drag between two points to read Δ price, %, bars and duration" },
 ];
 
 export const DEFAULT_DRAWING_STYLE: DrawingStyle = {
@@ -121,9 +130,75 @@ export function drawingBounds(shape: DrawingShape): { tMin: number; tMax: number
   return { tMin, tMax, pMin, pMax };
 }
 
-/** Does this shape depend on two anchors (i.e. is it still being drawn)? */
+/**
+ * Does this shape depend on two anchors?
+ *
+ * `hline` / `vline` are the single-anchor exceptions; everything else is
+ * defined by two data-space points.
+ */
 export function isAnchorShape(type: DrawingType): boolean {
-  return type === "trendline" || type === "rectangle" || type === "circle" || type === "parabola" || type === "semicircle";
+  return type !== "hline" && type !== "vline";
+}
+
+/** True when the tool only needs one click to place. */
+export function isSingleAnchorShape(type: DrawingType): boolean {
+  return type === "hline" || type === "vline";
+}
+
+// ---------------------------------------------------------------------------
+// Fibonacci retracement / extension (spec §18 addition)
+// ---------------------------------------------------------------------------
+
+/** Classic retracement ratios, measured back from the second anchor. */
+export const FIBONACCI_RETRACEMENT_RATIOS: readonly number[] = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
+
+/** Extension ratios, projected beyond the swing. */
+export const FIBONACCI_EXTENSION_RATIOS: readonly number[] = [1.272, 1.618, 2, 2.618];
+
+/**
+ * Derive Fibonacci levels from two data-space anchors.
+ *
+ * Retracement: `0%` sits at the *second* anchor (the latest extreme) and `100%`
+ * at the first, matching the standard trading-platform convention. Extension:
+ * levels are projected past the second anchor from the first.
+ */
+export function fibonacciLevels(
+  a: Point2D,
+  b: Point2D,
+  mode: "retracement" | "extension"
+): FibonacciLevel[] {
+  const ratios = mode === "retracement" ? FIBONACCI_RETRACEMENT_RATIOS : FIBONACCI_EXTENSION_RATIOS;
+  const delta = b.p - a.p;
+  return ratios.map((ratio) => ({
+    ratio,
+    // retracement: b - delta*ratio (0% at b, 100% at a)
+    // extension:   a + delta*ratio (100% at b, beyond past it)
+    price: mode === "retracement" ? b.p - delta * ratio : a.p + delta * ratio,
+    label: `${(ratio * 100).toFixed(1)}%`,
+  }));
+}
+
+/** The parallel offset line of a channel, shifted by `offset` in price. */
+export function channelOffsetLine(a: Point2D, b: Point2D, offset: number): { start: Point2D; end: Point2D } {
+  return { start: { t: a.t, p: a.p + offset }, end: { t: b.t, p: b.p + offset } };
+}
+
+/** Measure tool readout between two data-space anchors. */
+export function measureBetween(a: Point2D, b: Point2D, barSpacingMs?: number): MeasurementResult {
+  const priceChange = b.p - a.p;
+  const percentChange = a.p === 0 ? 0 : (priceChange / a.p) * 100;
+  const durationMs = Math.abs(b.t - a.t);
+  const bars = barSpacingMs && barSpacingMs > 0 ? Math.round(durationMs / barSpacingMs) : null;
+  return { priceChange, percentChange, bars, durationMs };
+}
+
+/** Human summary for the measure tool overlay. */
+export function formatMeasurement(result: MeasurementResult): string {
+  const sign = result.priceChange >= 0 ? "+" : "";
+  const bars = result.bars === null ? "" : ` · ${result.bars} bars`;
+  const days = result.durationMs / 86_400_000;
+  const duration = days >= 1 ? `${days.toFixed(1)}d` : `${(result.durationMs / 3_600_000).toFixed(1)}h`;
+  return `${sign}${result.priceChange.toFixed(2)} (${sign}${result.percentChange.toFixed(2)}%)${bars} · ${duration}`;
 }
 
 // ---------------------------------------------------------------------------

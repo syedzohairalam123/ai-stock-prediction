@@ -11,6 +11,10 @@ export default defineConfig({
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
         secure: false,
+        // Phase 17 streams over WebSocket, SSE and polling. `ws: true` lets the
+        // dev server upgrade `/api/breaking-news/ws`; without it the client
+        // would silently fall back to SSE on every reload.
+        ws: true,
       }
     }
   },

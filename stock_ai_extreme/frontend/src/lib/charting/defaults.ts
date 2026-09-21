@@ -29,6 +29,12 @@ export const INDICATOR_CATALOG: IndicatorConfig[] = [
   { id: "EMA:20", type: "EMA", enabled: false, period: 20, color: "#BF8EDA", lineWidth: 1.7, configurable: true },
   { id: "VWAP", type: "VWAP", enabled: false, period: 1, color: "#2dd4bf", lineWidth: 1.7, configurable: false },
   { id: "BB:20", type: "BB", enabled: false, period: 20, stdDev: 2, color: "#72BC8F", lineWidth: 1.2, configurable: true },
+  // Phase 11 additions — oscillator sub-panes. All start disabled, so a fresh
+  // chart looks exactly as it did before; enabling one adds its own pane.
+  { id: "RSI", type: "RSI", enabled: false, period: 14, color: "#5E9FE8", lineWidth: 1.6, configurable: true, pane: "sub" },
+  { id: "MACD", type: "MACD", enabled: false, period: 26, fastPeriod: 12, slowPeriod: 26, signalPeriod: 9, color: "#5E9FE8", lineWidth: 1.6, configurable: true, pane: "sub" },
+  { id: "STOCH", type: "STOCH", enabled: false, period: 14, signalPeriod: 3, color: "#BF8EDA", lineWidth: 1.6, configurable: true, pane: "sub" },
+  { id: "ATR", type: "ATR", enabled: false, period: 14, color: "#DE9255", lineWidth: 1.6, configurable: true, pane: "sub" },
 ];
 
 /** Fresh copies (never the catalog objects themselves — they get mutated). */
@@ -52,6 +58,13 @@ export const CHART_STYLES: ChartStyleMeta[] = [
 /** An indicator belongs to the volume pane only when it *is* volume. */
 export function isOverlayIndicator(type: IndicatorType): boolean {
   return type === "SMA" || type === "EMA" || type === "VWAP" || type === "BB";
+}
+
+/** Phase 11 — oscillators that render in their own sub-pane. */
+export const SUB_PANE_TYPES: readonly IndicatorType[] = ["RSI", "MACD", "STOCH", "ATR"];
+
+export function paneForIndicator(type: IndicatorType): "main" | "sub" {
+  return SUB_PANE_TYPES.includes(type) ? "sub" : "main";
 }
 
 /** Intraday ranges (1D / 7D) are the only ones where VWAP is meaningful. */
@@ -79,6 +92,40 @@ export function createChartInstance(
     crosshairEnabled: true,
     settings: { ...DEFAULT_SETTINGS },
   };
+}
+
+/**
+ * Human label for a panel id. The two fixed panels and the single-letter grid
+ * panels (chart-c …) get names; anything else (a Phase-12 widget id) passes
+ * through untouched rather than being mangled.
+ */
+export function chartLabel(id: string): string {
+  const known: Record<string, string> = { "chart-a": "Chart A", "chart-b": "Chart B" };
+  if (known[id]) return known[id];
+  const single = /^chart-([a-z])$/.exec(id);
+  return single ? `Chart ${single[1].toUpperCase()}` : id;
+}
+
+/**
+ * Phase 11 — extra grid panels the user can open. The two seed panels occupy
+ * `chart-a`/`chart-b`, so new panels continue the alphabet; the cap keeps a
+ * single-page grid from turning into an unbounded canvas.
+ */
+export const GRID_PANEL_LETTERS = ["c", "d", "e", "f"] as const;
+export const MAX_GRID_PANELS = CHART_IDS.length + GRID_PANEL_LETTERS.length;
+
+/**
+ * The id a new grid panel should take, or `null` when the cap is reached.
+ * Deterministic and gap-filling: closing `chart-c` frees that id for reuse, so
+ * a workspace never accumulates `chart-c`/`chart-c-2`-style aliases.
+ */
+export function nextPanelId(existing: readonly { id: string }[]): string | null {
+  const used = new Set(existing.map((c) => c.id));
+  for (const letter of GRID_PANEL_LETTERS) {
+    const id = `chart-${letter}`;
+    if (!used.has(id)) return id;
+  }
+  return null;
 }
 
 /** In-memory only: the workspace opens on a recognisable PSX ticker. */

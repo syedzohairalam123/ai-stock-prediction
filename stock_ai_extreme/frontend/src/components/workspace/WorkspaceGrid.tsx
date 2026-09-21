@@ -11,18 +11,22 @@
  * widgets render nothing; the drag handle is the widget header so a drag
  * never fights a chart's own pointer gestures.
  */
-import { Suspense, lazy, memo, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 // Required library stylesheets: without them the resize handles lose their
 // absolute bottom-corner positioning, the drop placeholder has no styling and
 // grid items lose their move/resize transitions.
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 import {
+  Copy,
+  CopyPlus,
+  Download,
   Eye,
   LayoutGrid,
   Plus,
   RotateCcw,
   Save,
+  Upload,
   Loader2,
 } from "lucide-react";
 import { useContainerWidth } from "react-grid-layout";
@@ -32,6 +36,7 @@ import { boundsFor, canAdd, componentModuleFor, descriptorFor, WIDGET_ORDER } fr
 import { GRID_COLS, GRID_GAP, ROW_HEIGHT } from "../../lib/workspace/engine";
 import { PRESETS, PRESET_ORDER } from "../../lib/workspace/presets";
 import { useWorkspaceStore } from "../../store/useWorkspaceStore";
+import { buildWorkspaceShareLink, exportWorkspacesJSON, parseWorkspacesJSON } from "../../lib/workspace/storage";
 import WidgetFrame from "./WidgetFrame";
 import type { WidgetInstance, WidgetType } from "../../lib/workspace/types";
 
@@ -82,9 +87,14 @@ function WorkspaceGridInner() {
   const loadSavedWorkspace = useWorkspaceStore((s) => s.loadSavedWorkspace);
   const renameSavedWorkspace = useWorkspaceStore((s) => s.renameSavedWorkspace);
   const deleteSavedWorkspace = useWorkspaceStore((s) => s.deleteSavedWorkspace);
+  const duplicateSavedWorkspace = useWorkspaceStore((s) => s.duplicateSavedWorkspace);
+  const importSavedWorkspaces = useWorkspaceStore((s) => s.importSavedWorkspaces);
 
   const { width, containerRef, mounted } = useContainerWidth();
-  const [menu, setMenu] = useState<"add" | "save" | "load" | "hidden" | null>(null);
+  const [menu, setMenu] = useState<"add" | "save" | "load" | "hidden" | "data" | null>(null);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const close = () => setMenu(null);
@@ -149,6 +159,59 @@ function WorkspaceGridInner() {
     if (canAdd(type, widgets)) addWidgetOfType(type);
     setMenu(null);
   };
+
+  /**
+   * Copy a self-contained share link for one saved workspace.
+   *
+   * The link embeds the layout, so it resolves on another machine too. The
+   * Clipboard API can reject (insecure context, denied permission); rather than
+   * failing silently the link is offered through a prompt for manual copying.
+   */
+  const copyShareLink = useCallback(
+    async (id: string) => {
+      const record = saved.find((entry) => entry.id === id);
+      if (!record) return;
+      const link = buildWorkspaceShareLink(record);
+      try {
+        await navigator.clipboard.writeText(link);
+        setCopiedId(id);
+        window.setTimeout(() => setCopiedId((current) => (current === id ? null : current)), 1800);
+      } catch {
+        window.prompt("Copy this workspace link", link);
+      }
+    },
+    [saved]
+  );
+
+  /** Download every saved workspace as one JSON document. */
+  const handleExport = useCallback(() => {
+    if (saved.length === 0) return;
+    const blob = new Blob([exportWorkspacesJSON(saved)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `neural-market-workspaces-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    setShareError(null);
+  }, [saved]);
+
+  /** Read an exported file and merge its workspaces into the saved list. */
+  const handleImportFile = useCallback(
+    async (file: File | undefined) => {
+      if (!file) return;
+      try {
+        const records = parseWorkspacesJSON(await file.text());
+        importSavedWorkspaces(records);
+        setShareError(null);
+      } catch (error) {
+        setShareError(error instanceof Error ? error.message : "That file could not be imported.");
+      }
+    },
+    [importSavedWorkspaces]
+  );
 
   return (
     <div className="ws-root">
@@ -286,6 +349,24 @@ function WorkspaceGridInner() {
                     <button
                       type="button"
                       className="ws-ctl"
+                      aria-label={`Duplicate ${s.name}`}
+                      title="Duplicate — save this workspace under a new name"
+                      onClick={() => duplicateSavedWorkspace(s.id)}
+                    >
+                      <CopyPlus size={13} aria-hidden />
+                    </button>
+                    <button
+                      type="button"
+                      className={`ws-ctl${copiedId === s.id ? " ok" : ""}`}
+                      aria-label={`Copy share link for ${s.name}`}
+                      title={copiedId === s.id ? "Link copied to clipboard" : "Copy a shareable link (layout included)"}
+                      onClick={() => { void copyShareLink(s.id); }}
+                    >
+                      <Copy size={13} aria-hidden />
+                    </button>
+                    <button
+                      type="button"
+                      className="ws-ctl"
                       aria-label={`Delete ${s.name}`}
                       title="Delete"
                       onClick={() => deleteSavedWorkspace(s.id)}
@@ -294,6 +375,59 @@ function WorkspaceGridInner() {
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* Share / data portability (spec §14, §15) */}
+          <div className="ws-pop-anchor" data-ws-menu>
+            <button
+              type="button"
+              className={`ws-btn${menu === "data" ? " on" : ""}`}
+              aria-haspopup="true"
+              aria-expanded={menu === "data"}
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenu(menu === "data" ? null : "data");
+              }}
+            >
+              <Download size={14} aria-hidden /> Share
+            </button>
+            {menu === "data" && (
+              <div className="ws-pop ws-pop-form" role="menu" aria-label="Import and export workspaces">
+                <button
+                  type="button"
+                  className="ws-btn sm"
+                  onClick={handleExport}
+                  disabled={saved.length === 0}
+                  title={saved.length === 0 ? "Save a workspace first" : "Download every saved workspace as JSON"}
+                >
+                  <Download size={13} aria-hidden /> Export JSON ({saved.length})
+                </button>
+                <button type="button" className="ws-btn sm" onClick={() => fileInputRef.current?.click()}>
+                  <Upload size={13} aria-hidden /> Import JSON
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/json,.json"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    void handleImportFile(file);
+                    e.target.value = "";
+                  }}
+                  aria-label="Import workspaces from a JSON file"
+                />
+                {shareError && (
+                  <p className="ws-pop-error" role="alert">
+                    {shareError}
+                  </p>
+                )}
+                <p className="ws-pop-note">
+                  Exported files carry your saved workspaces. Use “Copy link” on a saved workspace to share a single
+                  one as a URL.
+                </p>
               </div>
             )}
           </div>

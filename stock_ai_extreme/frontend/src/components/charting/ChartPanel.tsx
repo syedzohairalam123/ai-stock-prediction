@@ -11,18 +11,20 @@
  * hover crosshair — which lives in the plot surface below — never triggers a
  * recalculation (spec §9, §27).
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ErrorBoundary } from "react-error-boundary";
+import { X } from "lucide-react";
 import type { IndicatorConfig, IndicatorType, PriceLevel, PriceLevelType, DrawingStyle } from "../../lib/charting/types";
 import type { StockRange } from "../../lib/timeframes";
 import { computeIndicators } from "../../lib/charting/indicators";
 import { defaultRange, fitRangeWithIndicators, resolveInitialRange, type PlotRange } from "../../lib/charting/plotModel";
 import { dataQualitySummary, ChartDataError, entityDisplayName, POPULAR_CHART_SYMBOLS } from "../../lib/charting/dataSource";
 import { createDrawing } from "../../lib/charting/drawings";
+import { chartLabel } from "../../lib/charting/defaults";
 import { useChartDataset } from "../../hooks/useChartData";
 import { useChartTheme } from "../../hooks/useChartTheme";
 import { useFullscreen } from "../../hooks/useFullscreen";
-import { selectChart, useChartStore } from "../../store/useChartStore";
+import { isPanelLinked, selectChart, useChartStore } from "../../store/useChartStore";
 import ChartState, { ChartSkeleton, describeEmpty } from "./ChartStates";
 import ChartToolbar, { type PanelDataState } from "./ChartToolbar";
 import PlotSurface, { type ChartInteractionController } from "./PlotSurface";
@@ -31,6 +33,14 @@ interface ChartPanelProps {
   id: string;
   label: string;
   isSplit: boolean;
+  /** Phase 11: close this panel. Omitted when it is the only one open. */
+  onClose?: () => void;
+  /**
+   * Phase 11: the reorder grip, rendered at the head of the meta strip. Owned by
+   * the workspace (which knows the panel order), so this panel stays a pure
+   * presentation component.
+   */
+  dragHandle?: ReactNode;
 }
 
 /** Fallback UI for a panel whose render threw — the other panel keeps working. */
@@ -47,7 +57,7 @@ function PanelCrash({ error, resetErrorBoundary }: { error: Error; resetErrorBou
   );
 }
 
-export default function ChartPanel({ id, label, isSplit }: ChartPanelProps) {
+export default function ChartPanel({ id, label, isSplit, onClose, dragHandle }: ChartPanelProps) {
   const instance = useChartStore((s) => selectChart(s, id));
   const activeId = useChartStore((s) => s.activeId);
   const tool = useChartStore((s) => s.tool);
@@ -55,6 +65,22 @@ export default function ChartPanel({ id, label, isSplit }: ChartPanelProps) {
   const selectedId = useChartStore((s) => s.selected[id] ?? null);
   const editStack = useChartStore((s) => s.edits[id]);
   const enabledIndicatorCount = instance.indicators.filter((i) => i.enabled).length;
+
+  // -- Phase 11 cross-panel linking -----------------------------------------
+  const linkEnabled = useChartStore((s) => s.linkEnabled);
+  const linkGroup = useChartStore((s) => s.linkGroup);
+  const panelLinkedMap = useChartStore((s) => s.panelLinked);
+  const charts = useChartStore((s) => s.charts);
+  const setLinkEnabled = useChartStore((s) => s.setLinkEnabled);
+  const setLinkGroup = useChartStore((s) => s.setLinkGroup);
+  const togglePanelLink = useChartStore((s) => s.togglePanelLink);
+  const panelLinked = isPanelLinked({ panelLinked: panelLinkedMap }, id);
+  // `charts` and `panelLinkedMap` are stable references between store writes, so
+  // this memo only recomputes on a real change.
+  const linkPanels = useMemo(
+    () => charts.map((c) => ({ id: c.id, label: chartLabel(c.id), linked: isPanelLinked({ panelLinked: panelLinkedMap }, c.id) })),
+    [charts, panelLinkedMap]
+  );
 
   const setActiveChart = useChartStore((s) => s.setActiveChart);
   const setSymbol = useChartStore((s) => s.setSymbol);
@@ -273,6 +299,13 @@ export default function ChartPanel({ id, label, isSplit }: ChartPanelProps) {
         canRedo={(editStack?.future.length ?? 0) > 0}
         isFullscreen={fullscreen.isFullscreen}
         lastClose={lastClose}
+        linkEnabled={linkEnabled}
+        linkGroup={linkGroup}
+        panelLinked={panelLinked}
+        linkPanels={linkPanels}
+        onToggleLinkEnabled={() => setLinkEnabled(!linkEnabled)}
+        onLinkGroup={setLinkGroup}
+        onTogglePanelLink={togglePanelLink}
         onActivate={() => setActiveChart(id)}
         onSymbol={(symbol, entityType) => {
           setSymbol(id, symbol);
@@ -317,6 +350,7 @@ export default function ChartPanel({ id, label, isSplit }: ChartPanelProps) {
       />
 
       <div className="chart-panel-meta">
+        {dragHandle}
         <span className="chart-meta-chip brand">{instance.entityType === "INDEX" ? "INDEX" : "STOCK"}</span>
         <span className="chart-meta-chip">{points.length.toLocaleString("en-US")} bars</span>
         {dataset && (
@@ -338,6 +372,17 @@ export default function ChartPanel({ id, label, isSplit }: ChartPanelProps) {
         </span>
         {instance.drawings.length > 0 && <span className="chart-meta-chip ghost">{instance.drawings.length} drawings</span>}
         {instance.priceLevels.length > 0 && <span className="chart-meta-chip ghost">{instance.priceLevels.length} levels</span>}
+        {onClose && (
+          <button
+            type="button"
+            className="chart-panel-close"
+            onClick={onClose}
+            aria-label={`Close ${label}`}
+            title={`Close ${label}`}
+          >
+            <X size={13} />
+          </button>
+        )}
       </div>
 
       <ErrorBoundary

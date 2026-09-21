@@ -203,6 +203,57 @@ class Message(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, index=True)
 
 
+class CombinationRecord(Base):
+    """Phase 15.2 — a persisted multi-event combination analysis.
+
+    Stores the selected events (with the probability each was captured at),
+    the independence product and the correlation-adjusted probability. Rows are
+    addressable by a client-generated stable id so the frontend's localStorage
+    records can be mirrored server-side without id churn."""
+    __tablename__ = "combination_records"
+
+    id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    user_id: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    selections: Mapped[list] = mapped_column(JSON, default=list)  # [{marketId, outcome, probability, ...}]
+    combined_probability: Mapped[float] = mapped_column(Float, default=0.0)
+    correlation_adjusted_probability: Mapped[float | None] = mapped_column(Float, nullable=True)
+    correlation: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+
+class CombinationSnapshot(Base):
+    """Phase 15.2 — append-only probability snapshots for a combination.
+
+    Each row is one captured reading of a combination's probabilities, so a
+    saved analysis gains a real history over time (the same idea as
+    `prediction_history`, applied to combined events)."""
+    __tablename__ = "combination_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    combination_id: Mapped[str] = mapped_column(String(80), index=True)
+    combined_probability: Mapped[float] = mapped_column(Float)
+    correlation_adjusted_probability: Mapped[float | None] = mapped_column(Float, nullable=True)
+    selections: Mapped[list] = mapped_column(JSON, default=list)
+    captured_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, index=True)
+
+
+class WorkspaceBlob(Base):
+    """Phase 11/12 — generic JSON document store keyed by a stable string.
+
+    Used by the workspace and chart-workspace persistence routes. A single
+    key/value table keeps the schema additive: new document kinds need only a
+    new key, never a new table."""
+    __tablename__ = "workspace_blobs"
+
+    key: Mapped[str] = mapped_column(String(120), primary_key=True)
+    #: Always a JSON object; callers that hold a list wrap it as `{"items": [...]}`
+    #: so this column's type stays a plain dict.
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+
 class AgentTask(Base):
     """Phase 10 — AI agent task execution history.
     

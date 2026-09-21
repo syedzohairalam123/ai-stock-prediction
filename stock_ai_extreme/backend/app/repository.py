@@ -8,7 +8,15 @@ from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 
 from .db import session_scope
-from .models import Alert, PortfolioHolding, PredictionRecord, WatchlistItem
+from .models import (
+    Alert,
+    CombinationRecord,
+    CombinationSnapshot,
+    PortfolioHolding,
+    PredictionRecord,
+    WatchlistItem,
+    WorkspaceBlob,
+)
 
 
 def save_prediction(ticker: str, model: str, horizon: int, data_source: str, data_status: str,
@@ -361,6 +369,124 @@ def update_transaction(transaction_id: int, quantity: float | None = None,
         
         db.flush()
         return _transaction_to_dict(tx)
+
+
+# ---------------------------------------------------------------------------
+# Phase 15.2 — combination records + append-only snapshots
+# ---------------------------------------------------------------------------
+
+def _combination_to_dict(row: CombinationRecord) -> dict:
+    return {
+        "id": row.id,
+        "user_id": row.user_id,
+        "name": row.name,
+        "selections": row.selections or [],
+        "combined_probability": row.combined_probability,
+        "correlation_adjusted_probability": row.correlation_adjusted_probability,
+        "correlation": row.correlation or {},
+        "created_at": row.created_at.isoformat(),
+        "updated_at": row.updated_at.isoformat(),
+    }
+
+
+def _snapshot_to_dict(row: CombinationSnapshot) -> dict:
+    return {
+        "id": row.id,
+        "combination_id": row.combination_id,
+        "combined_probability": row.combined_probability,
+        "correlation_adjusted_probability": row.correlation_adjusted_probability,
+        "selections": row.selections or [],
+        "captured_at": row.captured_at.isoformat(),
+    }
+
+
+def list_combinations(user_id: str | None = None) -> list[dict]:
+    with session_scope() as db:
+        stmt = select(CombinationRecord)
+        if user_id:
+            stmt = stmt.where(CombinationRecord.user_id == user_id)
+        rows = db.execute(stmt.order_by(CombinationRecord.updated_at.desc())).scalars().all()
+        return [_combination_to_dict(r) for r in rows]
+
+
+def get_combination(combination_id: str) -> dict | None:
+    with session_scope() as db:
+        row = db.get(CombinationRecord, combination_id)
+        return _combination_to_dict(row) if row else None
+
+
+def upsert_combination(record: dict) -> dict:
+    """Create or update a combination by its stable client id."""
+    with session_scope() as db:
+        row = db.get(CombinationRecord, record["id"])
+        if row is None:
+            row = CombinationRecord(id=record["id"])
+            db.add(row)
+        row.user_id = record.get("user_id")
+        row.name = record.get("name") or "Untitled combination"
+        row.selections = record.get("selections") or []
+        row.combined_probability = float(record.get("combined_probability") or 0.0)
+        adjusted = record.get("correlation_adjusted_probability")
+        row.correlation_adjusted_probability = None if adjusted is None else float(adjusted)
+        row.correlation = record.get("correlation") or {}
+        db.flush()
+        return _combination_to_dict(row)
+
+
+def delete_combination(combination_id: str) -> bool:
+    with session_scope() as db:
+        db.execute(delete(CombinationSnapshot).where(CombinationSnapshot.combination_id == combination_id))
+        result = db.execute(delete(CombinationRecord).where(CombinationRecord.id == combination_id))
+        return result.rowcount > 0
+
+
+def add_combination_snapshot(combination_id: str, combined_probability: float,
+                            correlation_adjusted_probability: float | None,
+                            selections: list) -> dict:
+    with session_scope() as db:
+        row = CombinationSnapshot(
+            combination_id=combination_id,
+            combined_probability=float(combined_probability),
+            correlation_adjusted_probability=None if correlation_adjusted_probability is None else float(correlation_adjusted_probability),
+            selections=selections or [],
+        )
+        db.add(row)
+        db.flush()
+        return _snapshot_to_dict(row)
+
+
+def list_combination_snapshots(combination_id: str, limit: int = 200) -> list[dict]:
+    with session_scope() as db:
+        rows = db.execute(
+            select(CombinationSnapshot)
+            .where(CombinationSnapshot.combination_id == combination_id)
+            .order_by(CombinationSnapshot.captured_at.asc())
+            .limit(max(1, min(int(limit), 1000)))
+        ).scalars().all()
+        return [_snapshot_to_dict(r) for r in rows]
+
+
+# ---------------------------------------------------------------------------
+# Phase 11/12 — generic JSON blob store (workspace / chart-workspace)
+# ---------------------------------------------------------------------------
+
+def get_blob(key: str) -> dict | None:
+    with session_scope() as db:
+        row = db.get(WorkspaceBlob, key)
+        if row is None:
+            return None
+        return {"key": row.key, "payload": row.payload, "updated_at": row.updated_at.isoformat()}
+
+
+def put_blob(key: str, payload: dict) -> dict:
+    with session_scope() as db:
+        row = db.get(WorkspaceBlob, key)
+        if row is None:
+            row = WorkspaceBlob(key=key)
+            db.add(row)
+        row.payload = payload
+        db.flush()
+        return {"key": row.key, "payload": row.payload, "updated_at": row.updated_at.isoformat()}
 
 
 def _transaction_to_dict(tx) -> dict:

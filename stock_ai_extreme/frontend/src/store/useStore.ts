@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { createTabSync } from '../lib/tabSync';
 
 interface TickerState {
   currentTicker: string;
@@ -59,6 +60,26 @@ export const useWatchlistStore = create<WatchlistState>()(
     }
   )
 );
+
+// Phase 13 — keep the watchlist consistent across open tabs. A remote update
+// replaces the list wholesale (the list is tiny and this avoids merge
+// ambiguity); the applying flag stops the change from echoing back out.
+let applyingRemoteWatchlist = false;
+const watchlistSync = createTabSync<{ type: 'watchlist/set'; watchlist?: string[] }>('watchlist', (message) => {
+  if (message.type !== 'watchlist/set' || !Array.isArray(message.watchlist)) return;
+  applyingRemoteWatchlist = true;
+  try {
+    useWatchlistStore.setState({ watchlist: message.watchlist.map((ticker) => ticker.toUpperCase()) });
+  } finally {
+    applyingRemoteWatchlist = false;
+  }
+});
+useWatchlistStore.subscribe((state, previous) => {
+  if (applyingRemoteWatchlist) return;
+  if (state.watchlist !== previous.watchlist) {
+    watchlistSync.publish({ type: 'watchlist/set', watchlist: state.watchlist });
+  }
+});
 
 // Settings Store with persistence
 export const useSettingsStore = create<SettingsState>()(

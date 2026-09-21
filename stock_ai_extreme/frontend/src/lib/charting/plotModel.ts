@@ -128,6 +128,10 @@ export function fitRangeWithIndicators(
   let yMin = base.y[0];
   let yMax = base.y[1];
   for (const line of lines) {
+    // Sub-pane oscillators (RSI/MACD/Stochastic/ATR) are scaled to their own
+    // axis, so including them here would stretch the price pane to a useless
+    // range — they are deliberately excluded.
+    if (line.pane === "sub") continue;
     for (let i = 0; i < points.length; i++) {
       if (points[i].timestamp < base.x[0] || points[i].timestamp > base.x[1]) continue;
       const v = line.values[i];
@@ -227,25 +231,64 @@ export function interpretRelayout(event: Record<string, unknown>, current: PlotR
 // Geometry shared with the annotation layer
 // ---------------------------------------------------------------------------
 
+/**
+ * Phase 11 — split the vertical space between the price pane, the volume pane
+ * and any oscillator sub-panes (RSI/MACD/Stochastic/ATR).
+ *
+ * Bottom-up (Plotly's domain convention): sub-panes sit lowest, then volume,
+ * then price on top. With `subPaneCount = 0` every value matches the original
+ * single-volume layout exactly, so existing charts are unaffected.
+ */
+export function paneFractions(showVolume: boolean, subPaneCount: number): {
+  subTotal: number;
+  volume: number;
+  priceBottom: number;
+  subDomains: Array<[number, number]>;
+  volumeDomain: [number, number];
+} {
+  const subs = Math.max(0, Math.floor(subPaneCount));
+  const subTotal = subs > 0 ? Math.min(0.18 * subs, 0.5) : 0;
+  const volume = showVolume ? VOLUME_FRACTION : 0;
+  const gap = showVolume || subs > 0 ? PANE_GAP : 0;
+  const priceBottom = Math.min(0.9, subTotal + volume + gap);
+
+  const subDomains: Array<[number, number]> = [];
+  if (subs > 0) {
+    const step = subTotal / subs;
+    for (let i = 0; i < subs; i++) subDomains.push([i * step, (i + 1) * step - step * 0.12]);
+  }
+  return { subTotal, volume, priceBottom, subDomains, volumeDomain: [subTotal, subTotal + volume] };
+}
+
 /** The price pane rectangle inside a plot container of `width` × `height`. */
-export function pricePaneRect(width: number, height: number, showVolume: boolean): PaneRect {
+export function pricePaneRect(width: number, height: number, showVolume: boolean, subPaneCount = 0): PaneRect {
   const innerWidth = Math.max(0, width - PLOT_MARGINS.l - PLOT_MARGINS.r);
   const innerHeight = Math.max(0, height - PLOT_MARGINS.t - PLOT_MARGINS.b);
-  if (!showVolume) {
+  const { priceBottom } = paneFractions(showVolume, subPaneCount);
+  if (priceBottom <= 0) {
     return { left: PLOT_MARGINS.l, top: PLOT_MARGINS.t, width: innerWidth, height: innerHeight };
   }
-  const priceFrac = 1 - (VOLUME_FRACTION + PANE_GAP);
   return {
     left: PLOT_MARGINS.l,
     top: PLOT_MARGINS.t,
     width: innerWidth,
-    height: innerHeight * priceFrac,
+    height: innerHeight * (1 - priceBottom),
   };
 }
 
 /** Plotly's `yaxis.domain` for the price pane. */
-export function priceDomain(showVolume: boolean): [number, number] {
-  return showVolume ? [VOLUME_FRACTION + PANE_GAP, 1] : [0, 1];
+export function priceDomain(showVolume: boolean, subPaneCount = 0): [number, number] {
+  const { priceBottom } = paneFractions(showVolume, subPaneCount);
+  return priceBottom <= 0 ? [0, 1] : [priceBottom, 1];
+}
+
+/** Distinct sub-pane indicator ids, in first-appearance order. */
+export function subPaneIndicatorIds(lines: readonly IndicatorLine[]): string[] {
+  const ids: string[] = [];
+  for (const line of lines) {
+    if (line.pane === "sub" && !ids.includes(line.indicatorId)) ids.push(line.indicatorId);
+  }
+  return ids;
 }
 
 /** Aspect-correct bar width in ms (candles and volume bars agree). */
@@ -360,7 +403,9 @@ export function buildTraces({ instance, points, lines, name, theme }: TraceInput
     } as Data);
   }
 
+  const subIds = subPaneIndicatorIds(lines);
   for (const line of lines) {
+    const subIndex = line.pane === "sub" ? subIds.indexOf(line.indicatorId) : -1;
     out.push({
       type: "scatter",
       mode: "lines",
@@ -368,6 +413,8 @@ export function buildTraces({ instance, points, lines, name, theme }: TraceInput
       x,
       y: line.values,
       line: { color: line.color, width: line.width, dash: line.dash },
+      // Sub-pane oscillators target their own y axis (`y3`, `y4`, …).
+      ...(subIndex >= 0 ? { yaxis: `y${subIndex + 3}` } : {}),
       hoverinfo: "skip",
       showlegend: false,
       connectgaps: false,
@@ -407,6 +454,7 @@ export interface LayoutInput extends TraceInput {
 export function buildLayout({
   instance,
   points,
+  lines,
   range,
   showVolume,
   uirevision,
@@ -445,7 +493,7 @@ export function buildLayout({
     zeroline: false,
     tickfont: { size: 10, color: theme.textDim },
     side: "left",
-    domain: priceDomain(showVolume),
+    domain: priceDomain(showVolume, subPaneIndicatorIds(lines).length),
     // Prices are quoted in PKR; two decimals is the venue convention.
     tickformat: ",.2f",
     range: axisRange.y,
@@ -479,9 +527,11 @@ export function buildLayout({
     annotations: [],
   };
 
+  const subIds = subPaneIndicatorIds(lines);
+  const fractions = paneFractions(showVolume, subIds.length);
   if (showVolume) {
     layout.yaxis2 = {
-      domain: [0, VOLUME_FRACTION],
+      domain: fractions.volumeDomain,
       range: [0, maxVolume * 4],
       fixedrange: true,
       visible: false,
@@ -489,6 +539,29 @@ export function buildLayout({
       gridcolor: "transparent",
       showgrid: false,
     };
+  }
+
+  // Phase 11 — declare one axis per oscillator sub-pane. Assigned through a
+  // record (rather than dotted writes) because plotly's typings only name the
+  // first few axes.
+  if (fractions.subDomains.length > 0) {
+    const extraAxes: Record<string, unknown> = {};
+    fractions.subDomains.forEach((domain, index) => {
+      extraAxes[`yaxis${index + 3}`] = {
+        domain,
+        gridcolor: theme.grid,
+        showgrid: settings.grid,
+        zeroline: false,
+        tickfont: { size: 9, color: theme.textDim },
+        tickformat: ",.2f",
+        showspikes: crosshairEnabled,
+        spikemode: "across",
+        spikethickness: 1,
+        spikecolor: theme.spike,
+        anchor: "x",
+      };
+    });
+    Object.assign(layout, extraAxes);
   }
 
   return layout;

@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { Activity, AlertTriangle, ArrowRight, CheckCircle2, Clock3, Database, Filter, Gauge, RefreshCw, Save, Sparkles, Trash2, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useForecastMarkets } from "../hooks/useForecastQueries";
-import { CombinationCalculator, CombinationService, CombinationStorage, CorrelationService, formatProbability, type CombinationOutcome, type CombinationRecord, type CombinationSelection } from "../lib/combination";
+import { CombinationCalculator, CombinationService, CombinationStorage, CorrelationService, formatProbability, type CombinationEventInput, type CombinationOutcome, type CombinationRecord, type CombinationSelection } from "../lib/combination";
+import CorrelationAdjustedPanel from "../components/forecast/CorrelationAdjustedPanel";
 import { FORECAST_CATEGORIES, type ForecastCategory, type ForecastMarket, type ForecastStatus } from "../lib/forecasting";
 
 type FilterValue = "ALL" | ForecastStatus;
@@ -80,6 +81,10 @@ export default function ForecastMarketsPage() {
   const liveCombined = effectiveSelections.length > 0 && !hasNonLiveSelection ? CombinationService.calculateCombinedProbabilityFromSelections(effectiveSelections) : null;
   const savedCombined = effectiveSelections.length > 0 ? CombinationService.calculateCombinedProbabilityFromSnapshot(effectiveSelections) : null;
   const correlation = CorrelationService.detectPotentialCorrelation(effectiveSelections, Array.from(marketMap.values()));
+
+  const correlationEvents = useMemo<CombinationEventInput[]>(() => effectiveSelections
+    .filter((selection) => selection.marketStatus !== "RESOLVED")
+    .map((selection) => ({ marketId: selection.marketId, outcome: selection.outcome, probability: selection.probability, label: selection.marketTitle ?? selection.marketId })), [effectiveSelections]);
 
   const comparisonSummary = useMemo(() => {
     const probabilities = effectiveSelections.map((selection) => selection.probability);
@@ -249,6 +254,7 @@ export default function ForecastMarketsPage() {
                 <span>Correlation</span>
                 <strong className={correlation.status === "POTENTIAL_CORRELATION" ? "warning" : ""}>{correlation.message}</strong>
               </div>
+              <CorrelationAdjustedPanel events={correlationEvents} />
               {savedCombined !== null && savedCombined !== liveCombined && <div className="forecast-combo-snapshot-delta"><span>Saved snapshot</span><strong>{savedCombined.toFixed(1)}%</strong></div> }
             </div>
 

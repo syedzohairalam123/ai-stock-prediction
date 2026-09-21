@@ -43,6 +43,7 @@ import {
   nearestIndexByTime,
   parseAxisX,
   pricePaneRect,
+  subPaneIndicatorIds,
   type ChartTheme,
   type PlotRange,
 } from "../../lib/charting/plotModel";
@@ -241,7 +242,13 @@ export default function PlotSurface({
 }: PlotSurfaceProps) {
   const { ref: boxRef, size } = useElementSize<HTMLDivElement>();
   const showVolume = useMemo(() => instance.chartType === "volume-candles" || instance.volumeVisible, [instance.chartType, instance.volumeVisible]);
-  const rect = useMemo(() => pricePaneRect(size.width, size.height, showVolume), [size.width, size.height, showVolume]);
+  // Phase 11 — oscillator sub-panes shrink the price pane; the annotation layer
+  // must use the same rectangle Plotly does, so the count feeds both.
+  const subPaneCount = useMemo(() => subPaneIndicatorIds(lines).length, [lines]);
+  const rect = useMemo(
+    () => pricePaneRect(size.width, size.height, showVolume, subPaneCount),
+    [size.width, size.height, showVolume, subPaneCount]
+  );
 
   // What Plotly currently reports — drives the annotation transform only. It is
   // intentionally *not* fed back into the layout (that would fight the user).

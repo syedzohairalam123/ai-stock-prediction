@@ -15,7 +15,10 @@
       "Exec(npx tsc)",
       "Exec(python3)",
       "Exec(git config)",
-      "Exec(dir)"
+      "Exec(dir)",
+      "Exec(cd)",
+      "Exec(mv)",
+      "Exec(pkill)"
     ]
   }
 }

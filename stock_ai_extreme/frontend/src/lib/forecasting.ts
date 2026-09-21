@@ -8,6 +8,46 @@ export type ForecastResolution = "YES" | "NO" | null;
 export type ForecastHistoryRange = "1D" | "7D" | "1M" | "FULL";
 
 export interface ProbabilityPoint { timestamp: string; yesProbability: number; noProbability: number; }
+export type ForecastSimulationModel = "auto" | "ou" | "gbm" | "ensemble";
+
+/** Phase 14.1 — the real traded-probability series from the CLOB history API. */
+export interface ForecastHistoryResponse {
+  marketId: string; tokenId: string; range: string; interval: string; fidelityMinutes: number;
+  points: ProbabilityPoint[]; updateCount: number; dataMode: ForecastDataMode;
+  source: ForecastSource; generatedAt: string;
+}
+
+/** Phase 14.3 — Monte-Carlo percentile path + terminal distribution. */
+export interface ForecastSimulationPath {
+  timestamps: string[]; median: number[]; p5: number[]; p25: number[]; p75: number[]; p95: number[];
+}
+
+export interface ForecastSimulationTerminal {
+  pYes: number; pNo: number; pYesStdError: number; pYesConfidenceInterval95: [number, number];
+  mean: number; median: number; stdDev: number;
+  percentiles: { p5: number; p25: number; p50: number; p75: number; p95: number };
+  histogram: { binEdges: number[]; counts: number[] };
+}
+
+export interface ForecastSimulation {
+  marketId: string; title: string; dataMode: "SIMULATED"; historyPoints: number;
+  model: string; requestedModel: string; paths: number; steps: number; stepDays: number;
+  horizonDays: number; sampleSize: number; startProbability: number;
+  path: ForecastSimulationPath; terminal: ForecastSimulationTerminal;
+  generatedAt: string; disclaimer: string;
+}
+
+/** Phase 14.2 — a settled market's resolution record. */
+export interface ForecastResolutionRecord {
+  marketId: string; conditionId: string; title: string; category: ForecastCategory;
+  status: ForecastStatus; resolution: ForecastResolution; resolutionDate: string | null;
+  closeTime: string; yesProbability: number | null; noProbability: number | null;
+  source: ForecastSource;
+}
+
+export interface ForecastSimulationOptions {
+  horizonDays?: number; paths?: number; model?: ForecastSimulationModel; seed?: number;
+}
 export interface ForecastSource { name: string; url: string; publishedAt: string | null; verifiedAt: string | null; }
 export interface ForecastMarket {
   id: string; title: string; description: string; category: ForecastCategory; status: ForecastStatus;
@@ -73,10 +113,65 @@ const FALLBACK_MARKETS = [
 
 async function request<T>(path: string): Promise<T> { return (await apiClient.get<T>(path)).data; }
 
+function normalizeSimulation(raw: Partial<ForecastSimulation>): ForecastSimulation {
+  const path = raw.path ?? { timestamps: [], median: [], p5: [], p25: [], p75: [], p95: [] };
+  const terminal = raw.terminal ?? {
+    pYes: 0, pNo: 100, pYesStdError: 0, pYesConfidenceInterval95: [0, 100] as [number, number],
+    mean: 0, median: 0, stdDev: 0,
+    percentiles: { p5: 0, p25: 0, p50: 0, p75: 0, p95: 0 },
+    histogram: { binEdges: [], counts: [] },
+  };
+  return {
+    marketId: String(raw.marketId ?? ""), title: String(raw.title ?? ""),
+    dataMode: "SIMULATED", historyPoints: Number(raw.historyPoints ?? 0),
+    model: String(raw.model ?? "UNKNOWN"), requestedModel: String(raw.requestedModel ?? "auto"),
+    paths: Number(raw.paths ?? 0), steps: Number(raw.steps ?? 0), stepDays: Number(raw.stepDays ?? 0),
+    horizonDays: Number(raw.horizonDays ?? 0), sampleSize: Number(raw.sampleSize ?? 0),
+    startProbability: Number(raw.startProbability ?? 0), path, terminal,
+    generatedAt: String(raw.generatedAt ?? new Date().toISOString()),
+    disclaimer: String(raw.disclaimer ?? "Simulated model output; not a certainty or advice."),
+  };
+}
+
 export const ForecastService = {
   async getForecastMarkets(): Promise<ForecastMarket[]> { try { const data = await request<ForecastMarket[]>("/forecast/markets"); return data.map(normalizeMarket); } catch { return FALLBACK_MARKETS.map(normalizeMarket); } },
   async getForecastById(id: string): Promise<ForecastMarket> { try { return normalizeMarket(await request<ForecastMarket>(`/forecast/markets/${encodeURIComponent(id)}`)); } catch { const market = FALLBACK_MARKETS.find((item) => item.id === id); if (!market) throw new Error("Forecast market not found."); return normalizeMarket(market); } },
-  async getForecastHistory(id: string, range: ForecastHistoryRange = "FULL"): Promise<ProbabilityPoint[]> { const market = await this.getForecastById(id); const cutoff = range === "1D" ? 86_400_000 : range === "7D" ? 7 * 86_400_000 : range === "1M" ? 30 * 86_400_000 : Number.POSITIVE_INFINITY; return market.history.filter((point) => Date.now() - new Date(point.timestamp).getTime() <= cutoff); },
+  async getForecastHistory(id: string, range: ForecastHistoryRange = "FULL"): Promise<ProbabilityPoint[]> {
+    // Phase 14.1 — prefer the real CLOB traded-probability series. If that
+    // endpoint is unavailable we fall back to the market's embedded history,
+    // which is the previous behaviour and is always labelled by dataMode.
+    try {
+      const payload = await request<ForecastHistoryResponse>(`/forecast/markets/${encodeURIComponent(id)}/history?range=${encodeURIComponent(range)}`);
+      if (payload && Array.isArray(payload.points) && payload.points.length > 0) {
+        return payload.points.map((point) => normalizePoint(point)).sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+      }
+    } catch {
+      // fall through to the embedded history
+    }
+    const market = await this.getForecastById(id);
+    const cutoff = range === "1D" ? 86_400_000 : range === "7D" ? 7 * 86_400_000 : range === "1M" ? 30 * 86_400_000 : Number.POSITIVE_INFINITY;
+    return market.history.filter((point) => Date.now() - new Date(point.timestamp).getTime() <= cutoff);
+  },
+  /** Phase 14.3 — Monte-Carlo simulation over the market's real history. */
+  async simulateForecast(id: string, options: ForecastSimulationOptions = {}): Promise<ForecastSimulation> {
+    const body = {
+      horizonDays: options.horizonDays ?? 30,
+      model: options.model ?? "auto",
+      ...(options.paths ? { paths: options.paths } : {}),
+      ...(options.seed !== undefined ? { seed: options.seed } : {}),
+    };
+    const { data } = await apiClient.post<ForecastSimulation>(`/forecast/markets/${encodeURIComponent(id)}/simulate`, body);
+    return normalizeSimulation(data);
+  },
+  /** Phase 14.2 — recently settled markets with their real resolution. */
+  async getResolutions(limit = 100): Promise<ForecastResolutionRecord[]> {
+    try {
+      const data = await request<{ resolutions: ForecastResolutionRecord[] }>(`/forecast/resolutions?limit=${limit}`);
+      return Array.isArray(data?.resolutions) ? data.resolutions : [];
+    } catch {
+      return [];
+    }
+  },
   async getForecastCategories(): Promise<ForecastCategory[]> { try { return await request<ForecastCategory[]>("/forecast/categories"); } catch { return [...FORECAST_CATEGORIES]; } },
   async getResolution(id: string): Promise<{ resolution: ForecastResolution; source: ForecastSource | null; date: string | null }> { const market = await this.getForecastById(id); return { resolution: market.resolution, source: market.resolutionSource, date: market.resolutionDate }; },
 };

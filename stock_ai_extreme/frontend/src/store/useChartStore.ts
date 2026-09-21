@@ -42,6 +42,7 @@ import {
   DEFAULT_SYMBOL,
   createChartInstance,
   defaultIndicators,
+  nextPanelId,
 } from "../lib/charting/defaults";
 import { inferEntityType } from "../lib/charting/dataSource";
 import type { StockRange } from "../lib/timeframes";
@@ -55,11 +56,25 @@ export interface ChartEditState {
 }
 
 export interface ChartWorkspaceState {
-  /** The two fixed panels first, then any Phase-12 widget charts. */
+  /** The two fixed panels first, then grid panels and Phase-12 widget charts. */
   charts: ChartInstance[];
   /** The panel the toolbar and single-chart view act on. */
   activeId: string;
   layout: ChartLayout;
+  /** Columns used by the `grid` layout (1–3). */
+  gridColumns: number;
+
+  // -- Phase 11: cross-panel linking -------------------------------------
+  /** When on, the chosen properties follow the user across every open panel. */
+  linkEnabled: boolean;
+  /** Which properties link. All three default on, but only apply when enabled. */
+  linkGroup: { symbol: boolean; timeframe: boolean; crosshair: boolean };
+  /**
+   * Phase 11 — per-panel opt-in. A missing id means "in the group", so a
+   * workspace saved before this field existed keeps every panel linked; `false`
+   * takes one panel out without touching the global switch.
+   */
+  panelLinked: Record<string, boolean>;
 
   /** Active drawing tool (shared by all panels — it is a cursor mode). */
   tool: DrawingTool;
@@ -72,7 +87,30 @@ export interface ChartWorkspaceState {
 
   // -- workspace ---------------------------------------------------------
   setLayout: (layout: ChartLayout) => void;
+  /** Phase 11: columns for the grid layout (clamped to 1–3). */
+  setGridColumns: (columns: number) => void;
+  /**
+   * Phase 11: open another panel. Returns the new id, or `""` when the panel
+   * cap is reached. The caller decides the layout (the workspace switches to
+   * the grid so the new panel is actually visible).
+   */
+  addChart: (symbol?: string, timeframe?: StockRange) => string;
+  /** Phase 11: close a panel, keeping at least one open and re-homing `activeId`. */
+  removeChart: (id: string) => void;
+  /**
+   * Phase 11: move a panel next to another one. `position` is where the moved
+   * panel lands relative to `targetId`; the array order is the display order.
+   */
+  moveChart: (id: string, targetId: string, position?: "before" | "after") => void;
   setActiveChart: (id: string) => void;
+  /** Phase 11: toggle cross-panel linking. */
+  setLinkEnabled: (enabled: boolean) => void;
+  /** Phase 11: choose which properties the link drives. */
+  setLinkGroup: (patch: Partial<{ symbol: boolean; timeframe: boolean; crosshair: boolean }>) => void;
+  /** Phase 11: add or remove one panel from the link group. */
+  setPanelLink: (id: string, linked: boolean) => void;
+  /** Phase 11: flip one panel's link-group membership. */
+  togglePanelLink: (id: string) => void;
   resetWorkspace: () => void;
   /** Phase 12: return the instance for `id`, creating it on first use. */
   ensureChart: (id: string, symbol?: string, timeframe?: StockRange) => ChartInstance;
@@ -231,6 +269,18 @@ function replaceChart(
   return { charts: state.charts.map((c) => (c.id === chartId ? next : c)) };
 }
 
+/**
+ * Phase 11 — is this panel part of the link group? Missing entries mean "yes",
+ * so panels created before per-panel linking existed (or restored from an older
+ * workspace) stay linked. Only an explicit `false` excludes a panel.
+ */
+export function isPanelLinked(
+  state: Pick<ChartWorkspaceState, "panelLinked">,
+  id: string
+): boolean {
+  return state.panelLinked[id] !== false;
+}
+
 // ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
@@ -241,12 +291,79 @@ export const useChartStore = create<ChartWorkspaceState>()(
       charts: seedCharts(),
       activeId: CHART_IDS[0],
       layout: "single",
+      gridColumns: 2,
+      linkEnabled: false,
+      linkGroup: { symbol: true, timeframe: true, crosshair: true },
+      panelLinked: {},
       tool: "select",
       priceLevelTool: null,
       selected: {},
       edits: {},
 
       setLayout: (layout) => set({ layout }),
+
+      setGridColumns: (columns) =>
+        set({ gridColumns: Math.max(1, Math.min(3, Math.floor(columns) || 2)) }),
+
+      addChart: (symbol, timeframe) => {
+        const state = get();
+        const id = nextPanelId(state.charts);
+        if (!id) return "";
+        const resolvedSymbol = symbol?.trim().toUpperCase() || DEFAULT_SYMBOL;
+        const instance = createChartInstance(
+          id,
+          resolvedSymbol,
+          inferEntityType(resolvedSymbol),
+          (timeframe as StockRange) ?? "6M"
+        );
+        set({ charts: [...state.charts, instance] });
+        return id;
+      },
+
+      moveChart: (id, targetId, position = "before") =>
+        set((s) => {
+          if (id === targetId) return {};
+          const from = s.charts.findIndex((c) => c.id === id);
+          if (from === -1 || !s.charts.some((c) => c.id === targetId)) return {};
+          const charts = [...s.charts];
+          const [moved] = charts.splice(from, 1);
+          // Resolve the anchor *after* removing the moved panel, so an earlier
+          // source index can never shift the destination by one.
+          const anchor = charts.findIndex((c) => c.id === targetId);
+          charts.splice(anchor + (position === "after" ? 1 : 0), 0, moved);
+          return { charts };
+        }),
+
+      removeChart: (id) =>
+        set((s) => {
+          if (s.charts.length <= 1) return {};
+          const index = s.charts.findIndex((c) => c.id === id);
+          if (index === -1) return {};
+          const charts = s.charts.filter((c) => c.id !== id);
+          const selected = { ...s.selected };
+          const edits = { ...s.edits };
+          const panelLinked = { ...s.panelLinked };
+          delete selected[id];
+          delete edits[id];
+          delete panelLinked[id];
+          // Re-home the active panel to its neighbour (or the first one left),
+          // and fall back out of a multi-panel layout when only one remains.
+          const activeId = s.activeId === id ? (charts[index] ?? charts[charts.length - 1]).id : s.activeId;
+          const layout = charts.length < 2 && s.layout !== "single" ? "single" : s.layout;
+          return { charts, selected, edits, panelLinked, activeId, layout };
+        }),
+
+      setLinkEnabled: (linkEnabled) => set({ linkEnabled }),
+      setLinkGroup: (patch) => set((s) => ({ linkGroup: { ...s.linkGroup, ...patch } })),
+
+      setPanelLink: (id, linked) =>
+        set((s) => {
+          if (!s.charts.some((c) => c.id === id)) return {};
+          if (isPanelLinked(s, id) === linked) return {};
+          return { panelLinked: { ...s.panelLinked, [id]: linked } };
+        }),
+
+      togglePanelLink: (id) => get().setPanelLink(id, !isPanelLinked(get(), id)),
 
       // Switching the active panel also stops an armed price-level tool, because
       // the next click would otherwise land on the other chart.
@@ -257,6 +374,10 @@ export const useChartStore = create<ChartWorkspaceState>()(
           charts: seedCharts(),
           activeId: CHART_IDS[0],
           layout: "single",
+          gridColumns: 2,
+          linkEnabled: false,
+          linkGroup: { symbol: true, timeframe: true, crosshair: true },
+          panelLinked: {},
           tool: "select",
           priceLevelTool: null,
           selected: {},
@@ -283,12 +404,15 @@ export const useChartStore = create<ChartWorkspaceState>()(
           const charts = s.charts.filter((c) => c.id !== id);
           const selected = { ...s.selected };
           const edits = { ...s.edits };
+          const panelLinked = { ...s.panelLinked };
           delete selected[id];
           delete edits[id];
+          delete panelLinked[id];
           return {
             charts,
             selected,
             edits,
+            panelLinked,
             activeId: s.activeId === id ? CHART_IDS[0] : s.activeId,
           };
         }),
@@ -297,21 +421,40 @@ export const useChartStore = create<ChartWorkspaceState>()(
 
       // A new instrument invalidates the saved zoom (different bar count) but
       // keeps every annotation — levels drawn for a name are the analyst's.
+      //
+      // Phase 11: when cross-panel linking is on and `symbol` is a linked
+      // property, the change is applied to every panel at once. With linking
+      // off (the default) this is byte-for-byte the old single-panel behaviour.
       setSymbol: (id, symbol) =>
-        set((s) =>
-          replaceChart(s, id, (c) => {
-            const next = symbol.trim().toUpperCase();
-            if (!next || next === c.symbol) return c;
+        set((s) => {
+          const next = symbol.trim().toUpperCase();
+          if (!next) return {};
+          // Linking only broadcasts between panels that joined the group; a panel
+          // that opted out (or the global switch being off) stays put.
+          const linked = s.linkEnabled && s.linkGroup.symbol && isPanelLinked(s, id);
+          const charts = s.charts.map((c) => {
+            if (c.id !== id && !(linked && isPanelLinked(s, c.id))) return c;
+            if (next === c.symbol) return c;
             const inferred = inferEntityType(next);
             return { ...c, symbol: next, entityType: inferred, viewport: null };
-          })
-        ),
+          });
+          return charts.some((c, index) => c !== s.charts[index]) ? { charts } : {};
+        }),
 
       setEntityType: (id, entityType) =>
         set((s) => replaceChart(s, id, (c) => (c.entityType === entityType ? c : { ...c, entityType, viewport: null }))),
 
       setTimeframe: (id, timeframe) =>
-        set((s) => replaceChart(s, id, (c) => (c.timeframe === timeframe ? c : { ...c, timeframe, viewport: null }))),
+        set((s) => {
+          if (!s.charts.some((c) => c.id === id)) return {};
+          const linked = s.linkEnabled && s.linkGroup.timeframe && isPanelLinked(s, id);
+          const charts = s.charts.map((c) => {
+            if (c.id !== id && !(linked && isPanelLinked(s, c.id))) return c;
+            if (c.timeframe === timeframe) return c;
+            return { ...c, timeframe, viewport: null };
+          });
+          return charts.some((c, index) => c !== s.charts[index]) ? { charts } : {};
+        }),
 
       // Chart-style switching intentionally preserves the viewport, indicators
       // and annotations (spec §5) — only the render style changes.
@@ -320,7 +463,15 @@ export const useChartStore = create<ChartWorkspaceState>()(
       setVolumeVisible: (id, volumeVisible) => set((s) => replaceChart(s, id, (c) => ({ ...c, volumeVisible }))),
 
       setCrosshairEnabled: (id, crosshairEnabled) =>
-        set((s) => replaceChart(s, id, (c) => ({ ...c, crosshairEnabled }))),
+        set((s) => {
+          const linked = s.linkEnabled && s.linkGroup.crosshair && isPanelLinked(s, id);
+          const charts = s.charts.map((c) => {
+            if (c.id !== id && !(linked && isPanelLinked(s, c.id))) return c;
+            if (c.crosshairEnabled === crosshairEnabled) return c;
+            return { ...c, crosshairEnabled };
+          });
+          return charts.some((c, index) => c !== s.charts[index]) ? { charts } : {};
+        }),
 
       updateSettings: (id, patch) =>
         set((s) => replaceChart(s, id, (c) => ({ ...c, settings: { ...c.settings, ...patch } }))),
@@ -365,15 +516,22 @@ export const useChartStore = create<ChartWorkspaceState>()(
             const key = type === "SMA" ? `SMA:${safePeriod}` : type === "EMA" ? `EMA:${safePeriod}` : type;
             if (c.indicators.some((i) => i.id === key)) return c;
             const palette = ["#5E9FE8", "#DE9255", "#BF8EDA", "#72BC8F", "#2dd4bf", "#facc15"];
+            // Phase 11 — oscillator sub-panes carry their own pane hint and
+            // MACD/Stochastic their fast/slow/signal periods.
+            const pane: IndicatorConfig["pane"] =
+              type === "RSI" || type === "MACD" || type === "STOCH" || type === "ATR" ? "sub" : "main";
             const seed: IndicatorConfig = {
               id: key,
               type,
               enabled: true,
               period: safePeriod,
               stdDev: type === "BB" ? 2 : undefined,
+              ...(type === "MACD" ? { fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 } : {}),
+              ...(type === "STOCH" ? { signalPeriod: 3 } : {}),
               color: palette[c.indicators.length % palette.length],
               lineWidth: 1.6,
               configurable: type !== "VWAP",
+              pane,
             };
             return { ...c, indicators: [...c.indicators, seed] };
           })
@@ -524,6 +682,10 @@ export const useChartStore = create<ChartWorkspaceState>()(
         charts: state.charts,
         activeId: state.activeId,
         layout: state.layout,
+        gridColumns: state.gridColumns,
+        linkEnabled: state.linkEnabled,
+        linkGroup: state.linkGroup,
+        panelLinked: state.panelLinked,
       }),
       merge: (persisted, current) => {
         const raw = (persisted ?? {}) as Partial<ChartWorkspaceState>;
@@ -543,7 +705,19 @@ export const useChartStore = create<ChartWorkspaceState>()(
           ...raw,
           charts,
           activeId,
-          layout: raw.layout === "split" ? "split" : "single",
+          layout: raw.layout === "split" ? "split" : raw.layout === "grid" ? "grid" : "single",
+          gridColumns: Math.max(1, Math.min(3, Math.floor(Number(raw.gridColumns)) || 2)),
+          linkEnabled: Boolean(raw.linkEnabled),
+          linkGroup: {
+            symbol: raw.linkGroup?.symbol ?? true,
+            timeframe: raw.linkGroup?.timeframe ?? true,
+            crosshair: raw.linkGroup?.crosshair ?? true,
+          },
+          // Only keep real booleans from storage; anything else falls back to the
+          // default (missing ⇒ linked).
+          panelLinked: Object.fromEntries(
+            Object.entries(raw.panelLinked ?? {}).filter(([, value]) => typeof value === "boolean")
+          ) as Record<string, boolean>,
           tool: "select" as DrawingTool,
           priceLevelTool: null,
           selected: {},

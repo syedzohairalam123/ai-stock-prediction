@@ -32,8 +32,20 @@ export type EntityType = "STOCK" | "INDEX";
  */
 export type ChartStyle = "candles" | "volume-candles" | "line";
 
-/** Indicator families supported by the calculation engine (spec §8). */
-export type IndicatorType = "SMA" | "EMA" | "VWAP" | "BB";
+/**
+ * Indicator families supported by the calculation engine (spec §8).
+ *
+ * Phase 11 additions: RSI, MACD, Stochastic and ATR. These are oscillators and
+ * render in their own sub-pane rather than over the price.
+ */
+export type IndicatorType = "SMA" | "EMA" | "VWAP" | "BB" | "RSI" | "MACD" | "STOCH" | "ATR";
+
+/** Indicator families that belong in a separate sub-pane below the price. */
+export const SUB_PANE_INDICATORS: readonly IndicatorType[] = ["RSI", "MACD", "STOCH", "ATR"];
+
+export function isSubPaneIndicator(type: IndicatorType): boolean {
+  return SUB_PANE_INDICATORS.includes(type);
+}
 
 /**
  * One configurable indicator overlay.
@@ -53,6 +65,18 @@ export interface IndicatorConfig {
   lineWidth: number;
   /** Allow the user to retune the period / multiplier from the UI. */
   configurable?: boolean;
+  /**
+   * Phase 11 — where the indicator draws. Overlays default to `main`; the
+   * oscillators default to `sub` and get their own pane regardless of this
+   * hint, so a stale persisted value can never misplace them.
+   */
+  pane?: "main" | "sub";
+  /** Fast EMA period — MACD only. */
+  fastPeriod?: number;
+  /** Slow EMA period — MACD only. */
+  slowPeriod?: number;
+  /** Signal period — MACD and Stochastic only. */
+  signalPeriod?: number;
 }
 
 /**
@@ -94,8 +118,44 @@ export interface Point2D {
   p: number;
 }
 
-/** Interactive drawing primitives (spec §15). */
-export type DrawingType = "trendline" | "rectangle" | "circle" | "parabola" | "semicircle";
+/**
+ * Interactive drawing primitives (spec §15).
+ *
+ * Phase 11 additions: Fibonacci retracement/extension, ray, horizontal and
+ * vertical lines, parallel channel, and the measurement tool. The five original
+ * primitives are unchanged, so existing persisted drawings keep working.
+ */
+export type DrawingType =
+  | "trendline"
+  | "rectangle"
+  | "circle"
+  | "parabola"
+  | "semicircle"
+  | "fib-retracement"
+  | "fib-extension"
+  | "ray"
+  | "hline"
+  | "vline"
+  | "channel"
+  | "measure";
+
+/** One derived Fibonacci level for a two-anchor retracement/extension. */
+export interface FibonacciLevel {
+  ratio: number;
+  /** Data-space price of this level. */
+  price: number;
+  /** Display label, e.g. `61.8%`. */
+  label: string;
+}
+
+/** Measurement result between two data-space anchors. */
+export interface MeasurementResult {
+  priceChange: number;
+  percentChange: number;
+  /** Number of bars spanned (when a bar spacing is known). */
+  bars: number | null;
+  durationMs: number;
+}
 
 /** Toolbar selection: `select` manipulates existing shapes, others create. */
 export type DrawingTool = "select" | DrawingType;
@@ -172,8 +232,21 @@ export interface ChartInstance {
   settings: ChartSettings;
 }
 
-/** Workspace layout (spec §3). */
-export type ChartLayout = "single" | "split";
+/**
+ * Workspace layout (spec §3).
+ *
+ *   single  only the active panel is on screen
+ *   split   every open panel, stacked in one column (A above B, and so on)
+ *   grid    every open panel in a multi-column grid
+ *
+ * `single`/`split` keep their original meaning for the two seed panels, so a
+ * workspace saved before the grid existed restores exactly as it was.
+ */
+export type ChartLayout = "single" | "split" | "grid";
+
+/** How many columns the grid layout uses (clamped by the store). */
+export const GRID_COLUMN_OPTIONS = [1, 2, 3] as const;
+export type GridColumns = (typeof GRID_COLUMN_OPTIONS)[number];
 
 /** Normalized OHLCV payload plus an honest account of what was repaired. */
 export interface NormalizedDataset {

@@ -374,7 +374,9 @@ export default function PortfolioDashboardPage() {
             <div className="performance-metric">
               <p className="portfolio-summary-card-label">Max Drawdown</p>
               <p className="portfolio-summary-card-value pnl-neg">
-                −{performance.data.metrics.max_drawdown_pct.toFixed(2)}%
+                {performance.data.metrics.max_drawdown_pct == null
+                  ? "—"
+                  : `−${performance.data.metrics.max_drawdown_pct.toFixed(2)}%`}
               </p>
             </div>
           </div>

@@ -36,6 +36,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import httpx
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from . import news_analytics as analytics
@@ -696,7 +697,20 @@ class NewsService:
                 # `impact_components` is a diagnostics aid for the API, not a
                 # stored column — drop it rather than silently ignore it.
                 payload.pop("impact_components", None)
-                db.add(NewsArticle(**payload))
+                # Insert inside a SAVEPOINT. Another writer can store the same
+                # URL between our index load and this insert — the Phase 17
+                # breaking-news refresh and the maintenance loop both ingest into
+                # the same SQLite file — and without the savepoint that collision
+                # aborts the whole batch at commit time. Here it is caught as one
+                # duplicate and the remaining articles still store.
+                try:
+                    with db.begin_nested():
+                        db.add(NewsArticle(**payload))
+                        db.flush()
+                except IntegrityError as exc:
+                    logger.debug("concurrent duplicate article %s: %s", url, exc)
+                    report["duplicate_url"] += 1
+                    continue
                 urls.add(url)
                 if normalized_title:
                     titles.add(normalized_title)

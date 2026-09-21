@@ -65,6 +65,7 @@ export default function Layout() {
           <Link to="/screener">Screener</Link>
           <Link to="/sentiment">Sentiment</Link>
           <Link to="/forecasts">Forecasts</Link>
+          <Link to="/breaking-news">Breaking news</Link>
         </div>
       </footer>
 

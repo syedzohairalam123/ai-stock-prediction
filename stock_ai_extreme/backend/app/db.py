@@ -154,6 +154,10 @@ def init_db() -> None:
     append-only column additions is honest and sufficient; add Alembic
     migrations once the schema needs to evolve destructively."""
     from . import models  # noqa: F401 (import registers the models with Base.metadata)
+    from .derivatives import models as derivatives_models  # Phase 16: derivatives models
+    # Imported from the sub-package (not the package root) so registering the
+    # tables does not drag the whole Phase 17 router/engine import chain in.
+    from .breaking_news.models import models as breaking_news_models  # noqa: F401  Phase 17
     Base.metadata.create_all(bind=engine)
     _ensure_additive_columns()
 

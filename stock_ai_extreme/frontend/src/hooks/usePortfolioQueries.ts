@@ -295,7 +295,7 @@ export interface PerformanceMetrics {
   volatility_pct: number | null;
   sharpe_ratio: number | null;
   sortino_ratio: number | null;
-  max_drawdown_pct: number;
+  max_drawdown_pct?: number | null;
 }
 
 export interface PerformanceResponse {

@@ -17,6 +17,8 @@ import {
   Gauge,
   Grid2x2,
   LineChart,
+  Link2,
+  Link2Off,
   Maximize2,
   Minimize2,
   RotateCcw,
@@ -62,6 +64,17 @@ interface ChartToolbarProps {
   canRedo: boolean;
   isFullscreen: boolean;
   lastClose: number | null;
+
+  /** Phase 11 — cross-panel linking (global switch + this panel's membership). */
+  linkEnabled: boolean;
+  linkGroup: { symbol: boolean; timeframe: boolean; crosshair: boolean };
+  panelLinked: boolean;
+  /** Every open panel, so the toolbar can drive the whole group from one menu. */
+  linkPanels: { id: string; label: string; linked: boolean }[];
+
+  onToggleLinkEnabled: () => void;
+  onLinkGroup: (patch: Partial<{ symbol: boolean; timeframe: boolean; crosshair: boolean }>) => void;
+  onTogglePanelLink: (id: string) => void;
 
   onActivate: () => void;
   onSymbol: (symbol: string, entityType: EntityType) => void;
@@ -110,6 +123,10 @@ export default function ChartToolbar(props: ChartToolbarProps) {
     canRedo,
     isFullscreen,
     lastClose,
+    linkEnabled,
+    linkGroup,
+    panelLinked,
+    linkPanels,
   } = props;
 
   const volumeLocked = instance.chartType === "volume-candles";
@@ -241,6 +258,96 @@ export default function ChartToolbar(props: ChartToolbarProps) {
             onReset={props.onResetIndicators}
           />
         </Dropdown>
+
+        <Dropdown
+          ariaLabel="Cross-panel linking"
+          icon={linkEnabled ? <Link2 size={15} /> : <Link2Off size={15} />}
+          label="Link"
+          active={linkEnabled}
+          align="right"
+          panelClassName="chart-pop-wide"
+        >
+          <div className="chart-pop-body">
+            <div className="chart-pop-head">
+              <span>Cross-panel linking</span>
+            </div>
+
+            <label className="chart-pop-check">
+              <input type="checkbox" checked={linkEnabled} onChange={props.onToggleLinkEnabled} />
+              <Link2 size={14} /> Sync panels
+            </label>
+            <p className="chart-pop-note">
+              {linkEnabled
+                ? "Linked properties follow you across the panels that joined the group."
+                : "Off — every panel keeps its own symbol, timeframe and crosshair."}
+            </p>
+
+            <div className={`chart-pop-sub${linkEnabled ? "" : " dim"}`}>
+              <span className="chart-pop-subhead">Linked properties</span>
+              <label className="chart-pop-check">
+                <input
+                  type="checkbox"
+                  checked={linkGroup.symbol}
+                  disabled={!linkEnabled}
+                  onChange={(event) => props.onLinkGroup({ symbol: event.target.checked })}
+                />
+                Symbol
+              </label>
+              <label className="chart-pop-check">
+                <input
+                  type="checkbox"
+                  checked={linkGroup.timeframe}
+                  disabled={!linkEnabled}
+                  onChange={(event) => props.onLinkGroup({ timeframe: event.target.checked })}
+                />
+                Timeframe
+              </label>
+              <label className="chart-pop-check">
+                <input
+                  type="checkbox"
+                  checked={linkGroup.crosshair}
+                  disabled={!linkEnabled}
+                  onChange={(event) => props.onLinkGroup({ crosshair: event.target.checked })}
+                />
+                Crosshair
+              </label>
+            </div>
+
+            <div className={`chart-pop-sub${linkEnabled ? "" : " dim"}`}>
+              <span className="chart-pop-subhead">Panels in the group</span>
+              {linkPanels.map((panel) => (
+                <label key={panel.id} className="chart-pop-check">
+                  <input
+                    type="checkbox"
+                    checked={panel.linked}
+                    disabled={!linkEnabled}
+                    onChange={() => props.onTogglePanelLink(panel.id)}
+                  />
+                  {panel.label}
+                  {panel.id === instance.id && <em> (this panel)</em>}
+                </label>
+              ))}
+            </div>
+          </div>
+        </Dropdown>
+
+        <button
+          type="button"
+          className={`chart-icon-btn${linkEnabled && panelLinked ? " on" : ""}`}
+          onClick={() => props.onTogglePanelLink(instance.id)}
+          disabled={!linkEnabled}
+          aria-pressed={linkEnabled && panelLinked}
+          aria-label="Toggle this panel's link-group membership"
+          title={
+            linkEnabled
+              ? panelLinked
+                ? "This panel follows the link group — click to make it independent"
+                : "This panel is independent — click to add it to the link group"
+              : "Turn on cross-panel linking (Link menu) to use this"
+          }
+        >
+          {linkEnabled && panelLinked ? <Link2 size={15} /> : <Link2Off size={15} />}
+        </button>
 
         <button
           type="button"

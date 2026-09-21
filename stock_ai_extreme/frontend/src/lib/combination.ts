@@ -264,3 +264,107 @@ export function formatProbability(value: number | null): string {
   }
   return `${value.toFixed(1)}%`;
 }
+
+// ---------------------------------------------------------------------------
+// Phase 15 — correlation-adjusted analysis (backend engine)
+//
+// The local `CombinationCalculator` keeps its independence assumption (and is
+// still the offline default). These types/results come from the Python engine,
+// which estimates the real dependence between the selected markets from their
+// traded histories and combines them with a Gaussian copula.
+// ---------------------------------------------------------------------------
+
+export interface LeadLagCell {
+  correlation: number;
+  lag: number;
+}
+
+export interface CorrelationMatrixReport {
+  eventLabels: string[];
+  method: string;
+  matrix: number[][];
+  pearson: number[][];
+  spearman: number[][];
+  leadLag: LeadLagCell[][];
+  observations: number;
+  pairwiseOverlap: Record<string, number>;
+  applied: boolean;
+  reason: string | null;
+  generatedAt: string;
+}
+
+export interface TornadoRow {
+  index: number;
+  label: string;
+  baseProbability: number;
+  low: number;
+  high: number;
+  deltaLow: number;
+  deltaHigh: number;
+  swing: number;
+}
+
+export interface CombinationScenario {
+  name: string;
+  probability: number;
+}
+
+export interface CombinationSensitivity {
+  deltaPp: number;
+  baseIndependence: number;
+  tornado: TornadoRow[];
+  scenarios: CombinationScenario[];
+}
+
+export interface CombinationAnalysis {
+  count: number;
+  draws: number;
+  eventLabels: string[];
+  inputProbabilities: number[];
+  independenceProbability: number;
+  correlationAdjustedProbability: number;
+  correlationAdjustmentPp: number;
+  confidenceInterval95: [number, number];
+  atLeastOneProbability: number;
+  exactlyKProbability: Record<string, number>;
+  correlation: CorrelationMatrixReport;
+  correlationApplied: boolean;
+  sensitivity?: CombinationSensitivity;
+  generatedAt: string;
+  disclaimer: string;
+}
+
+export interface CombinationEventInput {
+  marketId: string;
+  outcome: CombinationOutcome;
+  probability: number;
+  label?: string;
+}
+
+export interface CorrelationAnalysisResult {
+  analysis: CombinationAnalysis | null;
+  error: string | null;
+}
+
+export interface CorrelationOnlyResult {
+  report: CorrelationMatrixReport | null;
+  error: string | null;
+}
+
+export interface CombineOptions {
+  draws?: number;
+  deltaPp?: number;
+  seed?: number;
+  includeSensitivity?: boolean;
+}
+
+/** Human-readable summary of the empirical correlation between two events. */
+export function describeCorrelationStrength(value: number): string {
+  if (!Number.isFinite(value)) return "unknown";
+  const magnitude = Math.abs(value);
+  const direction = value >= 0 ? "positive" : "negative";
+  if (magnitude >= 0.75) return `strong ${direction}`;
+  if (magnitude >= 0.4) return `moderate ${direction}`;
+  if (magnitude >= 0.15) return `weak ${direction}`;
+  return "negligible";
+}
