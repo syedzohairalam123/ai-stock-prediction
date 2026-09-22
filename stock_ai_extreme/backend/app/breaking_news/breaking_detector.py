@@ -168,43 +168,56 @@ def _attr(article: Any, name: str, default: Any = None) -> Any:
     return getattr(article, name, default)
 
 
-#: Per-article entity token cache keyed by object identity, so scoring a story
-#: against several entities does not re-tokenise it repeatedly. Cleared by
-#: :func:`clear_entity_cache` between ingest runs to bound memory.
-_ENTITY_TOKEN_CACHE: dict[int, dict[str, bool]] = {}
+#: Per-article entity token cache, keyed by the *content* ``entity_tokens``
+#: reads (see :func:`_token_signature`) rather than by object identity.
+#:
+#: This distinction is load-bearing. An ``id()``-keyed cache is unsound: Python
+#: recycles the ids of garbage-collected objects, so once the original article
+#: was collected a newly created one could inherit its id and be handed the dead
+#: article's token set. That silently corrupts mention velocity, topic
+#: acceleration and entity importance for a perfectly unrelated story, and it
+#: only showed up under object churn (i.e. in production, not in a one-shot
+#: script). Keying on the exact input fields makes the cache correct by
+#: construction and lets equal articles share one computation.
+_ENTITY_TOKEN_CACHE: dict[tuple, dict[str, bool]] = {}
+
+
+def _token_signature(article: Any) -> tuple:
+    """A hashable signature of exactly the fields :func:`entity_tokens` reads.
+
+    Sequences are sorted so two articles carrying the same entities in a
+    different order still hit the same cache entry.
+    """
+    market_entities = (
+        str(entry["entity"])
+        for entry in (_attr(article, "market_entities") or [])
+        if isinstance(entry, dict) and entry.get("entity")
+    )
+    return (
+        str(_attr(article, "title") or ""),
+        str(_attr(article, "excerpt") or ""),
+        tuple(sorted(str(v) for v in (_attr(article, "related_indices") or []))),
+        tuple(sorted(str(v) for v in (_attr(article, "related_symbols") or []))),
+        tuple(sorted(str(v) for v in (_attr(article, "topics") or []))),
+        tuple(sorted(market_entities)),
+        tuple(sorted(str(v) for v in (_attr(article, "entity_types") or {}))),
+    )
 
 
 def entity_tokens(article: Any) -> dict[str, bool]:
     """Set-membership view of every entity mentioned in an article."""
-    marker = id(article)
-    cached = _ENTITY_TOKEN_CACHE.get(marker)
+    signature = _token_signature(article)
+    cached = _ENTITY_TOKEN_CACHE.get(signature)
     if cached is not None:
         return cached
 
-    text = " ".join(
-        str(v or "") for v in (
-            _attr(article, "title"),
-            _attr(article, "excerpt"),
-        )
-    )
+    title, excerpt, indices, symbols, topics, market_entities, entity_types = signature
+    text = f"{title} {excerpt}"
     tokens = {symbol: True for symbol in extract_symbols(text, max_symbols=6)}
-    for index in (_attr(article, "related_indices") or []):
-        tokens[str(index)] = True
-    for symbol in (_attr(article, "related_symbols") or []):
-        tokens[str(symbol)] = True
-    for topic in (_attr(article, "topics") or []):
-        tokens[str(topic)] = True
-    # Curated global instruments (NVDA, BTC, GOLD, SPX …) carried on the
-    # normalized shape. Absent on a raw stored row, where the text pass above
-    # still catches PSX symbols and index labels.
-    for entry in (_attr(article, "market_entities") or []):
-        value = entry.get("entity") if isinstance(entry, dict) else None
-        if value:
-            tokens[str(value)] = True
-    for entity in (_attr(article, "entity_types") or {}):
-        tokens[str(entity)] = True
+    for value in (*indices, *symbols, *topics, *market_entities, *entity_types):
+        tokens[value] = True
 
-    _ENTITY_TOKEN_CACHE[marker] = tokens
+    _ENTITY_TOKEN_CACHE[signature] = tokens
     if len(_ENTITY_TOKEN_CACHE) > 5000:  # bound growth on a long-running process
         _ENTITY_TOKEN_CACHE.clear()
     return tokens

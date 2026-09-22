@@ -254,10 +254,11 @@ class AISummarizer:
                 **evidence,
             )
 
+        # The event class is always the deterministic one from
+        # ``news_analytics.detect_event``. The model's own label is deliberately
+        # ignored rather than merged: a classification that a reader can
+        # reproduce from the text must not be overridable by prose.
         classification = evidence["event_classification"]
-        suggested = str(parsed.get("event_classification") or "").upper()
-        if suggested and suggested != classification and not classification == "GENERAL":
-            pass  # deterministic classification wins; the model's guess is advisory only
 
         confidence = parsed.get("confidence")
         try:

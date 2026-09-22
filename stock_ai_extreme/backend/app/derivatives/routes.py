@@ -6,7 +6,9 @@ All routes are for educational analytics and paper simulation - no real-money ex
 """
 
 from datetime import date, datetime, timedelta
+import asyncio
 from typing import List, Optional
+from uuid import uuid4
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Query
 from pydantic import BaseModel, Field
 import logging
@@ -46,6 +48,39 @@ derivatives_manager = DerivativesDataManager(
     depth_cache_ttl=derivatives_settings.depth_cache_ttl_seconds
 )
 
+# Phase 16 paper scenarios are intentionally process-local and non-monetary.
+# They never represent exchange orders, balances, settlement, or custody.
+paper_scenarios = {}
+quote_stream_tasks = {}
+
+
+async def stream_instrument_quotes(instrument_id: str):
+    """Poll the legitimate provider and broadcast normalized quote snapshots."""
+    try:
+        while derivatives_ws_manager.get_instrument_subscribers(instrument_id):
+            quote = await derivatives_manager.get_quote(instrument_id)
+            if quote.status.value == "UNAVAILABLE" or quote.last_price <= 0:
+                await derivatives_ws_manager.broadcast_to_instrument(instrument_id, {
+                    "type": "unavailable",
+                    "instrument_id": instrument_id,
+                    "source": quote.source,
+                    "data_mode": quote.status.value,
+                    "timestamp": quote.timestamp.isoformat(),
+                    "message": "Provider did not supply a valid live quote.",
+                })
+            else:
+                await derivatives_ws_manager.broadcast_to_instrument(instrument_id, {
+                    "type": "quote",
+                    "quote": quote.to_dict(),
+                })
+            await asyncio.sleep(5)
+    except asyncio.CancelledError:
+        raise
+    except Exception as exc:
+        logger.warning("Derivative quote stream stopped for %s: %s", instrument_id, exc)
+    finally:
+        quote_stream_tasks.pop(instrument_id, None)
+
 
 # =============================================================================
 # Instrument Endpoints
@@ -69,6 +104,8 @@ async def get_instruments(asset_class: Optional[AssetClass] = None):
             total=len(instruments),
             asset_class=asset_class or AssetClass.CRYPTO
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -103,6 +140,8 @@ async def get_quote(instrument_id: str):
     """
     try:
         quote = await derivatives_manager.get_quote(instrument_id)
+        if quote.status.value == "UNAVAILABLE" or quote.last_price <= 0:
+            raise HTTPException(status_code=503, detail="Live derivative quote is unavailable; no price was fabricated.")
         
         # Calculate microstructure metrics
         microstructure = None
@@ -117,6 +156,8 @@ async def get_quote(instrument_id: str):
             quote=quote,
             microstructure=microstructure
         )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -352,8 +393,8 @@ async def create_simulation(request: PaperSimulationRequest, user_id: str = "ano
             raise HTTPException(status_code=400, detail={"errors": errors})
         
         simulation = PaperSimulationService.create_simulation(request, user_id)
-        
-        # TODO: Save to database
+        simulation.id = str(uuid4())
+        paper_scenarios[simulation.id] = simulation
         
         return simulation
     except HTTPException:
@@ -368,11 +409,12 @@ async def close_simulation(simulation_id: str, exit_price: float = Query(..., gt
     Close a paper simulation by setting exit price.
     """
     try:
-        # TODO: Load simulation from database
-        # simulation = load_simulation(simulation_id)
-        # simulation = PaperSimulationService.close_simulation(simulation, exit_price)
-        
-        raise HTTPException(status_code=501, detail="Database persistence not yet implemented")
+        simulation = paper_scenarios.get(simulation_id)
+        if simulation is None:
+            raise HTTPException(status_code=404, detail="Paper simulation not found")
+        closed = PaperSimulationService.close_simulation(simulation, exit_price)
+        paper_scenarios[simulation_id] = closed
+        return closed
     except HTTPException:
         raise
     except Exception as e:
@@ -421,6 +463,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str = Query(...)):
                 instrument_id = data.get("instrument_id")
                 if instrument_id:
                     await derivatives_ws_manager.subscribe_to_instrument(client_id, instrument_id)
+                    if instrument_id not in quote_stream_tasks:
+                        quote_stream_tasks[instrument_id] = asyncio.create_task(stream_instrument_quotes(instrument_id))
             
             elif message_type == "unsubscribe":
                 instrument_id = data.get("instrument_id")

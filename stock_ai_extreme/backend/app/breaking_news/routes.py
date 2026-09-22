@@ -16,6 +16,7 @@ Endpoint map (all under ``/api/breaking-news``):
 ``GET  /topics/{id}``   topic detail: timeline, articles, impacts, sources
 ``GET  /topics/{id}/timeline`` / ``/topics/{id}/articles``
 ``POST /impact``        observed movement for one event/entity across windows
+``GET  /impact/study``  observed-movement event study over stored rows
 ``GET  /impact/entity/{entity}``
 ``GET  /impact/{news_id}/windows``  every window that has enough real data
 ``POST /probability``   observed Phase 14 probability movement
@@ -48,6 +49,7 @@ from ..models import NewsArticle
 from ..news_service import data_mode_for, get_news_service
 from .config import breaking_news_settings
 from .engine import engine
+from .impact_stats import build_impact_study
 from .models.models import (
     BreakingNews,
     MarketImpactEvent,
@@ -61,6 +63,7 @@ from .schemas import (
     BreakingLevel,
     BreakingNewsSchema,
     ClusterSchema,
+    ImpactStudyResponse,
     IngestReportSchema,
     ImpactWindowAnalysis,
     MarketImpactEventSchema,
@@ -620,6 +623,49 @@ async def analyze_impact(request: MarketImpactRequest, db: Session = Depends(get
         news_published_at=ensure_aware(analysis["news_published_at"]),
         windows=windows,
         unavailable_windows=analysis["unavailable_windows"],
+    )
+
+
+@router.get("/impact/study", response_model=ImpactStudyResponse)
+def impact_study(
+    hours: int = Query(default=168, ge=1, le=720),
+    window: Optional[str] = Query(default=None, pattern="^(5m|15m|30m|1h|4h|24h)$"),
+    entity_type: Optional[str] = Query(
+        default=None,
+        pattern="^(STOCK|INDEX|COMMODITY|FOREX|CRYPTO|FORECAST)$",
+    ),
+    min_sample: Optional[int] = Query(default=None, ge=1, le=1000),
+    db: Session = Depends(get_db),
+):
+    """Observed-movement event study over the stored impact rows.
+
+    Pure aggregation of rows the desk has already measured — no provider calls,
+    no network, and no value that is not a statistic over real stored movements.
+    Groups whose measured sample is below ``min_sample`` come back with
+    ``sufficient_sample: false`` so the caller can say "not enough observations"
+    instead of showing a confident average built from two data points.
+    """
+    cutoff = utcnow() - timedelta(hours=hours)
+    query = db.query(MarketImpactEvent).filter(MarketImpactEvent.news_published_at >= cutoff)
+    if window:
+        query = query.filter(MarketImpactEvent.observation_window == window)
+    if entity_type:
+        query = query.filter(MarketImpactEvent.entity_type == entity_type.upper())
+
+    try:
+        rows = query.limit(int(breaking_news_settings.impact_study_max_rows)).all()
+    except Exception as exc:
+        logger.exception("impact study query failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    return ImpactStudyResponse(
+        **build_impact_study(
+            rows,
+            hours=hours,
+            min_sample=min_sample,
+            window=window,
+            entity_type=entity_type.upper() if entity_type else None,
+        )
     )
 
 

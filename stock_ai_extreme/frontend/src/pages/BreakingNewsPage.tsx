@@ -25,6 +25,7 @@ import {
   Bot,
   Database,
   Flame,
+  FlaskConical,
   Layers,
   Newspaper,
   Radio,
@@ -35,12 +36,14 @@ import {
 import BreakingNewsFeed from "../components/breakingNews/BreakingNewsFeed";
 import BreakingNewsTicker from "../components/breakingNews/BreakingNewsTicker";
 import HotTopicsSidebar from "../components/breakingNews/HotTopicsSidebar";
+import ImpactStudyPanel from "../components/breakingNews/ImpactStudyPanel";
 import SourceList from "../components/breakingNews/SourceList";
 import TopicCard from "../components/breakingNews/TopicCard";
 import {
   fetchBreakingFeed,
   fetchBreakingHealth,
   fetchClusters,
+  fetchImpactStudy,
   fetchSources,
   fetchTopics,
   fixed,
@@ -53,17 +56,19 @@ import {
   type BreakingLevel,
   type BreakingNewsEvent,
   type Cluster,
+  type ImpactStudy,
   type IngestReport,
   type SourcesResponse,
   type TopicsResponse,
 } from "../lib/breakingNews";
 
-type View = "feed" | "topics" | "clusters" | "sources";
+type View = "feed" | "topics" | "clusters" | "study" | "sources";
 
 const VIEWS: Array<{ key: View; label: string; icon: typeof Newspaper }> = [
   { key: "feed", label: "Breaking feed", icon: Zap },
   { key: "topics", label: "Hot topics", icon: Flame },
   { key: "clusters", label: "Event clusters", icon: Layers },
+  { key: "study", label: "Impact study", icon: FlaskConical },
   { key: "sources", label: "Sources & reliability", icon: ShieldCheck },
 ];
 
@@ -105,6 +110,10 @@ export default function BreakingNewsPage() {
   const [clusters, setClusters] = useState<Cluster[] | null>(null);
   const [clustersLoading, setClustersLoading] = useState(false);
   const [clustersError, setClustersError] = useState<string | null>(null);
+
+  const [study, setStudy] = useState<ImpactStudy | null>(null);
+  const [studyLoading, setStudyLoading] = useState(false);
+  const [studyError, setStudyError] = useState<string | null>(null);
 
   const [health, setHealth] = useState<BreakingHealth | null>(null);
   const [selected, setSelected] = useState<BreakingNewsEvent | null>(null);
@@ -170,6 +179,18 @@ export default function BreakingNewsPage() {
     }
   }, [hours]);
 
+  const loadStudy = useCallback(async () => {
+    setStudyLoading(true);
+    try {
+      setStudy(await fetchImpactStudy({ hours }));
+      setStudyError(null);
+    } catch (err) {
+      setStudyError(err instanceof Error ? err.message : "Failed to load the observed-movement study");
+    } finally {
+      setStudyLoading(false);
+    }
+  }, [hours]);
+
   const loadHealth = useCallback(async () => {
     try {
       setHealth(await fetchBreakingHealth());
@@ -192,7 +213,8 @@ export default function BreakingNewsPage() {
     if (view === "sources") void loadSources();
     if (view === "clusters") void loadClusters();
     if (view === "topics") void loadTopics();
-  }, [view, loadSources, loadClusters, loadTopics]);
+    if (view === "study") void loadStudy();
+  }, [view, loadSources, loadClusters, loadTopics, loadStudy]);
 
   const stream = useBreakingNewsStream({
     onUpdate: () => {
@@ -592,6 +614,16 @@ export default function BreakingNewsPage() {
             </table>
           )}
         </section>
+      )}
+
+      {view === "study" && (
+        <ImpactStudyPanel
+          study={study}
+          loading={studyLoading}
+          error={studyError}
+          onRefresh={() => void loadStudy()}
+          hours={hours}
+        />
       )}
 
       {view === "sources" && (

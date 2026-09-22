@@ -210,7 +210,7 @@ class BinanceDerivativesProvider(DerivativeDataProvider):
                 high_24h=float(data.get('highPrice')),
                 low_24h=float(data.get('lowPrice')),
                 volume_24h=float(data.get('volume')),
-                open_interest=float(data.get('openInterest')),
+                open_interest=None,
                 funding_rate=None,  # Fetched separately
             )
             
@@ -334,17 +334,18 @@ class BinanceDerivativesProvider(DerivativeDataProvider):
             OpenInterestData object
         """
         try:
-            # Fetch current open interest from 24hr ticker
+            # Fetch current open interest from Binance's dedicated derivatives endpoint.
             response = await self.client.get(
-                f"{self.BASE_URL}/fapi/v1/ticker/24hr",
+                f"{self.BASE_URL}/fapi/v1/openInterest",
                 params={"symbol": instrument_id}
             )
             response.raise_for_status()
             
             data = response.json()
             
-            current_oi = float(data.get('openInterest', 0))
-            oi_value = current_oi * float(data.get('lastPrice', 0))
+            current_oi = float(data.get('openInterest'))
+            quote = await self.get_quote(instrument_id)
+            oi_value = current_oi * quote.last_price
             
             return OpenInterestData(
                 instrument_id=instrument_id,

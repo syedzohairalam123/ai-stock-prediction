@@ -232,6 +232,73 @@ export interface ImpactWindowAnalysis {
   disclaimer: string;
 }
 
+export interface ObservedMovementRef {
+  entity: string | null;
+  entity_type: string | null;
+  observation_window: string | null;
+  price_change_percent: number | null;
+  news_published_at: string | null;
+  breaking_news_id: string | null;
+  article_id: number | null;
+}
+
+/**
+ * Descriptive statistics over a sample of *measured* movement rows.
+ * `sample_size` counts only observations with a real measured move;
+ * `unavailable_samples` counts rows that could not be measured and are excluded.
+ */
+export interface ObservedMovementStats {
+  sample_size: number;
+  unavailable_samples: number;
+  up: number;
+  down: number;
+  flat: number;
+  hit_rate_up: number | null;
+  mean_percent: number | null;
+  median_percent: number | null;
+  stdev_percent: number | null;
+  mean_absolute_percent: number | null;
+  max_gain_percent: number | null;
+  max_loss_percent: number | null;
+  mean_max_favorable_percent: number | null;
+  mean_max_adverse_percent: number | null;
+  mean_realized_volatility_percent: number | null;
+  mean_confidence: number | null;
+  magnitude_breakdown: Record<string, number>;
+  first_observed_at: string | null;
+  last_observed_at: string | null;
+  best: ObservedMovementRef | null;
+  worst: ObservedMovementRef | null;
+}
+
+export interface ImpactStudyGroup {
+  key: string;
+  label: string;
+  entity_type: string | null;
+  observation_window: string | null;
+  sufficient_sample: boolean;
+  stats: ObservedMovementStats;
+}
+
+/** Aggregate of price movements observed after publication (never causal). */
+export interface ImpactStudy {
+  generated_at: string;
+  hours: number;
+  min_sample: number;
+  window: string | null;
+  entity_type: string | null;
+  samples_considered: number;
+  measured_samples: number;
+  unavailable_samples: number;
+  sufficient_groups: number;
+  overall: ObservedMovementStats;
+  by_entity: ImpactStudyGroup[];
+  by_entity_type: ImpactStudyGroup[];
+  by_window: ImpactStudyGroup[];
+  note: string;
+  disclaimer: string;
+}
+
 export interface ProbabilityMovement {
   id: string;
   article_id: number | null;
@@ -508,6 +575,23 @@ export async function analyzeImpact(body: {
   return data;
 }
 
+export async function fetchImpactStudy(options: {
+  hours?: number;
+  window?: ObservationWindow;
+  entityType?: Exclude<EntityType, "AUTO">;
+  minSample?: number;
+} = {}): Promise<ImpactStudy> {
+  const { data } = await apiClient.get<ImpactStudy>(`${BASE}/impact/study`, {
+    params: {
+      hours: options.hours ?? 168,
+      window: options.window,
+      entity_type: options.entityType,
+      min_sample: options.minSample,
+    },
+  });
+  return data;
+}
+
 export async function fetchEntityImpactHistory(
   entity: string,
   options: { hours?: number; limit?: number } = {},
@@ -722,8 +806,14 @@ export function useBreakingNewsStream(options: {
       });
       events.addEventListener("breaking_news_update", (event) => {
         try {
-          const payload = JSON.parse((event as MessageEvent).data) as { snapshot?: DigestSnapshot };
-          push(payload.snapshot ?? null, "sse");
+          // The broadcaster frames SSE payloads as `{type, etag, data}` and the
+          // WebSocket as `{type, data}`; both must be read or the SSE transport
+          // would receive every push without its snapshot and refetch blindly.
+          const payload = JSON.parse((event as MessageEvent).data) as {
+            snapshot?: DigestSnapshot;
+            data?: DigestSnapshot;
+          };
+          push(payload.data ?? payload.snapshot ?? null, "sse");
         } catch {
           push(null, "sse");
         }

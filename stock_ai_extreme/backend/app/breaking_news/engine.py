@@ -311,7 +311,6 @@ class BreakingNewsEngine:
             breaking_by_publisher=breaking_by_publisher,
             cluster_of=cluster_of,
             cluster_file_time=cluster_first,
-            feed_statuses=feed_statuses,
         )
         reliability_map = {
             publisher: self.source_engine.score(obs)["reliability_score"]
@@ -1023,15 +1022,6 @@ def engine_len(rows: Iterable[Any]) -> int:
         return len(list(rows))
     except TypeError:
         return 0
-
-
-def _unique(values: Iterable[Any]) -> list[str]:
-    out: list[str] = []
-    for value in values:
-        text = str(value)
-        if text and text not in out:
-            out.append(text)
-    return out
 
 
 def _parse_hour(hour_key: str) -> Optional[datetime]:

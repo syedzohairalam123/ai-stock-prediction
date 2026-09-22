@@ -297,6 +297,80 @@ class MarketImpactEventSchema(BaseModel):
     created_at: Optional[datetime] = None
 
 
+class ObservedMovementRef(BaseModel):
+    """A single observation inside an event study (best/worst of a sample)."""
+
+    entity: Optional[str] = None
+    entity_type: Optional[str] = None
+    observation_window: Optional[str] = None
+    price_change_percent: Optional[float] = None
+    news_published_at: Optional[datetime] = None
+    breaking_news_id: Optional[str] = None
+    article_id: Optional[int] = None
+
+
+class ObservedMovementStats(BaseModel):
+    """Descriptive statistics over a sample of *measured* movement rows.
+
+    ``sample_size`` counts only observations that had a real measured move.
+    ``unavailable_samples`` counts rows that could not be measured and are
+    therefore excluded — reported so the denominator is never hidden.
+    """
+
+    sample_size: int = 0
+    unavailable_samples: int = 0
+    up: int = 0
+    down: int = 0
+    flat: int = 0
+    hit_rate_up: Optional[float] = None
+    mean_percent: Optional[float] = None
+    median_percent: Optional[float] = None
+    stdev_percent: Optional[float] = None
+    mean_absolute_percent: Optional[float] = None
+    max_gain_percent: Optional[float] = None
+    max_loss_percent: Optional[float] = None
+    mean_max_favorable_percent: Optional[float] = None
+    mean_max_adverse_percent: Optional[float] = None
+    mean_realized_volatility_percent: Optional[float] = None
+    mean_confidence: Optional[float] = None
+    magnitude_breakdown: Dict[str, int] = Field(default_factory=dict)
+    first_observed_at: Optional[datetime] = None
+    last_observed_at: Optional[datetime] = None
+    best: Optional[ObservedMovementRef] = None
+    worst: Optional[ObservedMovementRef] = None
+
+
+class ImpactStudyGroup(BaseModel):
+    """One entity / asset-class / window bucket of the event study."""
+
+    key: str
+    label: str
+    entity_type: Optional[str] = None
+    observation_window: Optional[str] = None
+    sufficient_sample: bool = False
+    stats: ObservedMovementStats
+
+
+class ImpactStudyResponse(BaseModel):
+    """Aggregate of price movements observed after publication."""
+
+    generated_at: datetime
+    hours: int
+    min_sample: int
+    window: Optional[str] = None
+    entity_type: Optional[str] = None
+    samples_considered: int = 0
+    measured_samples: int = 0
+    unavailable_samples: int = 0
+    sufficient_groups: int = 0
+    overall: ObservedMovementStats
+    by_entity: List[ImpactStudyGroup] = Field(default_factory=list)
+    by_entity_type: List[ImpactStudyGroup] = Field(default_factory=list)
+    by_window: List[ImpactStudyGroup] = Field(default_factory=list)
+    note: str = ""
+    disclaimer: str = ""
+
+
 class ProbabilityMovementSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -490,5 +564,9 @@ __all__ = [
     "TopicsRequest",
     "MarketImpactRequest",
     "ImpactWindowAnalysis",
+    "ObservedMovementRef",
+    "ObservedMovementStats",
+    "ImpactStudyGroup",
+    "ImpactStudyResponse",
     "ProbabilityMovementRequest",
 ]

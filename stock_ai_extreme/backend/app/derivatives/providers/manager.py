@@ -78,7 +78,8 @@ class DerivativesDataManager:
         """
         last_error = None
         
-        for provider in self.providers:
+        providers = self._providers_for_asset_class(asset_class)
+        for provider in providers:
             try:
                 instruments = await provider.get_instruments(asset_class)
                 return instruments
@@ -91,6 +92,12 @@ class DerivativesDataManager:
         error_msg = f"All providers failed for instruments: {last_error}" if last_error else "No providers available"
         logger.error(error_msg)
         raise DerivativeProviderError("manager", error_msg)
+
+    def _providers_for_asset_class(self, asset_class: Optional[str]) -> List[DerivativeDataProvider]:
+        """Prefer a native derivatives venue for crypto while retaining fallbacks."""
+        if asset_class and asset_class.upper() == "CRYPTO":
+            return sorted(self.providers, key=lambda provider: 0 if provider.name == "binance" else 1)
+        return self.providers
     
     async def get_quote(self, instrument_id: str) -> DerivativeQuote:
         """

@@ -5,6 +5,7 @@ itself runs forever by design, so these test the two real pieces of logic
 manager mocked at the same seam as the route tests.
 """
 import asyncio
+import time
 from collections import deque
 from datetime import date, timedelta
 from unittest.mock import AsyncMock, patch
@@ -119,8 +120,14 @@ def test_resolve_all_predictions_skips_future_forecasts():
 def test_rate_limiter_cleanup_drops_idle_buckets():
     limiter = RateLimiter(max_requests=10, window_seconds=60)
     limiter.allow("active")
-    # simulate an old bucket by injecting one with a stale timestamp
-    limiter._hits["stale"] = deque([1.0])  # 1.0 is long before now
+    # Simulate an old bucket by injecting one with a stale timestamp. The stamp
+    # must be anchored to the same clock the limiter reads: buckets are stamped
+    # with ``time.monotonic()``, whose origin is the host's boot time rather than
+    # the epoch, so a hard-coded ``1.0`` only counts as "long ago" once the
+    # machine has been up for longer than the idle timeout. That made this test
+    # depend on host uptime and fail intermittently on a freshly started runner.
+    stale_stamp = time.monotonic() - (limiter.window_seconds * 4) - 60
+    limiter._hits["stale"] = deque([stale_stamp])
     assert "stale" in limiter._hits
     dropped = limiter.cleanup()
     assert dropped >= 1

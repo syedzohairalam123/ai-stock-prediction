@@ -103,6 +103,17 @@ class BreakingNewsSettings(BaseSettings):
         }
     )
     market_impact_enabled: bool = True
+    #: Minimum number of *measured* observations a group in the observed-movement
+    #: event study (``GET /impact/study``) needs before its averages are
+    #: presented as meaningful. Below this the group is reported with
+    #: ``sufficient_sample: false`` rather than hidden or silently averaged.
+    impact_study_min_sample: int = Field(default=5, ge=1, le=1000)
+    #: Cap on how many groups each breakdown of the event study returns, so a
+    #: corpus that mentions thousands of entities cannot produce a huge payload.
+    impact_study_max_groups: int = Field(default=25, ge=1, le=500)
+    #: Cap on how many stored movement rows one event-study request reads, so the
+    #: endpoint stays a bounded, fast read as the impact table grows.
+    impact_study_max_rows: int = Field(default=5000, ge=100, le=100000)
 
     # ------------------------------------------------------------------
     # Forecast probability movement (Phase 14 integration)

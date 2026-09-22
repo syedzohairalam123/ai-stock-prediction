@@ -101,6 +101,12 @@ app.include_router(derivatives_mod.derivatives_router)
 # provider manager is constructed further down — see configure_breaking_news).
 from . import breaking_news as breaking_news_mod
 app.include_router(breaking_news_mod.breaking_news_router)
+# Phase 18: Political & Geopolitical Data Mapping / Forecast Visualization
+# (strictly informational and neutral: FEC calendar + public prediction
+# markets + MEDSL certified history + GDELT coverage. Every number is quoted
+# from a named source with its type; the app never invents or ranks.)
+from . import political as political_mod
+app.include_router(political_mod.political_router)
 
 # Phase 2: provider manager. yfinance is primary; Finnhub is an optional live-quote
 # fallback that only activates if FINNHUB_API_KEY is set (skipped otherwise — no

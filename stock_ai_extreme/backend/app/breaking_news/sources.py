@@ -182,7 +182,6 @@ class SourceReliabilityEngine:
         breaking_by_publisher: Optional[dict[str, int]] = None,
         cluster_of: Optional[dict[int, tuple[str, int]]] = None,
         cluster_file_time: Optional[dict[str, Any]] = None,
-        feed_statuses: Optional[list[dict]] = None,
     ) -> dict[str, PublisherObservation]:
         """Build one observation per publisher from the real stored rows.
 
@@ -190,6 +189,11 @@ class SourceReliabilityEngine:
         ``cluster_file_time`` maps ``cluster_id -> first publication time in that
         cluster``; together they make corroboration and timeliness measurable
         without any additional network call.
+
+        Feed health is deliberately not a parameter: it is recorded once per
+        ingest by :func:`record_feed_errors` and read back in :meth:`score`, so
+        there is a single source of truth for "which feeds are failing" rather
+        than a second copy threaded through here.
         """
         breaking_by_publisher = breaking_by_publisher or {}
         cluster_of = cluster_of or {}
@@ -241,22 +245,21 @@ class SourceReliabilityEngine:
             obs = observations.setdefault(name, PublisherObservation(publisher=name))
             obs.breaking_count += count
 
-        self._apply_feed_status(observations, feed_statuses or [])
+        self._apply_feed_status(observations)
         return observations
 
     def _apply_feed_status(
         self,
         observations: dict[str, PublisherObservation],
-        feed_statuses: list[dict],
     ) -> None:
-        """Attach real ingestion health to the matching publishers."""
-        errors_by_key: dict[str, int] = {}
-        for status in feed_statuses:
-            if status.get("status") == "ERROR":
-                key = status.get("key")
-                if key:
-                    errors_by_key[key] = errors_by_key.get(key, 0) + 1
+        """Resolve the registry feed key for every publisher seen this run.
 
+        The key is what lets :meth:`score` look the publisher up in the error
+        table maintained by :func:`record_feed_errors` — and what lets
+        :meth:`sync` persist ``source_url`` / ``region`` / ``category`` from the
+        feed registry. Publishers whose key cannot be resolved are left as-is
+        rather than guessed at.
+        """
         for obs in observations.values():
             key = obs.feed_key
             if not key:
