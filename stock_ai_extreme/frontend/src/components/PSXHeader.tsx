@@ -15,6 +15,8 @@ export default function PSXHeader({ theme, toggleTheme, isMobileMenuOpen, toggle
 
   const navLinks = [
     { path: '/', label: 'Home' },
+    // Phase 19: market discovery (trending / new / popular / recent feeds)
+    { path: '/discover', label: 'Discover' },
     { path: '/market', label: 'Market' },
     { path: '/charts', label: 'Charts' },
     { path: '/forex-commodities', label: 'Forex & Commodities' },
@@ -22,6 +24,8 @@ export default function PSXHeader({ theme, toggleTheme, isMobileMenuOpen, toggle
     { path: '/forecasts', label: 'Forecasts' },
     // Phase 17: breaking news + trending topics + market impact desk
     { path: '/breaking-news', label: 'Breaking' },
+    // Phase 18: neutral political/geopolitical map + timeline
+    { path: '/political', label: 'Geopolitics' },
     { path: '/announcements', label: 'Announcements' },
     { path: '/news', label: 'News' },
     { path: '/watchlist', label: 'Watchlist' },

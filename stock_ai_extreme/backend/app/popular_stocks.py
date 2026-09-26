@@ -108,6 +108,7 @@ async def fetch_stock_data(manager, symbol: str) -> Optional[Dict]:
         start_date = end_date - timedelta(days=30)
 
         trend_data: List[Dict] = []
+        history_df = None
         try:
             history_df, _source, _status = await manager.history(
                 symbol, start_date, end_date
@@ -139,6 +140,18 @@ async def fetch_stock_data(manager, symbol: str) -> Optional[Dict]:
         if price is None:
             return None
 
+        # Phase 19: keep the last session's real volume (when history has it)
+        # so discovery can show a genuine activity number. Additive field —
+        # absent/None when the provider returned no volume, never estimated.
+        last_volume = None
+        try:
+            if history_df is not None and not history_df.empty and "Volume" in history_df.columns:
+                raw_volume = history_df["Volume"].dropna()
+                if not raw_volume.empty:
+                    last_volume = _round_or_none(raw_volume.iloc[-1], 0)
+        except Exception:
+            last_volume = None
+
         # Phase 9 fix: day change must be measured against the PREVIOUS CLOSE
         # (the quote's own, which is yesterday's settlement), not against the
         # close 10 days ago — the old code used trend[-2], producing wildly
@@ -163,6 +176,7 @@ async def fetch_stock_data(manager, symbol: str) -> Optional[Dict]:
             "sector": profile.get("sector"),
             "industry": profile.get("industry"),
             "market_cap": _round_or_none(profile.get("market_cap"), 0),
+            "volume": last_volume,
             "trend": trend_data,
             "source": quote.source,
             "status": quote.status.value,

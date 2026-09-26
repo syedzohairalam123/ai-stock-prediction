@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timezone
 from typing import Any
 
@@ -38,20 +39,54 @@ def _number(value: Any) -> float | None:
     return result if 0 <= result <= 1 else None
 
 
+def _float_or_none(value: Any) -> float | None:
+    """Plain float passthrough for non-probability numbers (volumes)."""
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return None
+    if result != result or result in (float("inf"), float("-inf")):
+        return None
+    return result
+
+
 def _category(question: str, tags: list[Any]) -> str:
     text = f"{question} {' '.join(str(tag) for tag in tags)}".lower()
     rules = (
-        ("Sports", ("sport", "match", "league", "tournament", "team", "championship")),
+        (
+            "Sports",
+            (
+                "sport", "match", "league", "tournament", "team", "championship",
+                "world cup", "nba", "nfl", "cricket", "football", "soccer",
+                "tennis", "golf", "grand prix", "super bowl", "ashes",
+            ),
+        ),
         ("Crypto", ("crypto", "bitcoin", "ethereum", "token", "defi")),
         ("Esports", ("esport", "gaming", "counter-strike", "league of legends")),
-        ("Geopolitics", ("war", "ceasefire", "nato", "ukraine", "gaza", "diplomatic")),
-        ("Politics", ("election", "president", "congress", "parliament", "prime minister", "vote")),
+        (
+            "Geopolitics",
+            (
+                "war", "ceasefire", "nato", "ukraine", "gaza", "diplomatic",
+                "blockade", "strait", "missile", "sanction", "sanctions",
+                "military", "troops", "invasion", "conflict", "geopolit",
+                "cease-fire", "border",
+            ),
+        ),
+        ("Politics", ("election", "elections", "president", "congress", "parliament", "prime minister", "vote", "senate", "governor")),
         ("Economy", ("inflation", "gdp", "interest rate", "jobs", "unemployment", "recession")),
-        ("Tech", ("ai", "technology", "software", "iphone", "product launch")),
+        ("Tech", ("ai", "technology", "software", "iphone", "product launch", "semiconductor")),
         ("Culture", ("movie", "music", "film", "award", "celebrity")),
     )
+    # Word-boundary matching, not substring: the old ``"ai" in text`` rule
+    # filed "Strait of Hormuz …" (and any "train", "paint", "email") under
+    # Tech, while real geopolitics questions fell through to the Finance
+    # fallback. A category decides which discovery feed an event lands in, so
+    # it has to mean what it says.
+    # `s?` so "sport" also matches "sports" and "match" matches "matches":
+    # a word-boundary check with no plural tolerance silently missed every
+    # plural tag the source actually publishes.
     for category, keywords in rules:
-        if any(keyword in text for keyword in keywords):
+        if any(re.search(rf"\b{re.escape(keyword)}s?\b", text) for keyword in keywords):
             return category
     return "Finance"
 
@@ -112,6 +147,9 @@ def normalize_market(raw: dict[str, Any], fetched_at: datetime | None = None) ->
         "sources": [{"name": SOURCE_NAME, "url": source_url, "publishedAt": observed_at, "verifiedAt": fetched_iso}],
         "createdAt": str(raw.get("createdAt") or observed_at), "updatedAt": observed_at,
         "dataMode": "LIVE", "updateCount": 1, "participantCount": participant_count,
+        # Phase 19 — additive: the source's own 24h volume, kept as measured
+        # (None when Gamma does not publish one — never defaulted to 0).
+        "volume24hr": _float_or_none(raw.get("volume24hr")),
         "resolutionSource": None, "resolutionDate": str(raw.get("closedTime") or "") or None,
         # Phase 14.1/14.2 — additive fields the history + resolution engines use.
         "clobTokenIds": clob_token_ids, "conditionId": condition_id,

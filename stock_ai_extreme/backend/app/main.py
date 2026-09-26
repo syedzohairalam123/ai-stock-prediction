@@ -107,6 +107,12 @@ app.include_router(breaking_news_mod.breaking_news_router)
 # from a named source with its type; the app never invents or ranks.)
 from . import political as political_mod
 app.include_router(political_mod.political_router)
+# Phase 19: Advanced Market Discovery / New & Trending Engine (additive
+# discovery feeds over data the app already collects — real quotes, real
+# forecast events, real news-corpus topics, and interest events the app itself
+# recorded; no popularity number is ever invented).
+from .discovery import routes as discovery_routes_mod
+app.include_router(discovery_routes_mod.router)
 
 # Phase 2: provider manager. yfinance is primary; Finnhub is an optional live-quote
 # fallback that only activates if FINNHUB_API_KEY is set (skipped otherwise — no
@@ -124,6 +130,10 @@ manager=MarketDataManager(
 # the feed still works from the stored corpus; market-impact windows simply
 # report UNAVAILABLE instead of reaching for data it cannot get.
 breaking_news_mod.configure_breaking_news(manager)
+# Phase 19: the discovery engine ranks entities through the same provider
+# manager (one cache, one fallback chain, one honesty contract).
+from .discovery import service as discovery_service
+discovery_service.configure(manager)
 data,predictor,insighter,lstm,gru=DataAgent(manager),PredictionAgent(),InsightAgent(),LSTMPredictionAgent(),GRUPredictionAgent()
 
 class HistoryRequest(BaseModel): start:date; end:date; interval:str="1d"

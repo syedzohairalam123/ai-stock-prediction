@@ -29,7 +29,7 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
-from ...logging_config import get_logger
+from ..logging_config import get_logger
 from .engine import engine
 from .schemas import (
     EventsResponse,

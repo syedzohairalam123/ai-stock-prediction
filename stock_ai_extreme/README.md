@@ -901,3 +901,101 @@ hash href under a `BrowserRouter`.
 
 Full architecture, data models, maths, bug analysis and test results:
 [`PHASE_11_COMPLETE.md`](PHASE_11_COMPLETE.md).
+
+## What's New — Phase 18: Political & Geopolitical Data Map
+
+A neutral, source-driven module at **`/political`** (nav: Geopolitics) on top of
+the complete Phases 1-17 application. It presents externally published
+measurements only and never predicts, endorses, ranks or recommends anything.
+
+**Real sources, no invented numbers.** Every number is quoted from a named
+source with its measured date, retrieval date, methodology and measurement
+type kept side by side: OpenFEC (official election calendar), Polymarket
+(`MODEL` implied probabilities), MIT MEDSL Harvard Dataverse
+(`HISTORICAL_RESULT` certified returns 1976-2024), GDELT DOC 2.0 (coverage
+timeline) and World Bank / US Census (population context). One provider being
+down degrades to `UNAVAILABLE` with its reason; it is never replaced.
+
+**Interactive map.** Plotly choropleth using bundled authoritative topojson
+(Natural Earth / US Census derived) - US states via USPS code and 94 countries
+via country name. Zoom, pan, hover, click, region search, legend and a data
+timestamp. Shading encodes data **availability** (`AVAILABLE / NO_DATA /
+OUTDATED / CONTESTED / RESOLVED`), never a party or candidate. Clicking opens a
+region detail panel with the sourced measurements grouped by family, plus the
+calendar events and coverage timeline for that region.
+
+The full write-up - architecture, the live verification numbers and the eight
+real bugs fixed in this pass - is in [`PHASE_18_COMPLETE.md`](PHASE_18_COMPLETE.md).
+
+## What's New — Phase 19 (Advanced Market Discovery, New & Trending Engine)
+
+A dedicated **discovery layer** at `/discover` that helps users find relevant
+instruments and events efficiently, extending the existing search/discovery
+infrastructure (the Phase 1/13 global search was not rebuilt — it now also
+feeds real search-activity into this engine). Nothing was removed; every prior
+phase still works, and the full suite is green.
+
+**Four real-data feeds** — `TRENDING`, `NEW`, `POPULAR`, `RECENTLY UPDATED` —
+switchable without a page reload, over one unified `DiscoverableEntity` model
+(stocks, indices, crypto, commodities, forex, news topics, forecast events).
+NEW uses genuine `createdAt` timestamps only (entities without one are excluded
+*and counted*); POPULAR ranks events this app actually recorded (views,
+search matches, watchlist saves); RECENTLY UPDATED sorts by each source's own
+update time.
+
+**`TrendEngine`** (`backend/app/discovery/trend_engine.py`) with separate,
+individually callable components — `calculate_recency_score`,
+`calculate_activity_score`, `calculate_velocity_score`,
+`calculate_interest_score`, `calculate_news_score` — aggregated by
+`calculate_trend_score()` through configurable weights. A component with no
+measurement is **excluded and the remaining weights renormalized**, and every
+response lists the components used, the weights used and the signals missing.
+Every constant (weights, saturations, the 72h recency half-life) lives in
+`discovery/config.py` (`DISCOVERY_*` env) and is published by
+`GET /api/discover/engine` — no hidden constants anywhere.
+
+**Categories + data-driven sub-tags:** the 12-category vocabulary (Politics …
+Forex) with sub-tags derived from real attributes (PSX sector groups → Banking/
+Oil & Gas/Cement/Technology, source categories) plus a curated whole-word
+deterministic lexicon for names/titles. Clicking a tag filters exactly the
+carrying entities across types — a stock SYS, a technology news topic and a
+tech forecast event share `Technology`; nothing unrelated matches.
+
+**Trend history & sparklines:** stored `{timestamp, activity, score}`
+observations (throttled per entity, pruned, sampled by a background job so
+history exists even with no traffic), plus real hourly topic-timeline buckets
+from Phase 17. Sparklines draw observations only — fewer than two points shows
+N/A, never an invented curve. numpy analytics (EMA, rolling z-score anomaly
+flag, least-squares slope, second-difference acceleration) are returned with
+the points and are recomputable by hand.
+
+**Honesty rules (spec §17):** no fabricated popularity/volume/trend numbers;
+unavailable metrics render `N/A`; per-source health (`OK/DEGRADED/
+UNAVAILABLE`, counts, failure reasons) rides on every response and is shown in
+the UI; `dataMode` is LIVE/DELAYED/UNAVAILABLE (nothing here emits DEMO).
+
+**Personalization (opt-in, explicit actions only):** watchlist membership,
+entities this client opened, categories the client starred (localStorage) —
+never content-based or sensitive inference — with the +12% rank boost disclosed
+per item. **Caching:** server-side 180 s universe cache on top of the provider
+caches, React Query client caching with `keepPreviousData`. **Performance:**
+24-item pages with Load more, memoized cards, debounced search, bounded
+collector limits, throttled writes.
+
+**Real bugs fixed on the way:** (1) `forecast_markets._category` matched
+keywords by substring, so the Tech rule's `"ai"` matched **"Strait"** — real
+geopolitics questions were filed as Tech; matching is now whole-word with
+plural tolerance and missing geopolitical/sports keywords added. (2) The new
+store/timeline readers built payloads after the SQLAlchemy session closed
+(expired ORM attributes → "not bound to a Session"), which masqueraded as
+"no data"; both now read inside the session. (3) `fetch_stock_data` now keeps
+the real last-session volume it used to throw away.
+
+**Verified:** `python -m pytest -q` → **877 passed** (39 new discovery tests),
+`npx tsc --noEmit` clean, `npm run build` succeeds (DiscoverPage split to
+21.6 kB), and a live localhost run served real data end-to-end — 96 entities
+in trending (live VIX −5.11%, live Polymarket $300k–$1.2M 24h volumes, BTC
+$83,920.90/ETH $2,684.44 from yfinance), 47 real-`createdAt` NEW entries with
+49 excluded and reported, tag/type/since filters verified, trend history with
+real z-scores, and a headless-Chrome render of `/discover` with zero JS errors.
+Full write-up: [`PHASE_19_COMPLETE.md`](PHASE_19_COMPLETE.md).

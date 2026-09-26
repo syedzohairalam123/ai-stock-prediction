@@ -58,6 +58,7 @@ export default function Layout() {
         {/* `Link` (not `href="#/…"`): the app mounts a BrowserRouter, so a bare
             hash link only sets a fragment and never changes the route. */}
         <div className="psx-footer-links">
+          <Link to="/discover">Discover</Link>
           <Link to="/workspace">Workspace</Link>
           <Link to="/charts">Charts</Link>
           <Link to="/settings">Settings</Link>
@@ -66,6 +67,7 @@ export default function Layout() {
           <Link to="/sentiment">Sentiment</Link>
           <Link to="/forecasts">Forecasts</Link>
           <Link to="/breaking-news">Breaking news</Link>
+          <Link to="/political">Geopolitics</Link>
         </div>
       </footer>
 

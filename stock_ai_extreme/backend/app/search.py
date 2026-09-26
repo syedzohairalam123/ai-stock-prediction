@@ -117,6 +117,18 @@ def search(query: str, limit: int = 20, include_watchlist: bool = True) -> list[
         if entry is None:
             continue
         results.append({**entry, "score": round(float(score), 4), "source": "SERVER_BM25"})
+
+    # Phase 19 — real search-activity signal for discovery. A matched result
+    # is a genuine user query, recorded so the TrendEngine's interest component
+    # counts something that actually happened. Best-effort: discovery must
+    # never break search itself.
+    if results:
+        try:
+            from .discovery import store as discovery_store
+
+            discovery_store.record_events([entry["id"] for entry in results], discovery_store.KIND_SEARCH)
+        except Exception as exc:  # pragma: no cover - logging-only path
+            logger.debug("discovery search activity skipped: %s", exc)
     return results
 
 

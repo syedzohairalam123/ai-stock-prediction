@@ -56,6 +56,10 @@ const DerivativesTerminalPage = lazy(() => import("./pages/DerivativesTerminalPa
 // Phase 17: Real-Time Breaking News + Trending Topics + Market Impact Intelligence
 const BreakingNewsPage = lazy(() => import("./pages/BreakingNewsPage"));
 const TopicDetailPage = lazy(() => import("./pages/TopicDetailPage"));
+// Phase 18: Political & Geopolitical Data Mapping / Forecast Visualization
+const PoliticalPage = lazy(() => import("./pages/PoliticalPage"));
+// Phase 19: Advanced Market Discovery / New & Trending Engine
+const DiscoverPage = lazy(() => import("./pages/DiscoverPage"));
 
 export default function App() {
   return (
@@ -110,6 +114,12 @@ export default function App() {
               <Route path="/breaking-news" element={<BreakingNewsPage />} />
               {/* Phase 17 §14: a topic opened from the breaking desk */}
               <Route path="/topics/:topicId" element={<TopicDetailPage />} />
+
+              {/* Phase 18: neutral political/geopolitical map + timeline */}
+              <Route path="/political" element={<PoliticalPage />} />
+
+              {/* Phase 19: market discovery — trending/new/popular/recent feeds */}
+              <Route path="/discover" element={<DiscoverPage />} />
 
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

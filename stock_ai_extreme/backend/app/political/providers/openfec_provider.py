@@ -23,7 +23,7 @@ import httpx
 from .base import PoliticalDataProvider, ProviderResult
 from ..config import political_settings
 from ...logging_config import get_logger
-from ..schemas import PoliticalCategory, PoliticalEventSchema
+from ..schemas import PoliticalCategory, PoliticalEventSchema, SourceStatus
 from .. import regions as region_registry
 
 logger = get_logger("neural_market.political.providers.openfec")
@@ -47,16 +47,39 @@ def _parse_date(value: Any) -> Optional[datetime]:
 
 
 def normalize_election_date_row(row: Dict[str, Any], retrieved_at: datetime) -> Optional[PoliticalEventSchema]:
-    """One ``/election-dates/`` row → a calendar event (or None if unusable)."""
-    trc_id = str(row.get("trc_election_id") or "").strip()
+    """One ``/election-dates/`` row → a calendar event (or None if unusable).
+
+    Identity note: the live production API's ``/election-dates/`` rows do **not**
+    carry a ``trc_election_id`` (an earlier code revision required it, which
+    silently dropped every row and left the calendar permanently empty). A
+    stable id is therefore derived from the row's own facts instead, falling
+    back to the API id only when one is actually present.
+    """
+    trc_id = str(row.get("trc_election_id") or row.get("election_id") or "").strip()
     office = str(row.get("office_sought") or row.get("office") or "").strip().upper()
     state = str(row.get("election_state") or "").strip().upper()
     year = row.get("election_year")
-    election_type = str(row.get("election_type") or row.get("election_description") or "").strip()
+    election_type = str(
+        row.get("election_type_full")
+        or row.get("election_type")
+        or row.get("election_description")
+        or row.get("election_type_id")
+        or ""
+    ).strip()
+    district = str(row.get("election_district") or "").strip()
     election_date = _parse_date(row.get("election_date"))
 
-    if not trc_id or office not in OFFICE_NAMES:
+    if office not in OFFICE_NAMES:
         return None
+
+    identity = trc_id or "|".join([
+        office,
+        state or "US",
+        str(year or "NA"),
+        election_type or "NA",
+        district or "NA",
+        election_date.isoformat() if election_date else "no-date",
+    ])
 
     office_name = OFFICE_NAMES[office]
     state_name = region_registry.BY_CODE.get(state).name if state in region_registry.BY_CODE else (state or None)
@@ -71,7 +94,7 @@ def normalize_election_date_row(row: Dict[str, Any], retrieved_at: datetime) -> 
     election_id = f"US-{office_name.upper()}-{state or 'US'}-{year_text or 'NA'}"
 
     return PoliticalEventSchema(
-        id=f"fec:{trc_id}",
+        id=f"fec:{identity}",
         name=name,
         jurisdiction=state or None,
         jurisdiction_type="STATE" if state else "NATIONAL",
@@ -125,6 +148,7 @@ class OpenFECProvider(PoliticalDataProvider):
         events: List[PoliticalEventSchema] = []
         seen: set[str] = set()
         fetched_at = datetime.now(timezone.utc)
+        last_error: Optional[str] = None
 
         async with httpx.AsyncClient(
             timeout=self._settings.request_timeout_seconds,
@@ -141,16 +165,25 @@ class OpenFECProvider(PoliticalDataProvider):
                         response.raise_for_status()
                         payload = response.json()
                     except httpx.HTTPStatusError as exc:
-                        if exc.response.status_code == 403:
+                        code = exc.response.status_code
+                        if code == 403:
                             return ProviderResult(
-                                status=self.status,
+                                status=SourceStatus.UNAVAILABLE,
                                 error=(
                                     "FEC API rejected the key (403). Set "
                                     "POLITICAL_FEC_API_KEY to a personal api.data.gov key."
                                 ),
                                 fetched_at=fetched_at,
                             )
-                        raise
+                        # 429 (DEMO_KEY is heavily rate-limited) or any other
+                        # upstream error: stop paginating but keep the rows we
+                        # already collected — a 429 on page 2 must not discard
+                        # page 1's real calendar rows.
+                        last_error = (
+                            f"FEC rate-limited or errored (HTTP {code}) with the configured key; "
+                            "set POLITICAL_FEC_API_KEY for a higher quota."
+                        )
+                        break
                     results = (payload or {}).get("results") or []
                     if not results:
                         break
@@ -169,10 +202,9 @@ class OpenFECProvider(PoliticalDataProvider):
 
         if not events:
             return ProviderResult(
-                status=self.status,
-                error=(
-                    "FEC returned no usable election-date rows. If the 403 persists, "
-                    "configure POLITICAL_FEC_API_KEY."
+                status=SourceStatus.UNAVAILABLE if last_error else self.status,
+                error=last_error or (
+                    "FEC returned no usable election-date rows for the configured cycles."
                 ),
                 fetched_at=fetched_at,
             )

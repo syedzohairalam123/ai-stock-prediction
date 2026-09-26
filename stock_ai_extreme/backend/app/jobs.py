@@ -12,6 +12,8 @@ A single asyncio task that periodically:
      drift-monitoring numbers stay current without anyone clicking a button
   4. purges expired-but-still-usable TTL cache entries and cleans up stale
      rate-limiter buckets (bounded memory on long-running servers)
+  5. samples real trend observations for the Phase 19 discovery sparklines
+     (and prunes aged observation / interest-event rows)
 
 Everything is best-effort and isolated — one failing job never takes down
 the loop or the API. Disable entirely with BACKGROUND_JOBS_ENABLED=false.
@@ -31,6 +33,9 @@ from . import repository as repo
 from .alerts import evaluate_alerts
 from .config import settings
 from .db import session_scope
+from .discovery import service as discovery_service
+from .discovery import store as discovery_store
+from .discovery.config import discovery_settings
 from .monitoring import resolve_predictions
 from .news_service import get_news_service
 from .notifications import notify
@@ -162,6 +167,51 @@ async def poll_forecast_resolutions() -> int:
         return 0
 
 
+#: Timestamp of the last discovery trend sampling pass (Phase 19).
+_last_discovery_sample: float = 0.0
+
+
+async def sample_discovery_trends() -> int:
+    """Phase 19 — record real trend observations on a timer.
+
+    Sparklines on the discovery page draw *stored observations*. Sampling only
+    when someone opens the page would mean a first-time visitor always sees
+    "no history yet", so this pass ranks the trending feed and appends
+    {timestamp, activity, score} rows for its top entities even with no
+    traffic. Throttled by DISCOVERY_BACKGROUND_SAMPLING_INTERVAL_SECONDS and
+    per-entity by the service's own sample interval.
+
+    Returns the number of observations written (0 on any failure — discovery
+    is never critical to the API staying up).
+    """
+    global _last_discovery_sample
+    if not discovery_settings.background_sampling_enabled:
+        return 0
+    interval = max(int(discovery_settings.background_sampling_interval_seconds), 60)
+    now = time.monotonic()
+    if _last_discovery_sample and (now - _last_discovery_sample) < interval:
+        return 0
+    # Advance the timer first: a failing provider must not be hammered every
+    # loop tick — the next attempt is one interval away either way.
+    _last_discovery_sample = now
+    try:
+        feed = await discovery_service.get_feed(
+            mode="trending", limit=discovery_settings.observation_sample_top_k
+        )
+        written = int(feed.get("sampledObservations") or 0)
+        dropped = discovery_store.prune()
+        if written or dropped:
+            logger.info(
+                "discovery trend sampling: %d observation(s) written, %d aged row(s) pruned",
+                written,
+                dropped,
+            )
+        return written
+    except Exception as exc:
+        logger.debug("discovery trend sampling skipped: %s", exc)
+        return 0
+
+
 async def run_background_loop(manager, limiter) -> None:
     """Infinite maintenance loop. `manager` is the provider manager and
     `limiter` the app's rate limiter (both created in main.py)."""
@@ -199,6 +249,12 @@ async def run_background_loop(manager, limiter) -> None:
             await poll_forecast_resolutions()
         except Exception as exc:
             logger.warning("background job error (forecast resolutions): %s", exc)
+        try:
+            # Phase 19: keep real trend observations accumulating for the
+            # discovery sparklines (and prune aged observation/event rows).
+            await sample_discovery_trends()
+        except Exception as exc:
+            logger.warning("background job error (discovery sampling): %s", exc)
         try:
             purged = await manager.purge_caches()
             # Phase 7: the forex/commodities rate caches are long-lived too, so

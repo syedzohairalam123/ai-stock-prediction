@@ -90,24 +90,33 @@ def detect_us_state(text: str) -> Optional[str]:
 
     A pure string join against the identity registry — never a guess: a state
     is matched only on its full official name (case-insensitive, word-bounded)
-    or a word-bounded two-letter code followed by a word boundary.
+    or on a two-letter USPS code that appears as an **uppercase token in the
+    original text**. Matching the *uppercased* text would turn the ordinary
+    word "in" into Indiana and "or" into Oregon and misattribute a foreign
+    market to a US state, so codes are required to be genuinely uppercase.
     """
     upper = text.upper()
     for code, identity in region_registry.BY_CODE.items():
         if re.search(rf"\b{re.escape(identity.name.upper())}\b", upper):
             return code
     for code in region_registry.BY_CODE:
-        if re.search(rf"\b{re.escape(code)}\b", upper):
+        if re.search(rf"\b{re.escape(code)}\b", text):  # case-sensitive on purpose
             return code
     return None
 
 
 def detect_country(text: str) -> Optional[str]:
-    """ISO-3 code of a registry country explicitly named in ``text``."""
+    """ISO-3 code of a registry country explicitly named in ``text``.
+
+    Returns the ISO-3 code (e.g. ``ETH``) — not the display name — because the
+    caller builds a region id of the form ``country:<ISO3>`` and the region
+    registry is keyed by ISO-3. Returning the name produced unmatchable ids
+    such as ``country:Ethiopia``.
+    """
     upper = text.upper()
-    for name in region_registry.COUNTRY_NAMES:
-        if re.search(rf"\b{re.escape(name)}\b", upper):
-            return region_registry.COUNTRY_NAMES[name]
+    for identity in region_registry.COUNTRIES:
+        if re.search(rf"\b{re.escape(identity.name.upper())}\b", upper):
+            return identity.iso3
     return None
 
 

@@ -75,7 +75,10 @@ def detect_affected_regions(text: str) -> List[str]:
     upper = f" {text.upper()} "
     found: List[str] = []
     for code, identity in region_registry.BY_CODE.items():
-        if re.search(rf"\b{re.escape(identity.name.upper())}\b", upper) or re.search(rf"\b{re.escape(code)}\b", upper):
+        # The two-letter code must be genuinely uppercase in the source text;
+        # matching the uppercased copy would tag every "in"/"or"/"me" as a US
+        # state and pollute the affected-regions list with false positives.
+        if re.search(rf"\b{re.escape(identity.name.upper())}\b", upper) or re.search(rf"\b{re.escape(code)}\b", text):
             found.append(f"us-state:{code}")
     for name in region_registry.COUNTRY_NAMES:
         if re.search(rf"\b{re.escape(name)}\b", upper):

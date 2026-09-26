@@ -273,3 +273,41 @@ class AgentTask(Base):
     execution_time_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, index=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class TrendObservation(Base):
+    """Phase 19 — one real trend observation for one discoverable entity.
+
+    Rows are appended whenever the trending feed is computed (throttled per
+    entity) and by the background sampler. Each row is a genuine measurement
+    taken at that moment — {timestamp, activity, score} — so sparklines draw
+    observed history only. An entity with fewer than two rows honestly has
+    "no history yet" rather than a fabricated curve."""
+    __tablename__ = "trend_observations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    entity_id: Mapped[str] = mapped_column(String(120), index=True)
+    observed_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, index=True)
+    #: The entity's real activity metric at observation time (unit depends on
+    #: the entity type — never mixed between types in one series).
+    activity: Mapped[float | None] = mapped_column(Float, nullable=True)
+    #: The aggregate trend score (0–100) computed from real signals then.
+    score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    popularity: Mapped[float | None] = mapped_column(Float, nullable=True)
+    source: Mapped[str] = mapped_column(String(40), default="sample")
+
+
+class DiscoveryEvent(Base):
+    """Phase 19 — one recorded real interest event (view or search match).
+
+    These rows *are* the interest signal: they count actions users actually
+    took in this app. Nothing here is estimated, and a brand-new install has
+    zero rows — which the API reports as 0 recorded interest, not as a made-up
+    popularity number."""
+    __tablename__ = "discovery_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    entity_id: Mapped[str] = mapped_column(String(120), index=True)
+    #: "view" (an entity page/card was opened) or "search" (a query matched).
+    kind: Mapped[str] = mapped_column(String(20), index=True)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, index=True)

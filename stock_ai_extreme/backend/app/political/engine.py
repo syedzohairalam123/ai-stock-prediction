@@ -22,7 +22,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Sequence, Tuple
 
-from ...logging_config import get_logger
+from ..logging_config import get_logger
 from .config import political_settings
 from .providers import (
     GdeltProvider,
@@ -232,11 +232,47 @@ class PoliticalEngine:
     # ------------------------------------------------------------------
     # region registry
     # ------------------------------------------------------------------
+    #: Population context is a *nice-to-have* — a bounded concurrency keeps the
+    #: first map load fast (and the upstream API un-hammered) instead of issuing
+    #: ~95 sequential HTTP calls, which took minutes and made the map unusable.
+    _POPULATION_CONCURRENCY = 8
+
+    async def _gather_population(self, coros: Sequence[Awaitable[Any]]) -> List[Any]:
+        """Resolve population lookups concurrently, never letting one failure
+        (or a slow source) hold up the region registry."""
+        semaphore = asyncio.Semaphore(self._POPULATION_CONCURRENCY)
+
+        async def run(coro: Awaitable[Any]) -> Any:
+            async with semaphore:
+                try:
+                    return await coro
+                except Exception as exc:  # noqa: BLE001 — optional context
+                    logger.debug("population context lookup failed: %s", exc)
+                    return None
+
+        return list(await asyncio.gather(*(run(c) for c in coros)))
+
     async def regions_bundle(self, force: bool = False) -> List[PoliticalRegionSchema]:
         async def build() -> List[PoliticalRegionSchema]:
             out: List[PoliticalRegionSchema] = []
             geometry_reference = "https://github.com/plotly/plotly.js/tree/master/dist/geo"
             geometry_provider = "plotly.js built-in geo data (Natural Earth / US Census derived)"
+
+            # Fetch every population context in parallel (bounded) up front.
+            state_population = dict(zip(
+                (identity.code for identity in region_registry.STATES),
+                await self._gather_population([
+                    self.population.state_population(identity.fips)
+                    for identity in region_registry.STATES
+                ]),
+            ))
+            country_population = dict(zip(
+                (country.iso3 for country in region_registry.COUNTRIES),
+                await self._gather_population([
+                    self.population.country_population(country.iso3)
+                    for country in region_registry.COUNTRIES
+                ]),
+            ))
 
             us_geometry = GeometryRefSchema(
                 format="topojson",
@@ -259,7 +295,7 @@ class PoliticalEngine:
                         location_key=identity.code,
                         reference_url=geometry_reference,
                     ),
-                    population_context=await self.population.state_population(identity.fips),
+                    population_context=state_population.get(identity.code),
                     source="U.S. Census Bureau state FIPS reference (identity data only)",
                     source_url="https://www.census.gov/library/reference/code-lists/ansi.html",
                     region_type="STATE" if identity.code != "DC" else "DISTRICT",
@@ -286,7 +322,7 @@ class PoliticalEngine:
                         location_key=country.name,
                         reference_url=geometry_reference,
                     ),
-                    population_context=await self.population.country_population(country.iso3),
+                    population_context=country_population.get(country.iso3),
                     source="ISO 3166 country codes (identity data only)",
                     source_url="https://www.iso.org/iso-3166-country-codes.html",
                     region_type="COUNTRY",
@@ -394,9 +430,14 @@ class PoliticalEngine:
                 continue
             key = (measurement.election_id, measurement.candidate_or_outcome)
             by_outcome.setdefault(key, {}).setdefault(measurement.source_id, measurement.probability)
-        threshold = political_settings.conflict_threshold
+        # ``conflict_threshold`` is stored as a fraction of 1.0 (spec §config,
+        # e.g. 0.05 == five percentage points) while ``probability`` is on the
+        # 0..100 scale — convert before comparing so the default really means
+        # 5 points and not 0.05 of a point.
+        threshold_points = political_settings.conflict_threshold * 100.0
         return any(
-            len(per_source) >= 2 and (max(per_source.values()) - min(per_source.values())) > threshold
+            len(per_source) >= 2
+            and (max(per_source.values()) - min(per_source.values())) > threshold_points
             for per_source in by_outcome.values()
         )
 

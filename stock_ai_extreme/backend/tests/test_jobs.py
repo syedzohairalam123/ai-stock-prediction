@@ -124,9 +124,12 @@ def test_rate_limiter_cleanup_drops_idle_buckets():
     # must be anchored to the same clock the limiter reads: buckets are stamped
     # with ``time.monotonic()``, whose origin is the host's boot time rather than
     # the epoch, so a hard-coded ``1.0`` only counts as "long ago" once the
-    # machine has been up for longer than the idle timeout. That made this test
-    # depend on host uptime and fail intermittently on a freshly started runner.
-    stale_stamp = time.monotonic() - (limiter.window_seconds * 4) - 60
+    # machine has been up for longer than the idle timeout. It must also clear
+    # the *actual* idle threshold ``cleanup`` enforces, which is
+    # ``max(window_seconds * 4, 300)`` — using just ``window_seconds * 4`` puts
+    # the stamp exactly on the 300s floor and the bucket is (correctly) kept.
+    idle_timeout = max(limiter.window_seconds * 4, 300)
+    stale_stamp = time.monotonic() - idle_timeout - 60
     limiter._hits["stale"] = deque([stale_stamp])
     assert "stale" in limiter._hits
     dropped = limiter.cleanup()
