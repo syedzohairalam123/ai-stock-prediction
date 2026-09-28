@@ -23,6 +23,7 @@ import {
   useEvaluatePaperOrder,
   usePaperConfig,
   usePaperInstrument,
+  usePaperLiveEvents,
   usePaperOrders,
   usePaperPreview,
   useSubmitPaperOrder,
@@ -134,6 +135,10 @@ export default function QuickOrderPanel() {
   );
 
   const historyQuery = usePaperOrders({ enabled: isOpen, limit: 20 });
+  // §54: the history list live-updates from the backend's SSE stream instead
+  // of waiting for the 30 s poll. A pulse marks fresh activity in the header.
+  const [eventPulse, setEventPulse] = useState(0);
+  usePaperLiveEvents(isOpen, () => setEventPulse((n) => n + 1));
   const previewMutation = usePaperPreview();
   const submitMutation = useSubmitPaperOrder();
   const evaluateMutation = useEvaluatePaperOrder();
@@ -508,6 +513,7 @@ export default function QuickOrderPanel() {
             loading={historyQuery.isLoading}
             error={historyQuery.isError ? interpretPaperError(historyQuery.error).message : null}
             activeSymbol={context?.symbol ?? null}
+            livePulse={eventPulse}
             onSelect={(order) => setSelectedOrder(order)}
           />
 

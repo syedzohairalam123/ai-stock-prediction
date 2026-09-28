@@ -223,11 +223,29 @@ export interface PaperHistorySummary {
 export interface PaperHistoryResponse {
   orders: PaperOrder[];
   count: number;
+  /** Effective page size the server used. */
+  limit?: number;
+  /** §53 cursor: createdAt of the last row — pass back as `before` for the next page. Null = no more pages. */
+  nextBefore?: string | null;
+  hasMore?: boolean;
   summary: PaperHistorySummary;
   paper: true;
   separateFromPortfolio: true;
   disclaimer: string;
   userId?: string;
+}
+
+/** §54: a lightweight lifecycle event pushed by the backend (SSE / recent list). */
+export interface PaperEvent {
+  seq: number;
+  at: number;
+  type: string;
+  orderId?: string;
+  userId?: string;
+  symbol?: string;
+  side?: string;
+  status?: string;
+  referencePrice?: number | null;
 }
 
 export interface PaperAuditEntry {
@@ -389,14 +407,46 @@ export const PaperTradingService = {
   },
 
   async listOrders(
-    opts: { userId?: string; symbol?: string; status?: PaperOrderStatus; limit?: number } = {},
+    opts: {
+      userId?: string;
+      symbol?: string;
+      status?: PaperOrderStatus;
+      side?: string;
+      mode?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      /** §53 cursor — the `nextBefore` value from the previous page. */
+      before?: string;
+      limit?: number;
+    } = {},
   ): Promise<PaperHistoryResponse> {
     const params = new URLSearchParams();
     params.set("userId", opts.userId || getPaperUserId());
     if (opts.symbol) params.set("symbol", opts.symbol);
     if (opts.status) params.set("status", opts.status);
+    if (opts.side) params.set("side", opts.side);
+    if (opts.mode) params.set("mode", opts.mode);
+    if (opts.dateFrom) params.set("dateFrom", opts.dateFrom);
+    if (opts.dateTo) params.set("dateTo", opts.dateTo);
+    if (opts.before) params.set("before", opts.before);
     if (opts.limit) params.set("limit", String(opts.limit));
     return apiClient.get<PaperHistoryResponse>(`/api/paper/orders?${params.toString()}`).then((r) => r.data);
+  },
+
+  /** §54: last N lifecycle events for this user (the polling fallback for SSE). */
+  async recentEvents(limit = 20): Promise<{ events: PaperEvent[]; count: number }> {
+    return apiClient
+      .get(`/api/paper/events/recent?limit=${encodeURIComponent(String(limit))}`)
+      .then((r) => r.data);
+  },
+
+  /** §37: paper-subsystem health (providers, event bus, statuses). */
+  async health(): Promise<{
+    status: string;
+    providers: { name: string; configured: boolean }[];
+    eventBus: Record<string, number>;
+  }> {
+    return apiClient.get("/api/paper/health").then((r) => r.data);
   },
 
   async getOrder(orderId: string): Promise<{ order: PaperOrder }> {

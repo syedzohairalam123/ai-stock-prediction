@@ -7,7 +7,7 @@ in this project documents exactly what happens when they do).
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timezone
 from typing import Any, Iterable, Optional
 
 from ..db import session_scope
@@ -125,8 +125,19 @@ def list_orders(
     user_id: Optional[str] = None,
     symbol: Optional[str] = None,
     status: Optional[str] = None,
+    side: Optional[str] = None,
+    quote_mode: Optional[str] = None,
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+    before: Optional[datetime] = None,
     limit: int = 50,
 ) -> list[dict]:
+    """Filtered history with cursor support (spec §52/§53).
+
+    `before` is the §53 cursor: an ISO timestamp taken from the last row of
+    the previous page (`nextBefore`). One indexed `created_at` scan per page
+    — no growing OFFSET.
+    """
     with session_scope() as db:
         query = db.query(PaperOrderRecord)
         if user_id is not None:
@@ -135,6 +146,16 @@ def list_orders(
             query = query.filter(PaperOrderRecord.symbol == symbol.upper())
         if status:
             query = query.filter(PaperOrderRecord.status == status.upper())
+        if side:
+            query = query.filter(PaperOrderRecord.side == side.upper())
+        if quote_mode:
+            query = query.filter(PaperOrderRecord.quote_mode == quote_mode.upper())
+        if date_from is not None:
+            query = query.filter(PaperOrderRecord.created_at >= datetime.combine(date_from, time.min))
+        if date_to is not None:
+            query = query.filter(PaperOrderRecord.created_at <= datetime.combine(date_to, time.max))
+        if before is not None:
+            query = query.filter(PaperOrderRecord.created_at < before)
         rows = (
             query.order_by(PaperOrderRecord.created_at.desc())
             .limit(max(1, min(int(limit), 1000)))

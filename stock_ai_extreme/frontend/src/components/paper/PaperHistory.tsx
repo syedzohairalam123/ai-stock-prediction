@@ -19,6 +19,8 @@ interface PaperHistoryProps {
   loading?: boolean;
   error?: string | null;
   activeSymbol?: string | null;
+  /** §54: increments whenever a live backend event arrives — a quiet "live" cue. */
+  livePulse?: number;
   onSelect?: (order: PaperOrder) => void;
   limit?: number;
 }
@@ -28,6 +30,7 @@ export default function PaperHistory({
   loading,
   error,
   activeSymbol,
+  livePulse = 0,
   onSelect,
   limit = 8,
 }: PaperHistoryProps) {
@@ -40,7 +43,9 @@ export default function PaperHistory({
         <h3>
           <History size={14} aria-hidden /> Recent simulations
         </h3>
-        <span className="paper-history-badge">separate from portfolio</span>
+        <span className="paper-history-badge" title={livePulse > 0 ? `Live updates received (${livePulse})` : undefined}>
+          {livePulse > 0 ? `live · ${livePulse} update${livePulse === 1 ? "" : "s"}` : "separate from portfolio"}
+        </span>
       </header>
 
       {summary && summary.total > 0 && (

@@ -9,11 +9,12 @@
  * page that already holds an open market-data connection — see
  * `usePaperLiveQuotePublisher`.
  */
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   PaperTradingService,
   getPaperUserId,
+  type PaperEvent,
   type PaperInstrumentKind,
   type PaperOrder,
   type PaperOrderStatus,
@@ -24,8 +25,17 @@ import { usePaperOrderStore } from "../store/usePaperOrderStore";
 export const paperKeys = {
   config: ["paper", "config"] as const,
   instrument: (symbol: string, kind?: string) => ["paper", "instrument", symbol, kind ?? ""] as const,
-  orders: (userId: string, symbol?: string, status?: string) =>
-    ["paper", "orders", userId, symbol ?? "", status ?? ""] as const,
+  orders: (userId: string, symbol?: string, status?: string, side?: string, mode?: string, before?: string) =>
+    [
+      "paper",
+      "orders",
+      userId,
+      symbol ?? "",
+      status ?? "",
+      side ?? "",
+      mode ?? "",
+      before ?? "",
+    ] as const,
   order: (orderId: string) => ["paper", "order", orderId] as const,
 };
 
@@ -97,17 +107,98 @@ export function usePaperLiveQuotePublisher(
 
 /** Recent simulations for this browser's user id (spec §18). */
 export function usePaperOrders(
-  opts: { symbol?: string; status?: PaperOrderStatus; limit?: number; enabled?: boolean } = {},
+  opts: {
+    symbol?: string;
+    status?: PaperOrderStatus;
+    side?: string;
+    mode?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    /** §53 cursor from the previous page (`nextBefore`). */
+    before?: string;
+    limit?: number;
+    enabled?: boolean;
+  } = {},
 ) {
   const userId = getPaperUserId();
   return useQuery({
-    queryKey: paperKeys.orders(userId, opts.symbol, opts.status),
-    queryFn: () => PaperTradingService.listOrders({ userId, symbol: opts.symbol, status: opts.status, limit: opts.limit }),
+    queryKey: paperKeys.orders(userId, opts.symbol, opts.status, opts.side, opts.mode, opts.before),
+    queryFn: () =>
+      PaperTradingService.listOrders({
+        userId,
+        symbol: opts.symbol,
+        status: opts.status,
+        side: opts.side,
+        mode: opts.mode,
+        dateFrom: opts.dateFrom,
+        dateTo: opts.dateTo,
+        before: opts.before,
+        limit: opts.limit,
+      }),
     enabled: opts.enabled ?? true,
     refetchInterval: 30_000,
     retry: 1,
     staleTime: 10_000,
   });
+}
+
+/**
+ * §54 — live history updates without refetching the table.
+ *
+ * Subscribes to the backend's SSE lifecycle stream and pokes React Query on
+ * every event for this user, so an open ticket's history panel picks up a new
+ * simulation the moment the server records it. Falls back cleanly: if SSE is
+ * unavailable the 30 s refetch interval above still applies. `onChange` lets
+ * the panel surface a subtle "live" indication without any polling of its own.
+ */
+export function usePaperLiveEvents(enabled = true, onChange?: (event: PaperEvent) => void) {
+  const userId = getPaperUserId();
+  const queryClient = useQueryClient();
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  useEffect(() => {
+    if (!enabled || typeof EventSource === "undefined") return;
+    let source: EventSource | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let closed = false;
+
+    const connect = () => {
+      if (closed) return;
+      try {
+        source = new EventSource(`/api/paper/stream?userId=${encodeURIComponent(userId)}`);
+      } catch {
+        return; // SSE unsupported here — the 30 s poll already covers updates
+      }
+      source.onmessage = (message) => {
+        try {
+          const event = JSON.parse(message.data) as PaperEvent;
+          if (event.type === "simulation.created" || event.type === "simulation.cancelled") {
+            queryClient.invalidateQueries({ queryKey: ["paper", "orders"] });
+            queryClient.invalidateQueries({ queryKey: ["paper", "summary"] });
+          }
+          onChangeRef.current?.(event);
+        } catch {
+          /* ignore a malformed frame */
+        }
+      };
+      source.onerror = () => {
+        // EventSource retries on its own; keep the hook silent unless closed.
+        if (!closed && source) {
+          source.close();
+          source = null;
+          retryTimer = setTimeout(connect, 5_000);
+        }
+      };
+    };
+
+    connect();
+    return () => {
+      closed = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      if (source) source.close();
+    };
+  }, [enabled, userId, queryClient]);
 }
 
 /** Validate + preview without writing anything. */

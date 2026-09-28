@@ -12,6 +12,9 @@ Phase 20 — Quick Order / Paper Trading API routes.
     POST   /api/paper/orders/{id}/evaluate      re-check against real data
     POST   /api/paper/orders/{id}/cancel        stop a simulation
     GET    /api/paper/summary                   aggregate paper statistics
+    GET    /api/paper/health                    subsystem health (spec §37)
+    GET    /api/paper/events/recent             last N lifecycle events (§54)
+    GET    /api/paper/stream                    SSE lifecycle stream (§54)
 
 Every endpoint here is simulation-only. There is no route that places an order
 with any broker or exchange, moves money, settles cash, or processes a payment —
@@ -22,10 +25,13 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from fastapi import APIRouter, Header, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from ..logging_config import get_logger
+from ..security import RateLimiter
 from .config import paper_settings
+from . import events as paper_events
 from .service import PaperOrderError, service
 from .simulation import SIMULATION_STATUSES
 
@@ -33,6 +39,11 @@ logger = get_logger("neural_market.paper.routes")
 
 market_router = APIRouter(prefix="/api/market", tags=["Paper Market Context"])
 paper_router = APIRouter(prefix="/api/paper", tags=["Paper Trading"])
+
+# §31: simulation submissions get their own, deliberately tight, sliding-window
+# limit — separate from the app-wide limiter and from read endpoints. A user
+# id is part of the key so a shared IP cannot exhaust one user's budget.
+_submission_limiter = RateLimiter(max_requests=30, window_seconds=60)
 
 #: Every response from this module carries this so a client can never present a
 #: simulation as a real order.
@@ -206,6 +217,15 @@ async def paper_preview(body: PreviewRequest):
 async def create_paper_order(body: SubmitRequest, x_paper_user_id: Optional[str] = Header(default=None)):
     """Record a paper simulation. Idempotent on `clientRequestId`."""
     user = _user_id(x_paper_user_id, body.userId)
+    # §31: submissions are rate-limited separately from reads. Idempotent
+    # retries of the SAME clientRequestId stay possible: the check counts
+    # requests, not successes, and 30/min is far above any interactive pace.
+    allowed, _remaining = _submission_limiter.allow(f"paper-submit:{user}")
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail={"message": "Too many simulations in a short time. Wait a moment and try again.", **PAPER_META},
+        )
     try:
         result = await service.submit(
             symbol=body.symbol,
@@ -242,16 +262,101 @@ async def list_paper_orders(
     userId: Optional[str] = Query(default=None),
     symbol: Optional[str] = Query(default=None),
     status: Optional[str] = Query(default=None),
+    side: Optional[str] = Query(default=None, description="BUY or SELL / YES or NO"),
+    mode: Optional[str] = Query(default=None, description="PRICE or PROBABILITY"),
+    dateFrom: Optional[str] = Query(default=None, description="ISO date (YYYY-MM-DD), inclusive"),
+    dateTo: Optional[str] = Query(default=None, description="ISO date (YYYY-MM-DD), inclusive"),
+    before: Optional[str] = Query(default=None, description="Cursor: createdAt of the last row of the previous page"),
     limit: Optional[int] = Query(default=None, ge=1, le=1000),
 ):
-    """Recent simulations for this user id (spec §18). Never the real portfolio."""
+    """Recent simulations for this user id (spec §18), with §52 filters and the
+    §53 cursor. Filtering happens in SQL; the response carries `nextBefore` for
+    the next page."""
     if status and status.upper() not in SIMULATION_STATUSES:
         raise HTTPException(
             status_code=400,
             detail={"message": f"status must be one of {', '.join(SIMULATION_STATUSES)}", **PAPER_META},
         )
+    if side and side.upper() not in {"BUY", "SELL", "YES", "NO"}:
+        raise HTTPException(
+            status_code=400,
+            detail={"message": "side must be one of BUY, SELL, YES, NO", **PAPER_META},
+        )
+    if mode and mode.upper() not in {"PRICE", "PROBABILITY"}:
+        raise HTTPException(
+            status_code=400,
+            detail={"message": "mode must be PRICE or PROBABILITY", **PAPER_META},
+        )
+
+    def _parse_date(value: Optional[str], name: str):
+        if not value:
+            return None
+        from datetime import date as _date
+        try:
+            return _date.fromisoformat(value)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail={"message": f"{name} must be an ISO date (YYYY-MM-DD)", **PAPER_META},
+            )
+
+    def _parse_cursor(value: Optional[str]) -> Optional[Any]:
+        if not value:
+            return None
+        from datetime import datetime as _datetime
+        try:
+            return _datetime.fromisoformat(value)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail={"message": "before must be an ISO timestamp (the nextBefore value from the previous page)", **PAPER_META},
+            )
+
     user = _user_id(x_paper_user_id, userId)
-    return {**service.history(user_id=user, symbol=symbol, status=status, limit=limit), "userId": user}
+    result = service.history(
+        user_id=user,
+        symbol=symbol,
+        status=status,
+        side=side,
+        mode=mode,
+        date_from=_parse_date(dateFrom, "dateFrom"),
+        date_to=_parse_date(dateTo, "dateTo"),
+        before=_parse_cursor(before),
+        limit=limit,
+    )
+    return {**result, "userId": user}
+
+
+@paper_router.get("/events/recent")
+async def recent_paper_events(
+    x_paper_user_id: Optional[str] = Header(default=None),
+    userId: Optional[str] = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=50),
+):
+    """Last N lifecycle events for THIS user id only (spec §54 + §40 isolation):
+    the polling fallback when SSE is not available."""
+    user = _user_id(x_paper_user_id, userId)
+    return {
+        "events": paper_events.recent_events(user_id=user, limit=limit),
+        "count": limit,
+        **PAPER_META,
+    }
+
+
+@paper_router.get("/stream")
+async def paper_event_stream(
+    x_paper_user_id: Optional[str] = Header(default=None),
+    userId: Optional[str] = Query(default=None),
+):
+    """Server-Sent Events stream of this user's simulation lifecycle events
+    (spec §54). A new simulation pushed here updates an open ticket's history
+    panel without a refetch. Scoped to the requesting user id (spec §40)."""
+    user = _user_id(x_paper_user_id, userId)
+    return StreamingResponse(
+        paper_events.subscribe(user),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
+    )
 
 
 @paper_router.get("/summary")
@@ -261,6 +366,29 @@ async def paper_summary(
 ):
     user = _user_id(x_paper_user_id, userId)
     return {**service.summary(user), "userId": user}
+
+
+@paper_router.get("/health")
+def paper_health():
+    """Paper-subsystem health (spec §37): provider availability, event bus and
+    the store. Never a fabricated OK: the provider section reports whatever the
+    bound manager actually reports."""
+    from .state import get_manager
+
+    providers: list[dict] = []
+    manager = get_manager()
+    if manager is not None and hasattr(manager, "provider_status"):
+        try:
+            providers = manager.provider_status()
+        except Exception:
+            providers = []
+    return {
+        "status": "ok",
+        "providers": providers,
+        "eventBus": paper_events.stats(),
+        "statuses": list(SIMULATION_STATUSES),
+        **PAPER_META,
+    }
 
 
 @paper_router.get("/orders/{order_id}")

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import dataclasses
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any, Optional
 
 from ..config import settings
@@ -21,6 +21,7 @@ from ..logging_config import get_logger
 from ..security import validate_ticker
 from . import repository as repo
 from .config import paper_settings
+from .events import publish_paper_event
 from .instruments import (
     FORECAST_PREFIX,
     InstrumentKind,
@@ -325,6 +326,20 @@ class PaperOrderService:
             },
         )
 
+        # §54: a lightweight event is published for every new simulation so
+        # open tickets can live-update their history without refetching.
+        publish_paper_event(
+            {
+                "type": "simulation.created",
+                "orderId": order["id"],
+                "userId": user,
+                "symbol": order["symbol"],
+                "side": order["side"],
+                "status": order["status"],
+                "referencePrice": order["referencePrice"],
+            }
+        )
+
         return {
             "order": order,
             "duplicate": False,
@@ -347,18 +362,47 @@ class PaperOrderService:
         user_id: Optional[str] = None,
         symbol: Optional[str] = None,
         status: Optional[str] = None,
+        side: Optional[str] = None,
+        mode: Optional[str] = None,
+        date_from: Optional[date] = None,
+        date_to: Optional[date] = None,
+        before: Optional[datetime] = None,
         limit: Optional[int] = None,
     ) -> dict:
+        """Filtered, cursor-paginated history (spec §51–§53).
+
+        The response carries `nextBefore` — the creation timestamp of the last
+        row — which the client passes back as `before` for the next page. When
+        fewer rows than the limit came back there is no next page and
+        `nextBefore` is None. All filtering happens in SQL (spec §52: never
+        filter very large datasets in the browser).
+        """
         user = (user_id or "").strip() or None
+        effective_limit = max(1, min(int(limit or paper_settings.paper_default_history_limit),
+                                     paper_settings.paper_max_history_limit))
         rows = repo.list_orders(
             user_id=user,
             symbol=symbol,
             status=status,
-            limit=limit or paper_settings.paper_default_history_limit,
+            side=side,
+            quote_mode=mode,
+            date_from=date_from,
+            date_to=date_to,
+            before=before,
+            limit=effective_limit,
         )
+        next_before: Optional[str] = None
+        has_more = len(rows) == effective_limit
+        if has_more:
+            last = rows[-1].get("createdAt") or rows[-1].get("submittedAt")
+            if last:
+                next_before = last
         return {
             "orders": rows,
             "count": len(rows),
+            "limit": effective_limit,
+            "nextBefore": next_before,
+            "hasMore": has_more,
             "summary": summarize_paper_activity(rows),
             "paper": True,
             "separateFromPortfolio": True,
@@ -464,6 +508,17 @@ class PaperOrderService:
             instrument=order["symbol"],
             reference={"reason": reason},
             result={"status": STATUS_CANCELLED},
+        )
+        # §54: cancellation is a lifecycle event too.
+        publish_paper_event(
+            {
+                "type": "simulation.cancelled",
+                "orderId": order_id,
+                "userId": order.get("userId") or "anonymous",
+                "symbol": order["symbol"],
+                "side": order["side"],
+                "status": STATUS_CANCELLED,
+            }
         )
         return updated or order
 
