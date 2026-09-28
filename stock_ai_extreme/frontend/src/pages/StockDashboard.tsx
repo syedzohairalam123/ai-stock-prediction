@@ -17,6 +17,10 @@ import MarketStatusBadge from "../components/MarketStatusBadge";
 import BaseButton from "../components/BaseButton";
 import EmptyState from "../components/EmptyState";
 import { StatCard } from "../lib/api";
+// Phase 20: context-aware Quick Order / paper trading ticket
+import { usePaperContextSync } from "../hooks/usePaperContextSync";
+import { usePaperLiveQuotePublisher } from "../hooks/usePaperTrading";
+import { QuickOrderButton } from "../components/paper/QuickOrderTrigger";
 import { STOCK_RANGES, isStockRange, rangeWindow, type StockRange } from "../lib/timeframes";
 import { MARKET_STATUS_LABEL, fmtCompact, getMarketStatus, getStockMeta, sectorLabel } from "../lib/psxMarket";
 import type { DataMeta } from "../lib/services";
@@ -76,6 +80,10 @@ export default function StockDashboard() {
   const [overlays, setOverlays] = useState<Record<string, boolean>>({ sma: true, ema: false, bb: false });
   const { quote, state } = useStockWebSocket(upperTicker);
 
+  // Phase 20: this page's live quote is pushed into the paper ticket so the
+  // ticket never needs to open a second market-data connection of its own.
+  usePaperLiveQuotePublisher(upperTicker, quote);
+
   useEffect(() => {
     if (!upperTicker) return;
     const end = iso(new Date());
@@ -112,6 +120,18 @@ export default function StockDashboard() {
   const psxMeta = getStockMeta(upperTicker);
   const sector = sectorLabel(upperTicker, snap?.sector ?? null);
   const session = useMemo(() => getMarketStatus(), []);
+
+  // Phase 20: publish this instrument as the ticket's active context.
+  usePaperContextSync(
+    upperTicker
+      ? {
+          symbol: upperTicker,
+          kind: "STOCK",
+          displayName: snap?.name ?? upperTicker,
+          currency: snap?.currency ?? null,
+        }
+      : null,
+  );
 
   // Prefer the live socket price, then the snapshot, then the last close.
   const price = quote?.price ?? snap?.price ?? history.at(-1)?.Close ?? null;
@@ -236,6 +256,11 @@ export default function StockDashboard() {
             </select>
           </label>
           <div className="stock-links">
+            <QuickOrderButton
+              context={{ symbol: upperTicker, kind: "STOCK", displayName: snap?.name ?? upperTicker, currency: snap?.currency ?? null }}
+              label="Paper ticket"
+              title="Open the paper simulation ticket for this instrument"
+            />
             <Link to={`/company?ticker=${encodeURIComponent(upperTicker)}`}>Fundamentals &amp; dividends →</Link>
             <Link to="/macro">Macro →</Link>
           </div>

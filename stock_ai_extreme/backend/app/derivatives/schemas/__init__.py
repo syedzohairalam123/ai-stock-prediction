@@ -5,8 +5,8 @@ This module contains Pydantic schemas for request/response validation.
 All schemas are designed for non-monetary paper/simulation educational purposes.
 """
 
-from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List
+from pydantic import BaseModel, Field, field_validator, ValidationInfo
+from typing import Any, Dict, Optional, List
 from datetime import datetime
 from enum import Enum
 
@@ -20,10 +20,16 @@ class AssetClass(str, Enum):
 
 
 class ContractType(str, Enum):
-    """Types of derivative contracts."""
+    """Types of derivative contracts.
+
+    SPOT covers the real spot/cash instruments the yfinance catalog exposes
+    (e.g. BTC-USD, AAPL) alongside genuine FUTURE contracts (e.g. GC=F) —
+    both are real provider symbols, so both are valid contract types here.
+    """
     PERPETUAL = "PERPETUAL"
     FUTURE = "FUTURE"
     OPTION = "OPTION"
+    SPOT = "SPOT"
 
 
 class InstrumentStatus(str, Enum):
@@ -132,12 +138,23 @@ class MarketDepth(BaseModel):
     
     @field_validator('bids', 'asks')
     @classmethod
-    def validate_order_book(cls, v):
-        # Ensure prices are sorted correctly
+    def validate_order_book(cls, v, info: ValidationInfo):
+        # Standard order-book convention, enforced per side:
+        #   bids -> best (highest) price first, i.e. descending
+        #   asks -> best (lowest)  price first, i.e. ascending
+        # The old validator demanded descending order on BOTH sides, which is
+        # mathematically impossible for a real ask ladder and made every live
+        # order book fail response validation.
         if v:
             prices = [level.price for level in v]
-            if not all(prices[i] >= prices[i+1] for i in range(len(prices)-1)):
-                raise ValueError('Order book must be sorted by price')
+            if info.field_name == 'asks':
+                ok = all(prices[i] <= prices[i+1] for i in range(len(prices)-1))
+            else:
+                ok = all(prices[i] >= prices[i+1] for i in range(len(prices)-1))
+            if not ok:
+                raise ValueError(
+                    f"Order book {info.field_name} must be sorted best-price-first"
+                )
         return v
 
 
@@ -309,6 +326,10 @@ class RiskMetrics(BaseModel):
     market_stress_indicator: Optional[float] = Field(None, ge=0, le=1)
     correlation_benchmark: Optional[float] = Field(None, ge=-1, le=1)
     beta: Optional[float] = None
+    # Phase 21: independent multi-estimator VaR/ES cross-check from the quant
+    # package (historical vs parametric-normal vs Student-t vs Cornish-Fisher).
+    # Optional and default-None so existing serialized payloads stay valid.
+    var_cross_check: Optional[Dict[str, Any]] = None
     disclaimer: str = "Educational risk metrics - not investment advice"
 
 

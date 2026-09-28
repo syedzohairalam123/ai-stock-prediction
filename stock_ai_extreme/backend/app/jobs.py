@@ -212,6 +212,27 @@ async def sample_discovery_trends() -> int:
         return 0
 
 
+async def expire_paper_orders() -> int:
+    """Phase 20 — retire paper LIMIT simulations whose TTL has elapsed.
+
+    A limit simulation that never reached its condition must not sit open
+    forever. This moves those rows to EXPIRED (they are never deleted, so the
+    audit trail and the history stay intact) and records one audit entry.
+    Imported locally so registering the maintenance loop never drags the whole
+    paper route module into an import cycle.
+    """
+    try:
+        from .paper.service import service as paper_service
+
+        changed = paper_service.expire_due()
+        if changed:
+            logger.info("background job expired %d paper simulation(s)", changed)
+        return changed
+    except Exception as exc:
+        logger.warning("background job error (paper expiry): %s", exc)
+        return 0
+
+
 async def run_background_loop(manager, limiter) -> None:
     """Infinite maintenance loop. `manager` is the provider manager and
     `limiter` the app's rate limiter (both created in main.py)."""
@@ -255,6 +276,11 @@ async def run_background_loop(manager, limiter) -> None:
             await sample_discovery_trends()
         except Exception as exc:
             logger.warning("background job error (discovery sampling): %s", exc)
+        try:
+            # Phase 20: retire paper LIMIT simulations past their TTL.
+            await expire_paper_orders()
+        except Exception as exc:
+            logger.warning("background job error (paper expiry): %s", exc)
         try:
             purged = await manager.purge_caches()
             # Phase 7: the forex/commodities rate caches are long-lived too, so

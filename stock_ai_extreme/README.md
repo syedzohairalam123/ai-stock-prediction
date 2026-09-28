@@ -999,3 +999,178 @@ $83,920.90/ETH $2,684.44 from yfinance), 47 real-`createdAt` NEW entries with
 49 excluded and reported, tag/type/since filters verified, trend history with
 real z-scores, and a headless-Chrome render of `/discover` with zero JS errors.
 Full write-up: [`PHASE_19_COMPLETE.md`](PHASE_19_COMPLETE.md).
+
+## What's New — Phase 20 (Advanced Quick Order / Paper Trading Ticket)
+
+A **non-monetary** simulation ticket that any page of the terminal can open for
+the instrument the user is currently looking at. Nothing was removed and no
+existing route, page or component changed behaviour.
+
+**Strictly a simulation.** There is no broker client, no exchange endpoint, no
+API signing key, no deposit/withdrawal path, no payment integration, no cash
+settlement and no wagering mechanic anywhere in this phase — by construction,
+not by a feature flag. The only thing a "submission" creates is a row in this
+app's own database describing a hypothetical scenario.
+
+**Context-aware (spec §2).** `usePaperOrderStore` (Zustand, persisted only for
+form preferences) holds the active context; pages publish it with
+`usePaperContextSync`. Wired entry points: the stock dashboard (with a compact
+header button), the PSX index pages, the crypto desk (per coin row), the
+forex/commodities centre (per FX pair, and the real COMEX contract behind each
+metal card), and Phase 14 forecast events. A floating launcher reaches the
+ticket from anywhere.
+
+**Ticket contents.** Asset / symbol / price-or-probability / change % / data
+status / last updated; `PAPER BUY|SELL` (or `YES|NO` for a forecast event, which
+is never described as buying or selling); MARKET|LIMIT with a plain-language
+explanation of each; quick `+1 / +5 / +10 / +100` simulated-value buttons plus
+manual input and a value⇄quantity toggle; a reference-price readout; a LIMIT
+price input with a "use observed" shortcut; a preview table under a
+`PAPER SIMULATION — NOT A REAL ORDER` banner; a result card with reference
+entry, reference exit, price difference and hypothetical P/L; a risk/information
+panel (source, timestamp, data mode, spread, annualised historical volatility,
+opening-vs-current probability); and a `Recent simulations` table explicitly
+labelled as separate from the portfolio.
+
+**Backend (`backend/app/paper/`, additive).**
+
+| File | Responsibility |
+|---|---|
+| `instruments.py` | Deterministic shape-based classification → STOCK / INDEX / CRYPTO / COMMODITY / FOREX / FORECAST, plus each kind's side vocabulary |
+| `pnl.py` | Pure, reusable maths: notional, quantity, price difference, hypothetical P/L, limit-condition evaluation, activity summary. Rejects NaN/Inf at the door and **never fabricates an exit price** |
+| `validation.py` | Server-side validation (spec §24) with structured `{field, code, message}` issues |
+| `quotes.py` | Quote layer: base price/status from the shared Phase 2 `MarketDataManager`; real bid/ask from the Phase 7 `fx_rates` source; probability from Phase 14's forecast source |
+| `simulation.py` | `SimulationEngine` — preview, `build_order`, and `evaluate` (limit-condition + P/L against real subsequent bars) |
+| `service.py` | `PaperOrderService` — resolve → quote → validate → idempotency → simulate → persist → audit |
+| `repository.py` | `paper_orders` / `paper_audit` access, returning plain dicts (never live ORM rows) |
+| `routes.py` | `market_router` + `paper_router` |
+
+**Endpoints** (mounted under the app's existing `/api` prefix so they match
+every other route — the brief's `GET /market/instrument/:symbol` contract is
+served as `/api/market/instrument/:symbol`):
+
+```
+GET    /api/market/instrument/:symbol     instrument + live quote + limits
+GET    /api/market/quote/:symbol          live quote only
+GET    /api/market/config                 published simulation limits
+POST   /api/paper/preview                 validate + preview (writes nothing)
+POST   /api/paper/orders                  record a simulation (idempotent)
+GET    /api/paper/orders                  simulation history for this user id
+GET    /api/paper/orders/:id              one simulation
+GET    /api/paper/orders/:id/audit        its audit trail
+POST   /api/paper/orders/:id/evaluate     re-check against real observations
+POST   /api/paper/orders/:id/cancel       stop a simulation
+GET    /api/paper/summary                 aggregate paper statistics
+```
+
+**Data honesty.** A quote the provider cannot supply stays `UNAVAILABLE` with
+`price: null` — it never becomes `0`. Bid/ask are shown only when the source
+actually published them and are rejected outright when inverted (Yahoo really
+does return inverted sides for USD-quoted majors). A quote the provider layer
+classifies STALE, or one older than `PAPER_STALE_AFTER_SECONDS` (900s), sets
+`stale: true`, renders a `STALE DATA` warning, refuses to present the value as
+"the current price", and requires an explicit acknowledgement before a
+simulation can be recorded against it.
+
+**Idempotency (§25).** Every submission carries a `clientRequestId`; the pair
+`(user_id, client_request_id)` is a unique constraint, so a double-click, a
+network retry or two racing requests all resolve to the single existing row
+(`duplicate: true`) instead of creating a second simulation.
+
+**Audit log (§26).** `paper_audit` is append-only and records the request id,
+user id, event (`SUBMITTED` / `REJECTED` / `DEDUPLICATED` / `EVALUATED` /
+`CANCELLED` / `EXPIRED`), timestamp, instrument, the reference data observed at
+decision time, and the result. No credentials, tokens or payment data exist to
+store.
+
+**Limit simulation (§12).** A LIMIT submission is anchored at its limit price
+and its condition is left **undecided** (`conditionMet: null`) — never assumed
+filled. `/evaluate` then tests real OHLC bars published *after* submission:
+BUY fills against the period low, SELL against the period high, and a fill is
+reported only when a real observation actually reached the level. "Not reached
+yet" and "no newer data" are distinct answers.
+
+**Portfolio separation (§19).** Paper simulations live in `paper_orders` and are
+never written to `portfolio_holdings`; `GET /api/portfolio` is untouched and the
+history response carries `separateFromPortfolio: true`.
+
+**Responsive (§28).** Desktop is a compact right rail that reserves a body
+gutter so the chart is never obscured (and shifts aside when the Phase 10
+assistant rail is docked); tablet collapses the rail; mobile becomes a bottom
+drawer. Every freshness/movement state is shown with a word or symbol as well as
+a colour.
+
+**Never stuck on SUBMITTING (§27).** The panel bounds its own submit state with
+a timer derived from the published config, so a dead connection resolves into an
+error card with a safe retry instead of an endless spinner. Market unavailable,
+quote unavailable, stale quote, invalid amount/price, backend failure, duplicate
+request and connection loss each have a distinct, honest message.
+
+**Live data without a second connection (§16).** The ticket polls the same
+`MarketDataManager` every other page reads (one server cache, one fallback
+chain), and accepts a live reading pushed in by a page that already owns a
+socket — the stock dashboard publishes its existing `useStockWebSocket` quote
+through `usePaperLiveQuotePublisher`. The ticket itself opens no WebSocket.
+
+**Verified on a live localhost run** (real data, no mocks): `OGDC` 316.24
+(yfinance, annualised volatility 20.87%), `BTC-USD` 82,790.49, `GC=F` 4,189.60
+with a real 4186.7 / 4186.8 bid-ask, `EURUSD=X` 1.1373, and a real Polymarket
+event quoted in probability mode. Submitting a paper BUY produced a `SIMULATED`
+record, the identical request id returned `duplicate: true`, a LIMIT simulation
+correctly stayed undecided, `GET /api/portfolio` still contained only the real
+holding, and every invalid input (zero, negative, over-precise, missing limit
+price, wrong side vocabulary) was rejected with `422` by the server.
+
+**Testing.** `backend/tests/test_paper_orders.py` adds **67 tests**
+(instrument classification, all six validation cases from the brief, P&L
+arithmetic for both price and percentage-point modes, limit-condition logic,
+stale-quote protection, idempotency, per-user history scoping, portfolio
+separation, TTL expiry, and the full HTTP surface with the provider manager
+faked at its seam). Full backend suite: **944 passing** (up from 877).
+Frontend: `npx tsc --noEmit` clean, `npm run build` succeeds.
+
+**Browser verification.** `frontend/scripts/paper-ticket-audit.mjs` drives a real
+Chrome over CDP and exercises the ticket end to end — 26 checks, all passing,
+zero uncaught exceptions / console errors / failed requests. The existing
+`scripts/page-audit.mjs` was re-run across every route: no new failures appear
+(the two routes it flags — `/watchlist` with an empty watchlist and `/events`
+with a thin headline window — are pre-existing data states, untouched here).
+
+```bash
+# backend (simulation needs no key; real prices come from the same provider layer)
+cd stock_ai_extreme/backend
+.venv/Scripts/python -m uvicorn app.main:app --reload --port 8000
+
+# frontend
+cd ../frontend && npm run dev      # http://localhost:5173
+
+# open any stock/index/crypto/forex/commodity page and click “Paper ticket”,
+# or use the floating “Paper” launcher, or a forecast event's “Forecast ticket”
+
+# audit the ticket in a real browser (Chrome on --remote-debugging-port=9222)
+node scripts/paper-ticket-audit.mjs http://localhost:5173
+```
+
+New configuration (all optional — the app runs with none set; see
+`backend/.env.example`): `PAPER_STALE_AFTER_SECONDS`, `PAPER_ORDER_TTL_SECONDS`,
+`PAPER_MAX_NOTIONAL`, `PAPER_MIN_NOTIONAL`, `PAPER_MAX_QUANTITY`,
+`PAPER_AMOUNT_PRECISION`, `PAPER_QUANTITY_PRECISION`, `PAPER_PRICE_PRECISION`,
+`PAPER_MAX_CLOCK_SKEW_SECONDS`, `PAPER_VOLATILITY_LOOKBACK_DAYS`,
+`PAPER_DEFAULT_HISTORY_LIMIT`, `PAPER_MAX_HISTORY_LIMIT`.
+
+**Honest limitations, stated rather than hidden.** This app has no
+authentication yet (documented in `models.py`), so a simulation's owner is a
+browser-local id: history is scoped to the requesting id and never returned to
+another, but it is not an authenticated security boundary. Bid/ask is
+unavailable for PSX equities and for USD-quoted FX majors because the free
+source does not publish a usable book for them — the panel shows `—` rather
+than a synthetic spread. The commodity cards' paper ticket quotes the
+international COMEX front-month contract (the real input leg the PKR derivation
+uses), not the Karachi retail board, and says so on the button. PSX *index*
+levels remain the previously documented demo dataset, so an index ticket
+degrades honestly to "no quote" instead of inventing a level.
+
+---
+
+
+yar isko acah  say read karo and ismay jitnay bhi feature hai unko add akro website may bina kuch karab kiye in extrmly advance professiaonl way may kuch remove nah karna website may say sirf add akro promot may jitni feature functionality hai unko miss nah karna sub add karo dleted kuch nah karna website may ssay sirf add karo in extrmely advance profesional way may logic code har cheez todos bana tey raho readd karkay sath memory bhi yad karlo kia kaam hai yah apnay pas note karlo takay bhulo nah kuch isko achay say complete karo and wwebsite ko local host per run karo muje kuch dummy nahi chaye sub real data ho jo google website api say sarha hi real live tracking data ho

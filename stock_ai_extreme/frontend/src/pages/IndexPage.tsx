@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+// Phase 20: context-aware Quick Order / paper trading ticket
+import { usePaperContextSync } from "../hooks/usePaperContextSync";
+import { QuickOrderButton } from "../components/paper/QuickOrderTrigger";
 import IndexCarousel from "../components/IndexCarousel";
 import IndexChart from "../components/IndexChart";
 import IndexStats from "../components/IndexStats";
@@ -38,6 +41,11 @@ export default function IndexPage() {
   const [snap, setSnap] = useState<IndexSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Phase 20: the PSX index page publishes its index as the ticket's context.
+  usePaperContextSync(
+    upper ? { symbol: upper, kind: "INDEX", displayName: snap?.name ?? upper, currency: "PKR" } : null,
+  );
 
   // Keep the timeframe deep-linkable (?tf=1Y).
   useEffect(() => {

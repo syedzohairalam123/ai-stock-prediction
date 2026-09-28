@@ -1,5 +1,9 @@
 import {useEffect,useState} from "react";
 import {getJSON,postJSON,Num,Pct,Money} from "../lib/api";
+// Phase 20: every coin row opens the paper simulation ticket for that pair.
+// The CoinGecko source already reports Yahoo-style symbols (BTC-USD), so the
+// ticket quotes the exact same instrument the row is showing.
+import {QuickOrderButton} from "../components/paper/QuickOrderTrigger";
 type Coin={symbol:string;name:string;price:number|null;change_percent_24h:number|null;change_percent_7d:number|null;change_percent_30d:number|null;market_cap:number|null;market_cap_rank:number|null;total_volume:number|null;circulating_supply:number|null;ath:number|null;ath_change_percent:number|null;source:string;error?:string};
 type Report={source:string;status:string;reason?:string;summary?:{tracked:number;priced:number;total_market_cap:number|null;btc_dominance_pct:number|null;eth_dominance_pct:number|null;top_gainer_7d:string|null;worst_performer_7d:string|null};coins:Coin[];disclaimer?:string};
 const SOURCES=[["coingecko","CoinGecko (no key)"],["yfinance","yfinance (same provider layer)"]] as const;
@@ -30,17 +34,32 @@ export default function Crypto(){
       {rep.coins.length>0&&<section className="panel">
         <h2>Coins</h2>
         <table>
-          <thead><tr><th>#</th><th>Coin</th><th>Price</th><th>24h</th><th>7d</th><th>30d</th><th>Market cap</th><th>Vol</th><th>vs ATH</th></tr></thead>
+          <thead><tr><th>#</th><th>Coin</th><th>Price</th><th>24h</th><th>7d</th><th>30d</th><th>Market cap</th><th>Vol</th><th>vs ATH</th><th>Paper</th></tr></thead>
           <tbody>{rep.coins.map(c=><tr key={c.symbol}>
             <td>{c.market_cap_rank??"—"}</td><td><b>{c.name}</b> <span className="dim">{c.symbol}</span></td>
             <td><Num v={c.price}/></td>
             <td><Pct v={c.change_percent_24h}/></td><td><Pct v={c.change_percent_7d}/></td><td><Pct v={c.change_percent_30d}/></td>
             <td><Money v={c.market_cap}/></td><td><Money v={c.total_volume}/></td>
             <td><Pct v={c.ath_change_percent}/></td>
+            <td>
+              <QuickOrderButton
+                context={{symbol: paperSymbol(c.symbol), kind: "CRYPTO", displayName: c.name}}
+                label="Paper"
+                title={`Open the paper simulation ticket for ${c.symbol}`}
+                className="paper-trigger-compact"
+              />
+            </td>
           </tr>)}</tbody>
         </table>
       </section>}
       <small>{rep.disclaimer}</small>
     </>}
   </section>;
+}
+
+/** CoinGecko source reports Yahoo-style pairs already; anything bare is the
+ * USD pair (this page is the crypto desk, so that is the correct quote leg). */
+function paperSymbol(symbol: string): string {
+  const trimmed = (symbol || "").trim().toUpperCase();
+  return trimmed.includes("-") ? trimmed : `${trimmed}-USD`;
 }

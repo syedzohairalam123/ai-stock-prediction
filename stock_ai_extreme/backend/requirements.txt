@@ -10,6 +10,10 @@ pandas>=2.2
 numpy>=1.26
 scikit-learn>=1.5
 scipy>=1.11
+# Statistics that the app genuinely needs (hypothesis tests, HAC standard
+# errors, stationarity, distribution fitting). Used by `app/quant/`; every
+# call site degrades to a documented fallback if it is unavailable.
+statsmodels>=0.14
 tensorflow>=2.16
 joblib>=1.4
 httpx>=0.27.0

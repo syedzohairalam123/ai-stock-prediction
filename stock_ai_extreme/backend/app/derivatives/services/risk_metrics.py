@@ -2,6 +2,13 @@
 Risk metrics service for Phase 16 - Advanced Live Perpetual Futures Analytics + Paper Simulation Engine
 
 This module provides risk visualization metrics for educational purposes.
+
+Phase 21 additive upgrade: when the `quant` package is importable, VaR is
+validated with a Student-t parametric estimate and Expected Shortfall is
+validated with the analytic t-formula. The originally reported historical
+figures are never replaced — the stricter cross-check is attached alongside,
+so a historical VaR far below its parametric counterpart is visible as
+exactly that instead of being silently quoted as "the" risk number.
 """
 
 from datetime import datetime, timedelta
@@ -13,6 +20,55 @@ import pandas as pd
 from ..schemas import RiskMetrics
 
 logger = logging.getLogger("neural_market.derivatives.services.risk_metrics")
+
+try:  # Phase 21: best-effort import; the service works without it.
+    from ...quant.risk import tail_risk as _quant_tail_risk
+
+    _HAVE_QUANT = True
+except Exception:  # pragma: no cover - quant always ships in this repo
+    _quant_tail_risk = None  # type: ignore[assignment]
+    _HAVE_QUANT = False
+
+
+def _var_cross_check(returns: pd.Series) -> Optional[Dict[str, Any]]:
+    """Phase 21: attach the quant package's multi-estimator tail block as a
+    cross-check on the historical VaR reported above. Never raises: on any
+    problem it returns None and the payload simply omits the field."""
+    if not _HAVE_QUANT or returns is None or len(returns) < 30:
+        return None
+    try:
+        report = _quant_tail_risk([float(x) for x in returns.tolist()])
+        if not report.get("available"):
+            return None
+        level_95 = next(
+            (lv for lv in report.get("levels", []) if abs(lv.get("confidenceLevel", 0) - 0.95) < 1e-9),
+            None,
+        )
+        if level_95 is None:
+            return None
+
+        def _blk(key: str) -> Optional[Dict[str, Any]]:
+            blk = level_95.get(key)
+            if not isinstance(blk, dict) or blk.get("var") is None:
+                return None
+            return {"var": blk["var"], **({"cvar": blk["cvar"]} if blk.get("cvar") is not None else {})}
+
+        return {
+            "signConvention": report.get("convention"),
+            "historic": _blk("historic"),
+            "parametricNormal": _blk("parametricNormal"),
+            "parametricStudentT": _blk("parametricStudentT"),
+            "cornishFisher": _blk("cornishFisher"),
+            "tailShape": report.get("tailShape"),
+            "note": (
+                "Independent cross-check computed by the quant package (Phase 21). "
+                "A historic VaR far below the parametric estimates means the "
+                "observed window was calm relative to the fitted tail."
+            ),
+        }
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.debug("var cross-check unavailable: %s", exc)
+        return None
 
 
 class RiskMetricsService:
@@ -143,6 +199,7 @@ class RiskMetricsService:
                 market_stress_indicator=float(market_stress_indicator) if market_stress_indicator is not None else None,
                 correlation_benchmark=float(correlation_benchmark) if correlation_benchmark is not None else None,
                 beta=float(beta) if beta is not None else None,
+                var_cross_check=_var_cross_check(returns),
                 disclaimer="Educational risk metrics - not investment advice"
             )
             

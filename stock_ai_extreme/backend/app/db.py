@@ -158,6 +158,10 @@ def init_db() -> None:
     # Imported from the sub-package (not the package root) so registering the
     # tables does not drag the whole Phase 17 router/engine import chain in.
     from .breaking_news.models import models as breaking_news_models  # noqa: F401  Phase 17
+    # Phase 20: paper_orders + paper_audit. Imported from the module (not the
+    # package root) for the same reason — registering the tables must not pull
+    # the router/service import chain in.
+    from .paper import models as paper_models  # noqa: F401  Phase 20
     Base.metadata.create_all(bind=engine)
     _ensure_additive_columns()
 

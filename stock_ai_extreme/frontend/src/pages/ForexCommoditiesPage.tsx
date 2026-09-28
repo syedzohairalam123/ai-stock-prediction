@@ -13,6 +13,8 @@
  * and the word up/down, so it survives a colour-blind or monochrome screen.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+// Phase 20: context-aware Quick Order / paper trading ticket
+import { QuickOrderButton } from "../components/paper/QuickOrderTrigger";
 import {
   CommodityService,
   ForexService,
@@ -348,7 +350,16 @@ function ForexSection({ now }: { now: number }) {
                       <b>{q.base_currency}</b> <span className="dim">{q.name}</span>
                     </td>
                     <td>
-                      <b>{q.symbol}</b>
+                      <b>{q.symbol}</b>{" "}
+                      {/* Phase 20: this pair opens the paper simulation ticket.
+                          The ticket uses the same Yahoo symbol the rate came
+                          from, so bid/ask/mid are the source's real levels. */}
+                      <QuickOrderButton
+                        context={{ symbol: paperFxSymbol(q.symbol), kind: "FOREX", displayName: q.name, currency: "PKR" }}
+                        label="Paper"
+                        title={`Open the paper simulation ticket for ${q.symbol}`}
+                        className="paper-trigger-compact"
+                      />
                     </td>
                     <td>{formatRate(q.bid)}</td>
                     <td>{formatRate(q.ask)}</td>
@@ -402,6 +413,19 @@ function ForexSection({ now }: { now: number }) {
 // ---------------------------------------------------------------------------
 // Commodities
 // ---------------------------------------------------------------------------
+
+/** Phase 20 — `USD/PKR` -> the Yahoo FX symbol (`USDPKR=X`) the ticket quotes. */
+function paperFxSymbol(pair: string): string {
+  return `${(pair || "").replace(/[^A-Za-z]/g, "").toUpperCase()}=X`;
+}
+
+/** Phase 20 — metal root -> the real COMEX contract Yahoo publishes. */
+const METAL_PAPER_CONTRACT: Record<string, string> = { XAU: "GC=F", XAG: "SI=F", XPT: "PL=F" };
+
+function metalPaperContract(symbol: string): string | null {
+  const root = (symbol || "").split("-")[0].toUpperCase();
+  return METAL_PAPER_CONTRACT[root] ?? null;
+}
 
 function CommoditySection({ now }: { now: number }) {
   const [data, setData] = useState<CommodityResponse | null>(null);
@@ -551,6 +575,25 @@ function CommoditySection({ now }: { now: number }) {
                     </ul>
                   )}
                   {primary.error && <p className="metal-error">{primary.error}</p>}
+                  {/* Phase 20: the ticket quotes the international COMEX
+                      front-month contract (the real input leg this card is
+                      derived from) — never the PKR retail board, which no
+                      free keyless source publishes. */}
+                  {metalPaperContract(group.symbol) && (
+                    <div className="metal-paper">
+                      <QuickOrderButton
+                        context={{
+                          symbol: metalPaperContract(group.symbol) as string,
+                          kind: "COMMODITY",
+                          displayName: `${group.name} · COMEX front-month futures (USD)`,
+                          currency: "USD",
+                        }}
+                        label="Paper contract"
+                        title="Open the paper simulation ticket for the international COMEX front-month futures contract this card is derived from"
+                        className="paper-trigger-compact"
+                      />
+                    </div>
+                  )}
                 </div>
               </article>
             );

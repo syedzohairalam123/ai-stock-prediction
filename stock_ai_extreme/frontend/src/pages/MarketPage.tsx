@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+// Phase 20: context-aware Quick Order / paper trading ticket
+import { usePaperContextSync } from "../hooks/usePaperContextSync";
 import { useSearchParams } from "react-router-dom";
 import MarketsOverview from "../components/MarketsOverview";
 import MarketMovers from "../components/MarketMovers";
@@ -28,6 +30,8 @@ export default function MarketPage() {
   const [snapshot, setSnapshot] = useState<IndexSnapshot | null>(null);
   const [detailLoading, setDetailLoading] = useState(true);
   const [detailError, setDetailError] = useState<string | null>(null);
+  // Phase 20: the market page publishes its selected index as ticket context.
+  usePaperContextSync(selected ? { symbol: selected, kind: "INDEX", displayName: snapshot?.name ?? selected, currency: "PKR" } : null);
 
   // Keep URL in sync (replace: no history spam) so any view is shareable/reloadable.
   useEffect(() => {

@@ -4,6 +4,10 @@ import { ArrowLeft, CalendarClock, CheckCircle2, Database, Info, Play, ShieldChe
 import { Link, useParams } from "react-router-dom";
 import { useForecastHistory, useForecastMarket, useForecastSimulation } from "../hooks/useForecastQueries";
 import { type ForecastHistoryRange, type ForecastSimulationModel, probabilityDelta } from "../lib/forecasting";
+// Phase 20: forecast events open the same ticket in probability mode
+// (YES/NO + current probability, never BUY/SELL and never a wager).
+import { usePaperContextSync } from "../hooks/usePaperContextSync";
+import { QuickOrderButton } from "../components/paper/QuickOrderTrigger";
 
 export default function ForecastDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
@@ -19,6 +23,26 @@ export default function ForecastDetailPage() {
   const previous = history.length > 1 ? history[history.length - 2].yesProbability : null;
   const delta = market && previous !== null ? probabilityDelta(history, market.yesProbability) : null;
   const majorMovements = history.slice(1).map((point, index) => ({ ...point, delta: point.yesProbability - history[index].yesProbability })).filter((point) => Math.abs(point.delta) >= 3);
+  // Phase 20: publish the forecast event as the paper ticket's context.
+  usePaperContextSync(
+    market
+      ? {
+          symbol: `FORECAST:${market.id}`,
+          kind: "FORECAST",
+          quoteMode: "PROBABILITY",
+          displayName: market.title,
+          marketId: market.id,
+          question: market.title,
+          closeTime: market.closeTime,
+          category: market.category,
+          probabilityYes: market.yesProbability,
+          probabilityNo: market.noProbability,
+          source: market.sources?.[0]?.name ?? null,
+          dataMode: market.dataMode,
+          status: market.status,
+        }
+      : null,
+  );
   const plotData = useMemo(() => [{ x: history.map((point) => point.timestamp), y: history.map((point) => point.yesProbability), type: "scatter" as const, mode: "lines+markers" as const, name: "YES probability", line: { color: "#42d3c7", width: 3 }, marker: { size: 6 } }, { x: history.map((point) => point.timestamp), y: history.map((point) => point.noProbability), type: "scatter" as const, mode: "lines" as const, name: "NO probability", line: { color: "#f29b66", width: 2, dash: "dot" as const } }], [history]);
   const simulationPlot = useMemo(() => {
     if (!sim) return [];
@@ -43,7 +67,7 @@ export default function ForecastDetailPage() {
   if (marketQuery.isError || !market) return <section className="forecast-state error" role="alert"><Info size={22} aria-hidden /> Invalid or unavailable forecast market. <Link to="/forecasts">Return to markets</Link></section>;
   return <section className="forecast-detail-page">
     <Link to="/forecasts" className="forecast-back"><ArrowLeft size={15} aria-hidden /> All forecast markets</Link>
-    <header className="forecast-detail-head"><div><div className="forecast-card-top"><span className="forecast-category">{market.category}</span><span className={`forecast-status ${market.status.toLowerCase()}`}>{market.status.replace("_", " ")}</span><span className={`forecast-mode ${market.dataMode.toLowerCase()}`}><Database size={12} aria-hidden /> {market.dataMode}</span></div><h1>{market.title}</h1><p>{market.description}</p></div><div className="forecast-detail-current"><span>Current YES probability</span><strong>{market.yesProbability.toFixed(1)}%</strong><small>NO {market.noProbability.toFixed(1)}%</small></div></header>
+    <header className="forecast-detail-head"><div><div className="forecast-card-top"><span className="forecast-category">{market.category}</span><span className={`forecast-status ${market.status.toLowerCase()}`}>{market.status.replace("_", " ")}</span><span className={`forecast-mode ${market.dataMode.toLowerCase()}`}><Database size={12} aria-hidden /> {market.dataMode}</span></div><h1>{market.title}</h1><p>{market.description}</p></div><div className="forecast-detail-current"><span>Current YES probability</span><strong>{market.yesProbability.toFixed(1)}%</strong><small>NO {market.noProbability.toFixed(1)}%</small><QuickOrderButton context={{ symbol: `FORECAST:${market.id}`, kind: "FORECAST", quoteMode: "PROBABILITY", displayName: market.title, marketId: market.id, question: market.title, closeTime: market.closeTime, category: market.category, probabilityYes: market.yesProbability, probabilityNo: market.noProbability }} label="Forecast ticket" title="Open the paper ticket for this forecast event (YES/NO, informational)" /></div></header>
     <div className="forecast-detail-grid"><section className="forecast-panel forecast-chart-panel"><div className="forecast-panel-head"><div><h2>Probability history</h2><p>Percentage points, not return percentages.</p></div><div className="forecast-range-tabs">{(["1D", "7D", "1M", "FULL"] as ForecastHistoryRange[]).map((item) => <button key={item} className={range === item ? "active" : ""} onClick={() => setRange(item)}>{item}</button>)}</div></div>{historyQuery.isLoading ? <div className="forecast-state">Loading history...</div> : history.length === 0 ? <div className="forecast-state">History unavailable for this range.</div> : <Plot data={plotData} layout={{ autosize: true, height: 360, margin: { l: 48, r: 18, t: 18, b: 48 }, paper_bgcolor: "transparent", plot_bgcolor: "transparent", font: { color: "#aebbd8" }, hovermode: "x unified", xaxis: { gridcolor: "#293650" }, yaxis: { range: [0, 100], ticksuffix: "%", gridcolor: "#293650" }, legend: { orientation: "h", y: 1.12 } }} config={{ responsive: true, displaylogo: false }} useResizeHandler style={{ width: "100%" }} />}</section>
       <aside className="forecast-side-stack"><section className="forecast-panel"><h2>Probability change</h2><div className="forecast-change-grid"><div><span>Current</span><strong>{market.yesProbability.toFixed(1)}%</strong></div><div><span>Previous</span><strong>{previous === null ? "—" : `${previous.toFixed(1)}%`}</strong></div><div><span>Difference</span><strong className={delta !== null && delta >= 0 ? "positive" : "negative"}>{delta === null ? "—" : `${delta >= 0 ? "+" : ""}${delta.toFixed(1)} pp`}</strong></div></div><small>“pp” means percentage points. It is not a percentage return.</small></section><section className="forecast-panel"><h2><TrendingUp size={16} aria-hidden /> Activity</h2><div className="forecast-info-list"><span>Forecast updates <b>{market.updateCount}</b></span><span>Participants <b>{market.participantCount ?? "Not provided"}</b></span><span>Closes <b>{new Date(market.closeTime).toLocaleString()}</b></span></div></section></aside></div>
     <section className="forecast-panel forecast-simulation-panel"><div className="forecast-panel-head"><div><h2><Waves size={17} aria-hidden /> Simulation</h2><p>Monte-Carlo projection over this market&apos;s real traded history. A model output, not certainty.</p></div><div className="forecast-range-tabs">{[7, 30, 90].map((days) => <button key={days} className={horizon === days ? "active" : ""} onClick={() => setHorizon(days)}>{days}D</button>)}<select value={simModel} onChange={(event) => setSimModel(event.target.value as ForecastSimulationModel)} aria-label="Simulation model"><option value="auto">Auto</option><option value="ou">Mean-reverting</option><option value="gbm">Random walk</option><option value="ensemble">Ensemble</option></select><button type="button" className="forecast-action primary" onClick={() => simulation.mutate({ horizonDays: horizon, model: simModel })} disabled={simulation.isPending}><Play size={13} aria-hidden /> {simulation.isPending ? "Running…" : "Run simulation"}</button></div></div>

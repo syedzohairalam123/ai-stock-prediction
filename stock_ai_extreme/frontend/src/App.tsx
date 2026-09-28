@@ -60,6 +60,8 @@ const TopicDetailPage = lazy(() => import("./pages/TopicDetailPage"));
 const PoliticalPage = lazy(() => import("./pages/PoliticalPage"));
 // Phase 19: Advanced Market Discovery / New & Trending Engine
 const DiscoverPage = lazy(() => import("./pages/DiscoverPage"));
+// Phase 21: modular quant analytics (stationarity, HAC beta, tail risk, event studies)
+const QuantLabPage = lazy(() => import("./pages/QuantLabPage"));
 
 export default function App() {
   return (
@@ -120,6 +122,7 @@ export default function App() {
 
               {/* Phase 19: market discovery — trending/new/popular/recent feeds */}
               <Route path="/discover" element={<DiscoverPage />} />
+              <Route path="/quant-lab" element={<QuantLabPage />} />
 
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

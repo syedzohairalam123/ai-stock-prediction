@@ -16,6 +16,8 @@ dist/
 frontend/.env
 frontend/.env.local
 .vite/
+# Headless-Chrome profile created by the dev-only audit harnesses
+frontend/.audit-chrome-profile/
 
 # --- Env & secrets ---
 .env

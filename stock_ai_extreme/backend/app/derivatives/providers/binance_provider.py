@@ -177,6 +177,26 @@ class BinanceDerivativesProvider(DerivativeDataProvider):
             
             data = response.json()
             
+            # The futures 24hr ticker does NOT include bid/ask — read them from
+            # the dedicated bookTicker endpoint instead. Missing sides stay None
+            # (never 0, never fabricated).
+            bid = None
+            ask = None
+            try:
+                book_response = await self.client.get(
+                    f"{self.BASE_URL}/fapi/v1/ticker/bookTicker",
+                    params={"symbol": instrument_id}
+                )
+                book_response.raise_for_status()
+                book = book_response.json()
+                if isinstance(book, dict):
+                    if book.get('bidPrice') not in (None, '', '0'):
+                        bid = float(book['bidPrice'])
+                    if book.get('askPrice') not in (None, '', '0'):
+                        ask = float(book['askPrice'])
+            except Exception as e:
+                logger.debug(f"Could not fetch bookTicker for {instrument_id}: {e}")
+            
             # Fetch premium index for mark price
             mark_price = None
             index_price = None
@@ -200,9 +220,9 @@ class BinanceDerivativesProvider(DerivativeDataProvider):
                 last_price=float(data.get('lastPrice')),
                 source=self.name,
                 status=DerivativeDataStatus.LIVE,
-                bid=float(data.get('bidPrice')),
-                ask=float(data.get('askPrice')),
-                spread=float(data.get('askPrice')) - float(data.get('bidPrice')),
+                bid=bid,
+                ask=ask,
+                spread=(ask - bid) if (bid is not None and ask is not None) else None,
                 mark_price=mark_price,
                 index_price=index_price,
                 change_24h=float(data.get('priceChange')),
@@ -486,9 +506,12 @@ class BinanceDerivativesProvider(DerivativeDataProvider):
             start_timestamp = int(datetime.combine(start, datetime.min.time()).timestamp() * 1000)
             end_timestamp = int(datetime.combine(end, datetime.max.time()).timestamp() * 1000)
             
-            # Fetch open interest history
+            # Fetch open interest history. The correct historical endpoint is
+            # /futures/data/openInterestHist (rows carry sumOpenInterest,
+            # sumOpenInterestValue and a ms timestamp); /fapi/v1/openInterest
+            # only serves the CURRENT single reading and rejects period args.
             response = await self.client.get(
-                f"{self.BASE_URL}/fapi/v1/openInterest",
+                f"{self.BASE_URL}/futures/data/openInterestHist",
                 params={
                     "symbol": instrument_id,
                     "period": "1d",
@@ -500,13 +523,16 @@ class BinanceDerivativesProvider(DerivativeDataProvider):
             response.raise_for_status()
             
             oi_history = response.json()
+            if not isinstance(oi_history, list):
+                raise ValueError(f"Unexpected openInterestHist payload: {type(oi_history).__name__}")
             
             # Convert to list of dictionaries
             data = []
             for oi in oi_history:
                 data.append({
-                    "timestamp": datetime.fromtimestamp(oi['timestamp'] / 1000, tz=timezone.utc),
+                    "timestamp": datetime.fromtimestamp(int(oi['timestamp']) / 1000, tz=timezone.utc),
                     "open_interest": float(oi['sumOpenInterest']),
+                    "open_interest_value": float(oi['sumOpenInterestValue']) if oi.get('sumOpenInterestValue') else None,
                     "symbol": oi['symbol'],
                 })
             

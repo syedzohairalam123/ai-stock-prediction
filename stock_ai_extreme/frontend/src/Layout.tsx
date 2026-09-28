@@ -8,6 +8,10 @@ import { useAIStore } from "./store/useAIStore";
 import { useSettingsStore, useUIStore } from "./store/useStore";
 import SearchWatchlistSidebar from "./components/SearchWatchlistSidebar";
 import { useSearchSidebarStore } from "./store/useSearchSidebarStore";
+// Phase 20: context-aware Quick Order / paper trading ticket. Mounted here so
+// it is reachable from every page and never unmounts during navigation.
+import QuickOrderPanel from "./components/paper/QuickOrderPanel";
+import QuickOrderFab from "./components/paper/QuickOrderTrigger";
 
 export default function Layout() {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -68,11 +72,16 @@ export default function Layout() {
           <Link to="/forecasts">Forecasts</Link>
           <Link to="/breaking-news">Breaking news</Link>
           <Link to="/political">Geopolitics</Link>
+          <Link to="/quant-lab">Quant Lab</Link>
         </div>
       </footer>
 
       {/* Phase 10: context-aware AI assistant (docked rail / mobile sheet) */}
       <AIAssistantPanel />
+
+      {/* Phase 20: paper simulation ticket (right rail / tablet collapse / mobile drawer) */}
+      <QuickOrderPanel />
+      <QuickOrderFab />
     </div>
   );
 }

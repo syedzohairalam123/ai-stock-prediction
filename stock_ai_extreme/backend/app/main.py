@@ -113,6 +113,13 @@ app.include_router(political_mod.political_router)
 # recorded; no popularity number is ever invented).
 from .discovery import routes as discovery_routes_mod
 app.include_router(discovery_routes_mod.router)
+# Phase 20: Advanced Quick Order / Paper Trading Ticket (additive). A compact
+# context-aware simulation ticket for stocks, indices, crypto, commodities, FX
+# and Phase 14 forecast events. Strictly non-monetary: no order is ever sent to
+# a broker/exchange, and no deposit/withdrawal/payment surface exists.
+from . import paper as paper_mod
+app.include_router(paper_mod.market_router)
+app.include_router(paper_mod.paper_router)
 
 # Phase 2: provider manager. yfinance is primary; Finnhub is an optional live-quote
 # fallback that only activates if FINNHUB_API_KEY is set (skipped otherwise — no
@@ -134,6 +141,15 @@ breaking_news_mod.configure_breaking_news(manager)
 # manager (one cache, one fallback chain, one honesty contract).
 from .discovery import service as discovery_service
 discovery_service.configure(manager)
+# Phase 20: the paper ticket reads quotes through the SAME manager (one cache,
+# one fallback chain, one upstream quota — no second market-data stack).
+paper_mod.configure(manager)
+# Phase 21: the quant analytics layer likewise reads real bars through the SAME
+# manager — one provider stack, one cache, no duplicated upstream quota.
+from .quant import quant_router
+from .quant import state as quant_state
+quant_state.configure(manager)
+app.include_router(quant_router)
 data,predictor,insighter,lstm,gru=DataAgent(manager),PredictionAgent(),InsightAgent(),LSTMPredictionAgent(),GRUPredictionAgent()
 
 class HistoryRequest(BaseModel): start:date; end:date; interval:str="1d"

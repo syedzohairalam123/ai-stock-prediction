@@ -34,8 +34,8 @@ apiClient.interceptors.response.use(
   },
   (error: AxiosError) => {
     const errorData = error.response?.data as any;
-    const errorMessage = errorData?.detail || error.message || 'An error occurred';
-    
+    const detail = errorData?.detail;
+
     // Silent error handling - don't log to console to avoid spam
     // The service layer will handle fallbacks gracefully
 
@@ -48,7 +48,36 @@ apiClient.interceptors.response.use(
       return Promise.reject(new Error('Network error. Please check your connection.'));
     }
 
-    return Promise.reject(new Error(errorMessage));
+    // Some endpoints (the Phase 20 paper-trading API) return a structured
+    // detail object `{ message, issues, ... }` so a caller can highlight the
+    // exact invalid field. Keep that structure on the rejected error instead of
+    // stringifying it to "[object Object]" — plain string details behave
+    // exactly as they always did.
+    let errorMessage: string;
+    if (typeof detail === 'string') {
+      errorMessage = detail;
+    } else if (Array.isArray(detail)) {
+      // FastAPI/Pydantic request-validation errors
+      const first = detail[0] as { msg?: string } | undefined;
+      errorMessage = first?.msg || error.message || 'An error occurred';
+    } else if (detail && typeof detail === 'object' && typeof (detail as any).message === 'string') {
+      errorMessage = (detail as any).message;
+    } else {
+      errorMessage = error.message || 'An error occurred';
+    }
+
+    const wrapped = new Error(errorMessage) as Error & {
+      detail?: unknown;
+      issues?: unknown;
+      status?: number;
+    };
+    if (detail !== undefined) wrapped.detail = detail;
+    if (detail && typeof detail === 'object' && !Array.isArray(detail) && (detail as any).issues) {
+      wrapped.issues = (detail as any).issues;
+    }
+    wrapped.status = error.response?.status;
+
+    return Promise.reject(wrapped);
   }
 );
 

@@ -207,9 +207,18 @@ class DerivativesDataManager:
             return cached
         
         last_error = None
+        unavailable_result = None
         for provider in self.providers:
             try:
                 funding = await provider.get_funding_data(instrument_id)
+                # A provider answering "I don't have this" (UNAVAILABLE, e.g.
+                # yfinance has no funding rates) is NOT a success: keep trying
+                # the remaining providers (e.g. Binance for crypto perps) so a
+                # real source is reached before anything is reported dead.
+                if getattr(funding, "status", None) == DerivativeDataStatus.UNAVAILABLE:
+                    if unavailable_result is None:
+                        unavailable_result = funding
+                    continue
                 self._set_cache(self._funding_cache, cache_key, funding, self.funding_cache_ttl)
                 return funding
             except DerivativeProviderError as exc:
@@ -217,7 +226,10 @@ class DerivativesDataManager:
                 last_error = exc
                 continue
         
-        # All providers failed - return unavailable
+        # All providers failed or had no funding data - return unavailable.
+        # Never fabricate a rate: the honest UNAVAILABLE result is returned.
+        if unavailable_result is not None:
+            return unavailable_result
         logger.error(f"All providers failed for funding {instrument_id}: {last_error}")
         return FundingData(
             instrument_id=instrument_id,
@@ -248,9 +260,16 @@ class DerivativesDataManager:
             return cached
         
         last_error = None
+        unavailable_result = None
         for provider in self.providers:
             try:
                 oi = await provider.get_open_interest(instrument_id)
+                # Same honesty rule as funding: an UNAVAILABLE answer is not a
+                # success — fall through to the next provider first.
+                if getattr(oi, "status", None) == DerivativeDataStatus.UNAVAILABLE:
+                    if unavailable_result is None:
+                        unavailable_result = oi
+                    continue
                 self._set_cache(self._oi_cache, cache_key, oi, self.oi_cache_ttl)
                 return oi
             except DerivativeProviderError as exc:
@@ -258,7 +277,10 @@ class DerivativesDataManager:
                 last_error = exc
                 continue
         
-        # All providers failed - return unavailable
+        # All providers failed or had no OI data - return unavailable.
+        # Never fabricate open interest: the honest UNAVAILABLE result wins.
+        if unavailable_result is not None:
+            return unavailable_result
         logger.error(f"All providers failed for OI {instrument_id}: {last_error}")
         return OpenInterestData(
             instrument_id=instrument_id,
