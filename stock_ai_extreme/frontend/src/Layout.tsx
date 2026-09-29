@@ -73,6 +73,7 @@ export default function Layout() {
           <Link to="/breaking-news">Breaking news</Link>
           <Link to="/political">Geopolitics</Link>
           <Link to="/quant-lab">Quant Lab</Link>
+          <Link to="/esports">Esports</Link>
         </div>
       </footer>
 

@@ -162,6 +162,10 @@ def init_db() -> None:
     # package root) for the same reason — registering the tables must not pull
     # the router/service import chain in.
     from .paper import models as paper_models  # noqa: F401  Phase 20
+    # Phase 21A: esports models. Imported from the module (not the package root)
+    # for the same reason — registering the tables must not pull the router/service
+    # import chain in.
+    from .esports.database import models as esports_models  # noqa: F401  Phase 21A
     Base.metadata.create_all(bind=engine)
     _ensure_additive_columns()
 

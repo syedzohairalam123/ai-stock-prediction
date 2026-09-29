@@ -72,11 +72,26 @@ async def lifespan(app:FastAPI):
     background_task=None
     if settings.background_jobs_enabled:
         background_task=asyncio.create_task(jobs.run_background_loop(manager,rate_limiter))
+    # Phase 21A: Start esports data manager
+    await esports_manager.start()
+    # Phase 21C: background analytics workers (trending / aggregation / anomaly
+    # / cleanup). They never touch the live delivery path.
+    esports_analytics_task=None
+    if getattr(settings,"esports_workers_enabled",True):
+        from .esports.analytics import workers as esports_analytics_workers
+        esports_analytics_task=asyncio.create_task(esports_analytics_workers.run_analytics_loop())
     yield
     if background_task:
         background_task.cancel()
         try: await background_task
         except asyncio.CancelledError: pass
+    # Phase 21C: stop the analytics worker
+    if esports_analytics_task:
+        esports_analytics_task.cancel()
+        try: await esports_analytics_task
+        except asyncio.CancelledError: pass
+    # Phase 21A: Stop esports data manager
+    await esports_manager.stop()
 
 app=FastAPI(title="Neural Market API",version="2.3.0",description="Stock analytics and educational ML forecasting API",lifespan=lifespan)
 app.add_middleware(CORSMiddleware,allow_origins=[v.strip() for v in settings.cors_origins.split(',')],allow_credentials=True,allow_methods=["*"],allow_headers=["*"])
@@ -120,6 +135,12 @@ app.include_router(discovery_routes_mod.router)
 from . import paper as paper_mod
 app.include_router(paper_mod.market_router)
 app.include_router(paper_mod.paper_router)
+# Phase 21A: Real-Time Esports Data Ingestion + Live Match Engine (backend and data foundation only)
+from . import esports as esports_mod
+app.include_router(esports_mod.esports_router)
+# Phase 21C: additive analytics/trending/data-quality API under /api/v1/esports.
+from .esports.analytics.routes import analytics_router as esports_analytics_router
+app.include_router(esports_analytics_router)
 
 # Phase 2: provider manager. yfinance is primary; Finnhub is an optional live-quote
 # fallback that only activates if FINNHUB_API_KEY is set (skipped otherwise — no
@@ -150,6 +171,22 @@ from .quant import quant_router
 from .quant import state as quant_state
 quant_state.configure(manager)
 app.include_router(quant_router)
+# Phase 21A: Initialize esports data manager with provider adapters
+from .esports.providers.cs2_adapter import CS2Adapter
+from .esports.providers.lol_adapter import LoLAdapter
+from .esports.providers.dota2_adapter import Dota2Adapter
+from .esports.services.manager import EsportsDataManager
+esports_providers = [
+    CS2Adapter(api_key=settings.esports_cs2_api_key if hasattr(settings, 'esports_cs2_api_key') else None),
+    LoLAdapter(api_key=settings.esports_lol_api_key if hasattr(settings, 'esports_lol_api_key') else None),
+    Dota2Adapter(api_key=settings.esports_dota2_api_key if hasattr(settings, 'esports_dota2_api_key') else None),
+]
+esports_manager = EsportsDataManager(esports_providers)
+esports_mod.configure_esports(esports_manager)
+# Phase 21C: bind the analytics service to the SAME data manager (one provider
+# stack, one cache, one upstream quota — no second esports data path).
+from .esports.analytics import service as esports_analytics_service
+esports_analytics_service.configure(esports_manager)
 data,predictor,insighter,lstm,gru=DataAgent(manager),PredictionAgent(),InsightAgent(),LSTMPredictionAgent(),GRUPredictionAgent()
 
 class HistoryRequest(BaseModel): start:date; end:date; interval:str="1d"

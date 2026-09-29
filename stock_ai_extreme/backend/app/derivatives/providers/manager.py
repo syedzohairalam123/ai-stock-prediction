@@ -321,10 +321,20 @@ class DerivativesDataManager:
                 last_error = exc
                 continue
         
-        # All providers failed
-        error_msg = f"All providers failed for depth {instrument_id}: {last_error}" if last_error else "No providers available"
-        logger.error(error_msg)
-        raise DerivativeProviderError("manager", error_msg)
+        # All providers failed - return a well-formed empty order book instead
+        # of raising, matching the quote endpoint's honest-UNAVAILABLE pattern.
+        # No order book level is fabricated; the frontend DepthTable renders its
+        # "Order book unavailable from source." empty state for empty rows.
+        # Deliberately NOT cached so recovery is picked up on the next poll.
+        logger.error(f"All providers failed for depth {instrument_id}: {last_error}")
+        return MarketDepth(
+            instrument_id=instrument_id,
+            timestamp=datetime.now(timezone.utc),
+            bids=[],
+            asks=[],
+            source="none",
+            status=DerivativeDataStatus.UNAVAILABLE
+        )
     
     async def get_historical_funding(self, instrument_id: str, start: date, 
                                       end: date) -> List[Dict[str, Any]]:

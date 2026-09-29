@@ -1,0 +1,131 @@
+{
+  "phase": "21C",
+  "generated_at": "2026-09-29T11:31:44.014725+00:00",
+  "target": "http://127.0.0.1:8000",
+  "levels_http": [
+    5000
+  ],
+  "levels_websocket": [
+    100,
+    1000,
+    5000,
+    10000
+  ],
+  "server_processes_detected": 3,
+  "system_memory": {
+    "total_bytes": 7978012672.0,
+    "available_bytes": 867213312.0,
+    "load_percent": 89.0
+  },
+  "levels": [
+    {
+      "kind": "http",
+      "level": 5000,
+      "requests_attempted": 5000,
+      "requests_completed": 5000,
+      "concurrency": 200,
+      "duration_seconds": 10.52,
+      "throughput_requests_per_second": 475.27,
+      "latency_ms": {
+        "count": 5000,
+        "p50": 285.35,
+        "p95": 1232.05,
+        "p99": 1986.01,
+        "max": 4324.04,
+        "mean": 414.49,
+        "stdev": 425.03
+      },
+      "per_endpoint_latency_ms": {
+        "/api/esports/featured": {
+          "count": 1002,
+          "p50": 282.23,
+          "p95": 1312.06,
+          "p99": 2014.19,
+          "max": 3453.54,
+          "mean": 418.91,
+          "stdev": 445.25
+        },
+        "/api/esports/games/summary": {
+          "count": 666,
+          "p50": 265.6,
+          "p95": 1097.61,
+          "p99": 1870.54,
+          "max": 3088.85,
+          "mean": 377.85,
+          "stdev": 388.77
+        },
+        "/api/esports/matches?limit=25": {
+          "count": 1001,
+          "p50": 265.99,
+          "p95": 1143.39,
+          "p99": 1781.89,
+          "max": 2716.32,
+          "mean": 390.27,
+          "stdev": 384.23
+        },
+        "/api/v1/esports/data-quality?limit=25": {
+          "count": 666,
+          "p50": 324.25,
+          "p95": 1279.06,
+          "p99": 1853.92,
+          "max": 4324.04,
+          "mean": 446.64,
+          "stdev": 445.82
+        },
+        "/api/v1/esports/observability": {
+          "count": 333,
+          "p50": 257.1,
+          "p95": 1290.38,
+          "p99": 2313.79,
+          "max": 3302.96,
+          "mean": 402.82,
+          "stdev": 471.94
+        },
+        "/api/v1/esports/trending/games": {
+          "count": 666,
+          "p50": 306.85,
+          "p95": 1308.74,
+          "p99": 2107.39,
+          "max": 3625.82,
+          "mean": 438.13,
+          "stdev": 448.8
+        },
+        "/api/v1/esports/trending/matches?limit=10": {
+          "count": 666,
+          "p50": 317.68,
+          "p95": 1207.6,
+          "p99": 1882.33,
+          "max": 3255.11,
+          "mean": 430.92,
+          "stdev": 411.37
+        }
+      },
+      "status_codes": {
+        "429": 5000
+      },
+      "error_count": 0,
+      "error_samples": [],
+      "server_cpu_seconds_used": 2.453,
+      "server_rss_mb": 412.02,
+      "server_rss_delta_mb": -1.83,
+      "system_memory": {
+        "total_bytes": 7978012672.0,
+        "available_bytes": 583368704.0,
+        "load_percent": 92.0
+      },
+      "system_memory_load_delta_percent": 3.0,
+      "server_observability": null,
+      "server_event_rate_per_second": null
+    }
+  ],
+  "notes": [
+    "Every value is a client-observed latency, a server-reported counter, or an OS process reading.",
+    "A level that could not be fully established reports its failure count rather than an assumption."
+  ],
+  "target_health_status": 200,
+  "system_memory_after": {
+    "total_bytes": 7978012672.0,
+    "available_bytes": 583168000.0,
+    "load_percent": 92.0
+  }
+}

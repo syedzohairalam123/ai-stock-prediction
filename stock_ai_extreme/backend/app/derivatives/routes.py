@@ -18,9 +18,13 @@ from .schemas import (
     AssetClass, DerivativeInstrument, DerivativeQuote, MarketDepth, FundingData,
     OpenInterestData, MarketMicrostructure, PaperSimulationScenario, PaperSimulationRequest,
     HistoricalReplayRequest, HistoricalReplayResult,
-    AdvancedAnalytics, RiskMetrics, InstrumentListResponse, QuoteResponse
+    AdvancedAnalytics, RiskMetrics, InstrumentListResponse, QuoteResponse,
+    DataFreshness
 )
-from .providers import DerivativesDataManager, YFinanceDerivativesProvider, BinanceDerivativesProvider
+from .providers import (
+    DerivativesDataManager, YFinanceDerivativesProvider, BinanceDerivativesProvider,
+    DerivativeDataStatus
+)
 from .services import (
     MarketMicrostructureService, FundingAnalyticsService, OpenInterestAnalyticsService,
     PaperSimulationService, DerivativesAnalyticsService, RiskMetricsService
@@ -171,7 +175,40 @@ async def get_market_depth(instrument_id: str, depth: int = Query(20, ge=1, le=1
     """
     try:
         depth_data = await derivatives_manager.get_market_depth(instrument_id, depth)
-        return depth_data
+        
+        # Explicit dataclass -> schema conversion so the provider-level status
+        # survives: the pydantic schema has no `status` field, and FastAPI's
+        # internal dataclass->dict->schema path would silently drop it,
+        # mislabeling an UNAVAILABLE (empty) book as LIVE.
+        try:
+            data_mode = DataFreshness(DerivativeDataStatus(depth_data.status).value)
+        except (ValueError, AttributeError):
+            data_mode = DataFreshness.LIVE
+        
+        return MarketDepth(
+            instrument_id=depth_data.instrument_id,
+            timestamp=depth_data.timestamp,
+            bids=[
+                {
+                    "price": level.price,
+                    "quantity": level.quantity,
+                    "cumulative_quantity": level.cumulative_quantity,
+                }
+                for level in depth_data.bids
+            ],
+            asks=[
+                {
+                    "price": level.price,
+                    "quantity": level.quantity,
+                    "cumulative_quantity": level.cumulative_quantity,
+                }
+                for level in depth_data.asks
+            ],
+            source=depth_data.source,
+            data_mode=data_mode,
+        )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

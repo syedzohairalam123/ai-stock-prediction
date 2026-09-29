@@ -35,6 +35,40 @@ class BinanceDerivativesProvider(DerivativeDataProvider):
     
     BASE_URL = "https://fapi.binance.com"
     
+    # Symbol aliases: map catalog ids from other providers (e.g. yfinance
+    # style "BTC-USD") to real Binance USDT-M perpetual symbols so depth/OI
+    # endpoints stop sending raw ids like "BTC-USD" or "NQ=F" to the API.
+    # Only crypto ids are mappable — index/commodity ids ("=F") have no
+    # Binance equivalent and fail fast below without a wasted network call.
+    SYMBOL_ALIASES = {
+        "BTC-USD": "BTCUSDT",
+        "ETH-USD": "ETHUSDT",
+        "BNB-USD": "BNBUSDT",
+        "SOL-USD": "SOLUSDT",
+        "XRP-USD": "XRPUSDT",
+    }
+    
+    @classmethod
+    def _resolve_binance_symbol(cls, instrument_id: str) -> Optional[str]:
+        """
+        Resolve a catalog instrument id to a real Binance fapi symbol.
+
+        Returns None when the id cannot map to any Binance perpetual
+        (e.g. yfinance index/commodity ids like "NQ=F", "GC=F").
+        """
+        if not instrument_id:
+            return None
+        candidate = instrument_id.strip().upper()
+        # Direct alias hit (yfinance crypto ids: "BTC-USD" -> "BTCUSDT")
+        if candidate in cls.SYMBOL_ALIASES:
+            return cls.SYMBOL_ALIASES[candidate]
+        # Strip a yfinance-style suffix ("=F") — crypto never uses it,
+        # futures ids are rejected here since Binance fapi has no NQ/GC.
+        if candidate.endswith("=F"):
+            return None
+        # Already a Binance-style symbol (e.g. "BTCUSDT")
+        return candidate
+    
     # Common crypto perpetual futures instruments
     INSTRUMENTS = [
         {"symbol": "BTCUSDT", "display_name": "Bitcoin USDT Perpetual", "underlying": "BTC",
@@ -167,11 +201,19 @@ class BinanceDerivativesProvider(DerivativeDataProvider):
         Returns:
             DerivativeQuote object
         """
+        # Fail fast for ids Binance can never serve (yfinance "=F" ids,
+        # unmapped symbols) — no wasted network call.
+        binance_symbol = self._resolve_binance_symbol(instrument_id)
+        if not binance_symbol:
+            raise DerivativeProviderError(
+                self.name,
+                f"Symbol '{instrument_id}' is not a Binance perpetual"
+            )
         try:
             # Fetch 24hr ticker data
             response = await self.client.get(
                 f"{self.BASE_URL}/fapi/v1/ticker/24hr",
-                params={"symbol": instrument_id}
+                params={"symbol": binance_symbol}
             )
             response.raise_for_status()
             
@@ -185,7 +227,7 @@ class BinanceDerivativesProvider(DerivativeDataProvider):
             try:
                 book_response = await self.client.get(
                     f"{self.BASE_URL}/fapi/v1/ticker/bookTicker",
-                    params={"symbol": instrument_id}
+                    params={"symbol": binance_symbol}
                 )
                 book_response.raise_for_status()
                 book = book_response.json()
@@ -203,7 +245,7 @@ class BinanceDerivativesProvider(DerivativeDataProvider):
             try:
                 premium_response = await self.client.get(
                     f"{self.BASE_URL}/fapi/v1/premiumIndex",
-                    params={"symbol": instrument_id}
+                    params={"symbol": binance_symbol}
                 )
                 premium_response.raise_for_status()
                 premium_data = premium_response.json()
@@ -313,11 +355,18 @@ class BinanceDerivativesProvider(DerivativeDataProvider):
         Returns:
             FundingData object
         """
+        # Fail fast for ids Binance can never serve.
+        binance_symbol = self._resolve_binance_symbol(instrument_id)
+        if not binance_symbol:
+            raise DerivativeProviderError(
+                self.name,
+                f"Symbol '{instrument_id}' is not a Binance perpetual; funding unavailable"
+            )
         try:
             # Fetch current funding rate
             response = await self.client.get(
                 f"{self.BASE_URL}/fapi/v1/premiumIndex",
-                params={"symbol": instrument_id}
+                params={"symbol": binance_symbol}
             )
             response.raise_for_status()
             
@@ -353,11 +402,18 @@ class BinanceDerivativesProvider(DerivativeDataProvider):
         Returns:
             OpenInterestData object
         """
+        # Fail fast for ids Binance can never serve.
+        binance_symbol = self._resolve_binance_symbol(instrument_id)
+        if not binance_symbol:
+            raise DerivativeProviderError(
+                self.name,
+                f"Symbol '{instrument_id}' is not a Binance perpetual; open interest unavailable"
+            )
         try:
             # Fetch current open interest from Binance's dedicated derivatives endpoint.
             response = await self.client.get(
                 f"{self.BASE_URL}/fapi/v1/openInterest",
-                params={"symbol": instrument_id}
+                params={"symbol": binance_symbol}
             )
             response.raise_for_status()
             
@@ -392,11 +448,20 @@ class BinanceDerivativesProvider(DerivativeDataProvider):
         Returns:
             MarketDepth object
         """
+        # Fail fast: resolve the catalog id to a real Binance symbol. This
+        # avoids burning a network round-trip on ids Binance can never serve
+        # (yfinance ids like "NQ=F"/"GC=F" or unmapped crypto ids).
+        binance_symbol = self._resolve_binance_symbol(instrument_id)
+        if not binance_symbol:
+            raise DerivativeProviderError(
+                self.name,
+                f"Symbol '{instrument_id}' is not a Binance perpetual; order book unavailable"
+            )
         try:
             # Fetch order book
             response = await self.client.get(
                 f"{self.BASE_URL}/fapi/v1/depth",
-                params={"symbol": instrument_id, "limit": depth}
+                params={"symbol": binance_symbol, "limit": depth}
             )
             response.raise_for_status()
             
@@ -437,6 +502,8 @@ class BinanceDerivativesProvider(DerivativeDataProvider):
                 status=DerivativeDataStatus.LIVE
             )
             
+        except DerivativeProviderError:
+            raise
         except Exception as e:
             logger.error(f"Error fetching market depth for {instrument_id} from Binance: {e}")
             raise DerivativeProviderError(self.name, f"Failed to fetch market depth: {str(e)}")

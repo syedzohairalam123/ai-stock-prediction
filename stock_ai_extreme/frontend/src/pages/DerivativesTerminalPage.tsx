@@ -112,6 +112,9 @@ export default function DerivativesTerminalPage() {
     queryFn: () => getJson<MarketDepth>(`/api/derivatives/quotes/${encodeURIComponent(instrumentId!)}/depth?depth=20`),
     enabled: Boolean(instrumentId),
     refetchInterval: 5000,
+    // Depth now returns 200 with an honest empty book when no provider
+    // publishes one; a single soft retry only covers transient network blips.
+    retry: 1,
   });
   const fundingQuery = useQuery({
     queryKey: ['derivatives-funding', instrumentId],

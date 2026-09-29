@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, Menu, X, Settings, Sun, Moon, Smartphone, LogIn, UserPlus } from 'lucide-react';
+import { Search, Menu, X, Settings, Sun, Moon, Smartphone, LogIn, UserPlus, ChevronDown, Gamepad2 } from 'lucide-react';
 
 interface PSXHeaderProps {
   theme: 'light' | 'dark';
@@ -19,6 +19,9 @@ export default function PSXHeader({ theme, toggleTheme, isMobileMenuOpen, toggle
     { path: '/discover', label: 'Discover' },
     { path: '/market', label: 'Market' },
     { path: '/charts', label: 'Charts' },
+    // Phase 21C: esports gets a primary slot (it is a first-class hub, not a
+    // utility page) with its own icon so it reads as a distinct product area.
+    { path: '/esports', label: 'Esports', icon: Gamepad2 },
     { path: '/forex-commodities', label: 'Forex & Commodities' },
     { path: '/sentiment', label: 'Sentiment' },
     { path: '/forecasts', label: 'Forecasts' },
@@ -32,6 +35,60 @@ export default function PSXHeader({ theme, toggleTheme, isMobileMenuOpen, toggle
     { path: '/popular', label: 'Popular' },
     { path: '/portfolio/transactions', label: 'Portfolio' },
   ];
+
+  /*
+   * Phase 21C: everything with a real route that the primary nav has no room
+
+   * for lives in a "More" dropdown. Nothing is removed from this list — these
+   * are additive entries so every page in the app is reachable from the header.
+   */
+  const moreLinks = [
+    { path: '/quant-lab', label: 'Quant Lab', group: 'Analytics' },
+    { path: '/analytics', label: 'Analytics', group: 'Analytics' },
+    { path: '/command-center', label: 'Command Center', group: 'Analytics' },
+    { path: '/macro', label: 'Macro', group: 'Analytics' },
+    { path: '/events', label: 'Events', group: 'Analytics' },
+    { path: '/company', label: 'Company', group: 'Analytics' },
+    { path: '/crypto', label: 'Crypto', group: 'Markets' },
+    { path: '/derivatives', label: 'Derivatives', group: 'Markets' },
+    { path: '/screener', label: 'Screener', group: 'Tools' },
+    { path: '/screener-classic', label: 'Screener Classic', group: 'Tools' },
+    { path: '/compare', label: 'Compare', group: 'Tools' },
+    { path: '/topics', label: 'Topics', group: 'News & Data' },
+    { path: '/topics/:topicId', label: 'Topic detail', group: 'News & Data', hidden: true },
+    { path: '/alerts', label: 'Alerts', group: 'Account' },
+    { path: '/portfolio', label: 'Portfolio (holdings)', group: 'Account' },
+    { path: '/workspace', label: 'Workspace', group: 'Account' },
+    { path: '/settings', label: 'Settings', group: 'Account' },
+  ].filter((link) => !link.hidden);
+
+  const moreMatchesActive = moreLinks.some(
+    (link) => link.path !== '/topics/:topicId' && location.pathname.startsWith(link.path)
+  );
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement | null>(null);
+
+  // Close the dropdown on outside click or Escape (a11y: keyboard dismissable).
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(event.target as Node)) setMoreOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMoreOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [moreOpen]);
+
+  // Route changes always collapse the menu.
+  useEffect(() => {
+    setMoreOpen(false);
+  }, [location.pathname]);
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
@@ -73,9 +130,53 @@ export default function PSXHeader({ theme, toggleTheme, isMobileMenuOpen, toggle
               to={link.path}
               className={`psx-nav-link ${isActive(link.path) ? 'active' : ''}`}
             >
-              {link.label}
+              {link.icon ? (
+                <>
+                  <link.icon size={14} aria-hidden="true" /> {link.label}
+                </>
+              ) : (
+                link.label
+              )}
             </Link>
           ))}
+
+          {/* Phase 21C "More" menu: every remaining page, grouped, keyboard
+              accessible (button + aria-expanded, Escape closes). */}
+          <div className="psx-nav-more" ref={moreRef}>
+            <button
+              type="button"
+              className={`psx-nav-link psx-nav-more-toggle ${moreMatchesActive ? 'active' : ''}`}
+              aria-haspopup="menu"
+              aria-expanded={moreOpen}
+              onClick={() => setMoreOpen((open) => !moreOpen)}
+            >
+              More <ChevronDown size={13} aria-hidden="true" />
+            </button>
+            {moreOpen && (
+              <div className="psx-nav-more-menu" role="menu" aria-label="More pages">
+                {Object.entries(
+                  moreLinks.reduce<Record<string, typeof moreLinks>>((groups, link) => {
+                    (groups[link.group] ||= []).push(link);
+                    return groups;
+                  }, {})
+                ).map(([group, links]) => (
+                  <div key={group} className="psx-nav-more-group" role="none">
+                    <span className="psx-nav-more-group-label" role="presentation">{group}</span>
+                    {links.map((link) => (
+                      <Link
+                        key={link.path}
+                        to={link.path}
+                        role="menuitem"
+                        className={`psx-nav-more-item ${location.pathname.startsWith(link.path) ? 'active' : ''}`}
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </nav>
 
         {/* Right Actions */}
@@ -138,6 +239,28 @@ export default function PSXHeader({ theme, toggleTheme, isMobileMenuOpen, toggle
                 >
                   {link.label}
                 </Link>
+              ))}
+              {/* Phase 21C: the mobile drawer also carries every page, grouped
+                  under the same labels as the desktop "More" menu. */}
+              {Object.entries(
+                moreLinks.reduce<Record<string, typeof moreLinks>>((groups, link) => {
+                  (groups[link.group] ||= []).push(link);
+                  return groups;
+                }, {})
+              ).map(([group, links]) => (
+                <div key={group} className="psx-mobile-nav-group">
+                  <span className="psx-mobile-nav-group-label">{group}</span>
+                  {links.map((link) => (
+                    <Link
+                      key={link.path}
+                      to={link.path}
+                      className={`psx-mobile-nav-link psx-mobile-nav-sub ${isActive(link.path) ? 'active' : ''}`}
+                      onClick={toggleMobileMenu}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
               ))}
             </nav>
             <div className="psx-mobile-auth">

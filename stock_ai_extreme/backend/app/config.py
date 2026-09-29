@@ -186,6 +186,39 @@ class Settings(BaseSettings):
     news_search_title_boost: float = Field(default=2.5, ge=1.0, le=5.0)
     news_search_fuzzy: bool = True
 
+    # Phase 21A: Esports data provider settings (all optional)
+    esports_cs2_api_key: Optional[str] = None
+    esports_lol_api_key: Optional[str] = None
+    esports_dota2_api_key: Optional[str] = None
+    esports_cache_ttl_seconds: int = Field(default=60, ge=30, le=300)
+    esports_snapshot_ttl_seconds: int = Field(default=30, ge=10, le=120)
+    esports_event_buffer_size: int = Field(default=1000, ge=100, le=10000)
+    esports_max_buffer_age_seconds: int = Field(default=300, ge=60, le=1800)
+
+    # Phase 21C: Advanced esports analytics, trending engine + background workers.
+    #
+    # Trending weights live here — never inside a UI component or a route handler
+    # — so the model is configurable and auditable in one place (spec §7).
+    esports_analytics_cache_ttl_seconds: int = Field(default=120, ge=15, le=1800)
+    esports_trending_cache_ttl_seconds: int = Field(default=60, ge=10, le=900)
+    esports_analytics_history_limit: int = Field(default=200, ge=20, le=1000)
+    #: Minimum sample size before a metric is reported as HIGH confidence.
+    esports_analytics_min_sample: int = Field(default=3, ge=1, le=50)
+    esports_trending_window_hours: int = Field(default=24, ge=1, le=168)
+    #: Signal weights for the trending score (normalized before aggregation).
+    esports_trend_weight_live: float = Field(default=0.35, ge=0.0, le=1.0)
+    esports_trend_weight_event: float = Field(default=0.25, ge=0.0, le=1.0)
+    esports_trend_weight_start_rate: float = Field(default=0.20, ge=0.0, le=1.0)
+    esports_trend_weight_search: float = Field(default=0.10, ge=0.0, le=1.0)
+    esports_trend_weight_watchlist: float = Field(default=0.10, ge=0.0, le=1.0)
+    esports_trend_weight_viewer: float = Field(default=0.15, ge=0.0, le=1.0)
+    #: Value at which a signal is treated as "saturated" during normalization.
+    esports_trend_saturation: float = Field(default=25.0, ge=1.0, le=100000.0)
+    esports_anomaly_z_threshold: float = Field(default=3.0, ge=1.5, le=6.0)
+    esports_workers_enabled: bool = True
+    esports_worker_interval_seconds: int = Field(default=60, ge=15, le=900)
+    esports_event_window_seconds: int = Field(default=120, ge=30, le=3600)
+
     # Performance settings
     max_history_days: int = Field(default=3650, ge=365, le=7300)  # Max 10 years
     min_history_days: int = Field(default=30, ge=7, le=365)

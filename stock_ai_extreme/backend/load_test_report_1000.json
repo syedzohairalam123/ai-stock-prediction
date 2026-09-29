@@ -1,0 +1,165 @@
+{
+  "phase": "21C",
+  "generated_at": "2026-09-29T11:31:16.718867+00:00",
+  "target": "http://127.0.0.1:8000",
+  "levels_http": [
+    1000
+  ],
+  "levels_websocket": [
+    1000
+  ],
+  "server_processes_detected": 3,
+  "system_memory": {
+    "total_bytes": 7978012672.0,
+    "available_bytes": 678703104.0,
+    "load_percent": 91.0
+  },
+  "levels": [
+    {
+      "kind": "http",
+      "level": 1000,
+      "requests_attempted": 1000,
+      "requests_completed": 999,
+      "concurrency": 200,
+      "duration_seconds": 6.873,
+      "throughput_requests_per_second": 145.35,
+      "latency_ms": {
+        "count": 999,
+        "p50": 523.63,
+        "p95": 5310.42,
+        "p99": 6050.14,
+        "max": 6672.04,
+        "mean": 1324.01,
+        "stdev": 1698.0
+      },
+      "per_endpoint_latency_ms": {
+        "/api/esports/featured": {
+          "count": 201,
+          "p50": 541.07,
+          "p95": 5223.26,
+          "p99": 5953.69,
+          "max": 6672.04,
+          "mean": 1336.56,
+          "stdev": 1688.88
+        },
+        "/api/esports/games/summary": {
+          "count": 134,
+          "p50": 539.51,
+          "p95": 5280.37,
+          "p99": 6245.07,
+          "max": 6415.61,
+          "mean": 1217.84,
+          "stdev": 1623.54
+        },
+        "/api/esports/matches?limit=25": {
+          "count": 201,
+          "p50": 536.57,
+          "p95": 5442.87,
+          "p99": 5843.36,
+          "max": 6049.34,
+          "mean": 1367.99,
+          "stdev": 1736.87
+        },
+        "/api/v1/esports/data-quality?limit=25": {
+          "count": 132,
+          "p50": 526.1,
+          "p95": 5453.61,
+          "p99": 6295.95,
+          "max": 6335.7,
+          "mean": 1289.62,
+          "stdev": 1716.34
+        },
+        "/api/v1/esports/observability": {
+          "count": 66,
+          "p50": 498.26,
+          "p95": 5655.17,
+          "p99": 5943.88,
+          "max": 6151.36,
+          "mean": 1380.36,
+          "stdev": 1829.97
+        },
+        "/api/v1/esports/trending/games": {
+          "count": 133,
+          "p50": 442.28,
+          "p95": 5296.99,
+          "p99": 5683.67,
+          "max": 5863.68,
+          "mean": 1288.57,
+          "stdev": 1657.22
+        },
+        "/api/v1/esports/trending/matches?limit=10": {
+          "count": 132,
+          "p50": 528.13,
+          "p95": 5220.78,
+          "p99": 5781.71,
+          "max": 5865.65,
+          "mean": 1387.63,
+          "stdev": 1672.67
+        }
+      },
+      "status_codes": {
+        "200": 13,
+        "429": 986
+      },
+      "error_count": 1,
+      "error_samples": [
+        "/api/v1/esports/trending/games -> RemoteProtocolError: Server disconnected without sending a response."
+      ],
+      "server_cpu_seconds_used": 0.594,
+      "server_rss_mb": 362.91,
+      "server_rss_delta_mb": -12.41,
+      "system_memory": {
+        "total_bytes": 7978012672.0,
+        "available_bytes": 817434624.0,
+        "load_percent": 89.0
+      },
+      "system_memory_load_delta_percent": -2.0,
+      "server_observability": null,
+      "server_event_rate_per_second": null
+    },
+    {
+      "kind": "websocket",
+      "level": 1000,
+      "connections_requested": 1000,
+      "connections_established": 1000,
+      "connections_failed": 0,
+      "peak_concurrent_connections": 1000,
+      "messages_received": 2000,
+      "message_rate_per_second": 341.38,
+      "dropped_connections": 0,
+      "reconnect_rate_percent": 0.0,
+      "connect_latency_ms": {
+        "count": 1000,
+        "p50": 571.97,
+        "p95": 1114.45,
+        "p99": 1157.91,
+        "max": 1167.59,
+        "mean": 569.74,
+        "stdev": 258.08
+      },
+      "ramp_seconds": 1.375,
+      "hold_seconds": 4.0,
+      "duration_seconds": 5.859,
+      "error_samples": [],
+      "server_cpu_seconds_used": 2.156,
+      "server_rss_mb": 441.89,
+      "server_rss_delta_mb": 78.98,
+      "system_memory": {
+        "total_bytes": 7978012672.0,
+        "available_bytes": 672026624.0,
+        "load_percent": 91.0
+      },
+      "server_observability_after": null
+    }
+  ],
+  "notes": [
+    "Every value is a client-observed latency, a server-reported counter, or an OS process reading.",
+    "A level that could not be fully established reports its failure count rather than an assumption."
+  ],
+  "target_health_status": 200,
+  "system_memory_after": {
+    "total_bytes": 7978012672.0,
+    "available_bytes": 673030144.0,
+    "load_percent": 91.0
+  }
+}

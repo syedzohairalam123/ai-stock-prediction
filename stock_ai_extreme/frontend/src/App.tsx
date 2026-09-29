@@ -62,6 +62,10 @@ const PoliticalPage = lazy(() => import("./pages/PoliticalPage"));
 const DiscoverPage = lazy(() => import("./pages/DiscoverPage"));
 // Phase 21: modular quant analytics (stationarity, HAC beta, tail risk, event studies)
 const QuantLabPage = lazy(() => import("./pages/QuantLabPage"));
+// Phase 21B: real-time esports hub (hub / game / match / tournament)
+const EsportsHubPage = lazy(() => import("./pages/EsportsHubPage"));
+const EsportsMatchPage = lazy(() => import("./pages/EsportsMatchPage"));
+const EsportsTournamentPage = lazy(() => import("./pages/EsportsTournamentPage"));
 
 export default function App() {
   return (
@@ -123,6 +127,13 @@ export default function App() {
               {/* Phase 19: market discovery — trending/new/popular/recent feeds */}
               <Route path="/discover" element={<DiscoverPage />} />
               <Route path="/quant-lab" element={<QuantLabPage />} />
+
+              {/* Phase 21B: esports hub. Static segments are ranked above the
+                  :game param, so /esports/match/:id never resolves to the hub. */}
+              <Route path="/esports" element={<EsportsHubPage />} />
+              <Route path="/esports/match/:id" element={<EsportsMatchPage />} />
+              <Route path="/esports/tournament/:id" element={<EsportsTournamentPage />} />
+              <Route path="/esports/:game" element={<EsportsHubPage />} />
 
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

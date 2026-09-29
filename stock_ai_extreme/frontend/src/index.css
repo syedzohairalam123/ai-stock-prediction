@@ -515,6 +515,18 @@ tbody tr:hover{background:var(--raised)}
 .psx-nav-link{color:var(--text2);text-decoration:none;font-size:.86rem;padding:8px 12px;border-radius:var(--r);font-weight:600;transition:background .15s,color .15s}
 .psx-nav-link:hover{background:var(--hover);color:var(--text)}
 .psx-nav-link.active{background:linear-gradient(135deg,var(--accent2),var(--accent));color:var(--canvas);font-weight:800}
+/* Phase 21C: "More" dropdown — every remaining page, grouped. */
+.psx-nav-more{position:relative;display:inline-flex}
+.psx-nav-more-toggle{background:none;border:none;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:4px}
+.psx-nav-more-menu{position:absolute;top:calc(100% + 6px);right:0;z-index:80;min-width:230px;max-height:min(70vh,560px);overflow:auto;background:var(--panel,var(--card-bg,#141a26));border:1px solid var(--input-border);border-radius:12px;padding:8px;box-shadow:0 18px 48px rgba(0,0,0,.4);display:grid;grid-template-columns:1fr 1fr;gap:2px 14px}
+.psx-nav-more-group{display:flex;flex-direction:column;gap:1px;grid-column:span 1}
+.psx-nav-more-group-label{font-size:.62rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);padding:8px 10px 4px;font-weight:800}
+.psx-nav-more-item{color:var(--text2);text-decoration:none;font-size:.84rem;font-weight:600;padding:7px 10px;border-radius:8px;white-space:nowrap}
+.psx-nav-more-item:hover{background:var(--hover);color:var(--text)}
+.psx-nav-more-item.active{background:linear-gradient(135deg,var(--accent2),var(--accent));color:var(--canvas)}
+@media(max-width:1100px){
+  .psx-nav-more-menu{grid-template-columns:1fr}
+}
 .psx-header-right{display:flex;align-items:center;gap:8px;margin-left:auto}
 .psx-icon-btn{background:var(--input-bg);border:1px solid var(--input-border);color:var(--text2);border-radius:var(--r);width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;transition:border-color .15s,color .15s}
 .psx-icon-btn:hover{border-color:var(--accent);color:var(--accent)}
@@ -538,6 +550,10 @@ tbody tr:hover{background:var(--raised)}
 .psx-mobile-nav-link{color:var(--text-dim);text-decoration:none;padding:12px 14px;border-radius:10px;font-size:.95rem;font-weight:600}
 .psx-mobile-nav-link:hover{background:var(--hover-bg);color:var(--text)}
 .psx-mobile-nav-link.active{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#0b0f1a;font-weight:800}
+/* Phase 21C: grouped page lists inside the mobile drawer. */
+.psx-mobile-nav-group{display:flex;flex-direction:column;border-top:1px solid var(--input-border);margin-top:8px;padding-top:6px}
+.psx-mobile-nav-group-label{font-size:.62rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);padding:4px 14px;font-weight:800}
+.psx-mobile-nav-sub{padding:9px 24px;font-size:.88rem;color:var(--text3)}
 .psx-mobile-auth{display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--header-border)}
 
 /* ---- Global Search modal ---- */
