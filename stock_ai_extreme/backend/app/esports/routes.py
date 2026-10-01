@@ -12,6 +12,7 @@ from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconn
 from pydantic import BaseModel, Field
 
 from app.esports.providers.base import EsportsDataStatus, MatchStatus
+from app.esports.rate_limit import limiter_stats, ws_connection_allowed
 from app.esports.services.manager import EsportsDataManager
 from app.esports.services import feed as feed_service
 from app.esports.websocket.manager import esports_ws_manager
@@ -428,7 +429,8 @@ async def esports_health():
         return {
             "status": overall,
             "providers": providers,
-            "stats": stats
+            "stats": stats,
+            "rate_limits": limiter_stats(),
         }
     except Exception as e:
         logger.error(f"Failed to get health status: {e}")
@@ -438,9 +440,39 @@ async def esports_health():
         }
 
 
+@esports_router.get("/persistence")
+async def persistence_status():
+    """Row counts per esports table plus the last catalog sweep's tally (§12)."""
+    if not esports_data_manager:
+        raise HTTPException(503, "Esports data manager not configured")
+    try:
+        from app.db import session_scope
+        from app.esports.services.persistence import catalog_counts
+
+        with session_scope() as db:
+            counts = catalog_counts(db)
+        stats = esports_data_manager.get_stats()
+        return {
+            "tables": counts,
+            "last_run": stats.get("catalog_persisted_last_run", {}),
+            "runs": stats.get("catalog_persist_runs", 0),
+            "entities_persisted": stats.get("catalog_entities_persisted", 0),
+        }
+    except Exception as e:
+        logger.error(f"Failed to read persistence status: {e}")
+        raise HTTPException(500, str(e))
+
+
 @esports_router.websocket("/ws/{client_id}")
 async def esports_websocket(websocket: WebSocket, client_id: str):
     """WebSocket endpoint for real-time esports data."""
+    # §50: refuse a client that opens sockets in a tight loop before it ever
+    # registers a subscription (1013 = try again later).
+    if not ws_connection_allowed(websocket):
+        logger.warning("WebSocket connection rate-limited for %s", client_id)
+        await websocket.close(code=1013)
+        return
+
     await esports_ws_manager.connect(websocket, client_id)
     
     try:

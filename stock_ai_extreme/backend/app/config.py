@@ -219,6 +219,38 @@ class Settings(BaseSettings):
     esports_worker_interval_seconds: int = Field(default=60, ge=15, le=900)
     esports_event_window_seconds: int = Field(default=120, ge=30, le=3600)
 
+    # Phase 21C §13/§16 — shared cache backend for the esports analytics store.
+    # Unset REDIS_URL keeps the single-process in-memory cache (the default).
+    # Set REDIS_URL to have every worker share one analytics cache.
+    redis_url: Optional[str] = None
+    redis_socket_timeout_seconds: float = Field(default=1.0, ge=0.1, le=10.0)
+    #: auto | memory | redis — "auto" uses Redis when REDIS_URL is set and reachable.
+    esports_cache_backend: str = Field(default="auto", pattern="^(auto|memory|redis)$")
+    esports_cache_namespace: str = "nm:esports:cache:"
+
+    # Phase 21C — cross-worker WebSocket fan-out over Redis pub/sub. Only active
+    # when REDIS_URL is set and reachable; otherwise fan-out stays in-process.
+    esports_redis_pubsub: bool = True
+    esports_redis_channel: str = "nm:esports:events"
+
+    # Phase 21C — durable catalog persistence (games/tournaments/teams/matches).
+    esports_catalog_persist_enabled: bool = True
+    esports_catalog_persist_interval_seconds: int = Field(default=300, ge=30, le=3600)
+    esports_persist_max_matches: int = Field(default=200, ge=1, le=2000)
+    esports_persist_max_teams: int = Field(default=40, ge=1, le=500)
+    #: Roster persistence is opt-in: some adapters fan a roster into N calls.
+    esports_persist_players: bool = False
+    esports_persist_max_player_teams: int = Field(default=8, ge=1, le=100)
+
+    # Phase 21C — provider circuit breaker (skip a failing upstream for a while).
+    esports_provider_failure_threshold: int = Field(default=5, ge=1, le=50)
+    esports_provider_cooldown_seconds: int = Field(default=60, ge=5, le=900)
+
+    # Phase 21C — stricter per-IP rate limits for the esports REST + WebSocket surface.
+    esports_rate_limit_max_requests: int = Field(default=240, ge=10, le=100000)
+    esports_rate_limit_window_seconds: int = Field(default=60, ge=10, le=600)
+    esports_ws_max_connections: int = Field(default=30, ge=1, le=10000)
+
     # Performance settings
     max_history_days: int = Field(default=3650, ge=365, le=7300)  # Max 10 years
     min_history_days: int = Field(default=30, ge=7, le=365)

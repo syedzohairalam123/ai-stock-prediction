@@ -24,7 +24,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 import numpy as np
 import pandas as pd
 
-from app.esports.providers.base import GameEvent, Match, MatchStatus, Player, Team
+from app.esports.providers.base import GameEvent, Match, MatchStatus, Player, Team, per_game_records
 
 #: The exact label the spec requires on a detected outlier (§10).
 ANOMALY_LABEL = "ANOMALY DETECTED"
@@ -248,7 +248,8 @@ def calculate_map_analytics(
     played_matches: List[Match] = []
 
     for match in rows:
-        games = (match.meta_data or {}).get("games") or []
+        # CS2 publishes per-map records under ``maps``; Dota/LoL under ``games``.
+        games = per_game_records(match.meta_data)
         if not games:
             continue
         played_matches.append(match)
@@ -338,7 +339,7 @@ def calculate_match_duration_stats(
     rows = team_games(matches, team_id) if team_id else list(matches)
     durations: List[float] = []
     for match in rows:
-        for game in (match.meta_data or {}).get("games") or []:
+        for game in per_game_records(match.meta_data):
             value = game.get("duration")
             if isinstance(value, (int, float)) and value > 0:
                 durations.append(float(value))
@@ -702,7 +703,7 @@ def build_series_frame(matches: Sequence[Match]) -> pd.DataFrame:
             "total_maps": m.map_number,
             "best_of": m.best_of,
             "duration_seconds": max(
-                [g.get("duration") or 0 for g in (m.meta_data or {}).get("games") or []], default=0
+                [g.get("duration") or 0 for g in per_game_records(m.meta_data)], default=0
             ),
             "source": m.source,
         }

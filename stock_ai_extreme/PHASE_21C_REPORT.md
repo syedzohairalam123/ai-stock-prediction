@@ -60,12 +60,21 @@ around the actual `await`.
 
 ## 5. Redis architecture
 
-This deployment is **single-process in-memory** by design and disclosure:
-`providers.cache.TTLCache` for feeds, `AnalyticsStore` (TTL cache + stale
-fallback + dirty set + interest counters) for analytics. Every cache is
-behind a narrow interface (`cache_get/cache_set/invalidate`) so a Redis
-implementation can be dropped in without touching callers. There is no Redis
-lag metric because there is no Redis; `cache_lag_seconds` is reported `null`
+This deployment is **single-process in-memory by default** and disclosed as
+such: `providers.cache.TTLCache` for feeds, `AnalyticsStore` (TTL cache + stale
+fallback + dirty set + interest counters) for analytics. Every cache sits
+behind a narrow interface (`cache_get`/`cache_set`/`cache_get_stale`/
+`invalidate`).
+
+A **Redis-backed implementation now ships behind that seam**
+(`analytics/cache_backends.py`): set `REDIS_URL` (and optionally
+`ESPORTS_CACHE_BACKEND=redis`) and the analytics aggregate cache is served from
+Redis, so every worker shares one cache. Redis is best-effort — an unreachable
+server falls back to the in-memory backend with a warning instead of failing a
+request, and stale-fallback semantics are preserved by embedding a logical
+expiry inside the JSON value while the physical Redis TTL runs longer. Interest
+signals, observed counters and the dirty set remain per-process measurements.
+There is still no `cache_lag_seconds` for the in-memory path; it stays `null`
 rather than invented.
 
 ## 6. Database schema

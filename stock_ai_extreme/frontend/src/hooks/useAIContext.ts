@@ -33,6 +33,7 @@ export type PageType =
   | 'screener'
   | 'compare'
   | 'forex_commodities'
+  | 'crypto'
   | 'other';
 
 const INDEX_SYMBOLS = new Set([
@@ -59,6 +60,8 @@ function pageTypeForRoute(path: string): PageType {
   if (path.startsWith('/screener')) return 'screener';
   if (path.startsWith('/compare')) return 'compare';
   if (path.startsWith('/forex')) return 'forex_commodities';
+  // Phase 22C — the crypto terminal is its own entity family.
+  if (path.startsWith('/crypto')) return 'crypto';
   return 'other';
 }
 
@@ -96,6 +99,15 @@ export function buildContextFromLocation(
     context.include_sentiment = true;
   } else if (pageType === 'announcements') {
     context.include_announcements = true;
+    context.include_news = true;
+  } else if (pageType === 'crypto') {
+    // Phase 22C: the crypto terminal publishes its asset/timeframe in the URL.
+    const cryptoSymbol = params.get('symbol') || params.get('asset');
+    if (cryptoSymbol) {
+      context.symbol = decodeURIComponent(cryptoSymbol).toUpperCase();
+      context.entity_type = 'crypto';
+    }
+    context.timeframe = timeframe;
     context.include_news = true;
   } else if (pageType === 'sentiment') {
     context.include_sentiment = true;
@@ -152,6 +164,8 @@ export function getPageDescription(context: AIContext): string {
       return 'Comparison';
     case 'forex_commodities':
       return 'Forex & commodities';
+    case 'crypto':
+      return context.symbol ? `${context.symbol} crypto` : 'Crypto volatility markets';
     default:
       return 'Neural Market';
   }
@@ -179,7 +193,12 @@ export function describeContext(
   if (context.symbol) {
     facts.push({
       id: 'symbol',
-      label: context.entity_type === 'index' ? 'Index' : 'Stock',
+      label:
+        context.entity_type === 'index'
+          ? 'Index'
+          : context.entity_type === 'crypto'
+            ? 'Crypto'
+            : 'Stock',
       value: context.symbol,
       tone: context.entity_type === 'index' ? 'index' : 'stock',
     });

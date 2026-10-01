@@ -18,7 +18,7 @@ from app.esports.analytics import metrics, source_consistency, trending
 from app.esports.analytics.data_quality import aggregate_quality, evaluate_data_quality
 from app.esports.analytics.observability import esports_metrics
 from app.esports.analytics.store import analytics_store
-from app.esports.providers.base import Match, MatchStatus
+from app.esports.providers.base import Match, MatchStatus, per_game_records
 from app.esports.services import feed as feed_service
 
 logger = logging.getLogger("neural_market.esports.analytics.service")
@@ -216,7 +216,7 @@ class EsportsAnalyticsService:
 
         duration_series = [
             float(g.get("duration"))
-            for g in (match.meta_data or {}).get("games") or []
+            for g in per_game_records(match.meta_data)
             if isinstance(g.get("duration"), (int, float)) and g.get("duration")
         ]
         duration_anomalies = metrics.zscore_anomalies(
@@ -225,7 +225,7 @@ class EsportsAnalyticsService:
 
         # Multivariate view when the sample justifies IsolationForest.
         feature_rows = []
-        for game in (match.meta_data or {}).get("games") or []:
+        for game in per_game_records(match.meta_data):
             row = [game.get("duration"), game.get("team_a_score"), game.get("team_b_score")]
             if all(isinstance(v, (int, float)) for v in row):
                 feature_rows.append(row)

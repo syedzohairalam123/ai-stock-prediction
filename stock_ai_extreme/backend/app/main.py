@@ -80,6 +80,14 @@ async def lifespan(app:FastAPI):
     if getattr(settings,"esports_workers_enabled",True):
         from .esports.analytics import workers as esports_analytics_workers
         esports_analytics_task=asyncio.create_task(esports_analytics_workers.run_analytics_loop())
+    # Phase 22: crypto maintenance worker (catalogue/quotes/candles persistence,
+    # scheduled forecasts, retrospective evaluation, retention, housekeeping).
+    # Model training stays off the request path (spec §86, §87).
+    crypto_worker_task=None
+    from .crypto.config import crypto_settings as _crypto_settings
+    from .crypto import workers as _crypto_workers
+    if _crypto_settings.enabled and _crypto_settings.workers_enabled:
+        crypto_worker_task=asyncio.create_task(_crypto_workers.run_crypto_loop())
     yield
     if background_task:
         background_task.cancel()
@@ -90,6 +98,21 @@ async def lifespan(app:FastAPI):
         esports_analytics_task.cancel()
         try: await esports_analytics_task
         except asyncio.CancelledError: pass
+    # Phase 22: stop the crypto worker and close the shared upstream stream.
+    if crypto_worker_task:
+        crypto_worker_task.cancel()
+        try: await crypto_worker_task
+        except asyncio.CancelledError: pass
+    try:
+        from .crypto.websocket.manager import crypto_ws_manager as _crypto_ws
+        await _crypto_ws.shutdown()
+    except Exception as _crypto_err:
+        logger.debug("crypto websocket shutdown: %s", _crypto_err)
+    try:
+        from .crypto.services.service import crypto_service as _crypto_svc
+        await _crypto_svc.close()
+    except Exception as _crypto_close_err:
+        logger.debug("crypto service close: %s", _crypto_close_err)
     # Phase 21A: Stop esports data manager
     await esports_manager.stop()
 
@@ -98,6 +121,11 @@ app.add_middleware(CORSMiddleware,allow_origins=[v.strip() for v in settings.cor
 # Phase 19: simple in-memory rate limit, per client IP. /health, /docs, /openapi stay exempt.
 rate_limiter=RateLimiter(max_requests=settings.rate_limit_max_requests,window_seconds=settings.rate_limit_window_seconds)
 app.add_middleware(RateLimitMiddleware,limiter=rate_limiter)
+# Phase 21C: a stricter per-IP bucket for the esports REST surface. HTTP-only,
+# so the live WebSocket stream is unaffected (its own connection guard lives in
+# the route handler).
+from .esports.rate_limit import EsportsRateLimitMiddleware
+app.add_middleware(EsportsRateLimitMiddleware)
 
 # Phase 10: AI Financial Assistant router
 app.include_router(ai_controller.router)
@@ -141,6 +169,15 @@ app.include_router(esports_mod.esports_router)
 # Phase 21C: additive analytics/trending/data-quality API under /api/v1/esports.
 from .esports.analytics.routes import analytics_router as esports_analytics_router
 app.include_router(esports_analytics_router)
+# Phase 22: Timeframe-based Crypto Volatility & Forecasting Intelligence Engine.
+# Additive: mounted at /api/v1/crypto with a legacy /api/crypto alias, plus its
+# own WebSocket gateway. The service is configured further down, once the shared
+# provider manager exists.
+from .crypto.routes import router as crypto_router, ws_router as crypto_ws_router
+app.include_router(crypto_router, prefix="/api/v1/crypto")
+app.include_router(crypto_router, prefix="/api/crypto", include_in_schema=False)
+app.include_router(crypto_ws_router, prefix="/api/v1/crypto")
+app.include_router(crypto_ws_router, prefix="/api/crypto", include_in_schema=False)
 
 # Phase 2: provider manager. yfinance is primary; Finnhub is an optional live-quote
 # fallback that only activates if FINNHUB_API_KEY is set (skipped otherwise — no
@@ -181,12 +218,41 @@ esports_providers = [
     LoLAdapter(api_key=settings.esports_lol_api_key if hasattr(settings, 'esports_lol_api_key') else None),
     Dota2Adapter(api_key=settings.esports_dota2_api_key if hasattr(settings, 'esports_dota2_api_key') else None),
 ]
-esports_manager = EsportsDataManager(esports_providers)
+# Phase 21C: put every adapter behind a circuit breaker so a failing/rate-limiting
+# upstream is skipped for a cool-down instead of being hammered by every request.
+from .esports.providers.circuit_breaker import CircuitBreakerRegistry, GuardedProvider
+esports_breakers = CircuitBreakerRegistry(
+    failure_threshold=settings.esports_provider_failure_threshold,
+    cooldown_seconds=settings.esports_provider_cooldown_seconds,
+)
+# Phase 21C: fan-out transport. Local by default; Redis pub/sub when REDIS_URL is
+# configured and reachable, so every worker delivers events ingested anywhere.
+from .esports.websocket.event_bus import build_event_bus
+from .esports.websocket.manager import esports_ws_manager
+esports_event_bus = build_event_bus(esports_ws_manager.broadcast_to_channel)
+_guarded_esports_providers = [
+    GuardedProvider(p, esports_breakers.for_provider(p.get_provider_name())) for p in esports_providers
+]
+esports_manager = EsportsDataManager(
+    _guarded_esports_providers, event_bus=esports_event_bus, breakers=esports_breakers
+)
 esports_mod.configure_esports(esports_manager)
 # Phase 21C: bind the analytics service to the SAME data manager (one provider
 # stack, one cache, one upstream quota — no second esports data path).
 from .esports.analytics import service as esports_analytics_service
 esports_analytics_service.configure(esports_manager)
+# Phase 22: bind the crypto intelligence service to its own provider manager
+# (Binance spot + CoinGecko, both public and keyless). It reuses the project's
+# shared TTLCache and RateLimiter rather than introducing a second cache stack.
+from .crypto.services.service import CryptoService, configure_crypto
+from .crypto.providers.manager import CryptoMarketManager as _CryptoMarketManager
+from .crypto.providers.binance_provider import BinanceSpotProvider as _BinanceSpotProvider
+from .crypto.providers.coingecko_provider import CoinGeckoProvider as _CoinGeckoProvider
+crypto_manager = _CryptoMarketManager([_BinanceSpotProvider(), _CoinGeckoProvider()])
+crypto_service = configure_crypto(CryptoService(crypto_manager))
+# Phase 22: one shared upstream provider connection serves every WebSocket client.
+from .crypto.websocket.manager import crypto_ws_manager
+crypto_ws_manager.configure(crypto_manager)
 data,predictor,insighter,lstm,gru=DataAgent(manager),PredictionAgent(),InsightAgent(),LSTMPredictionAgent(),GRUPredictionAgent()
 
 class HistoryRequest(BaseModel): start:date; end:date; interval:str="1d"
@@ -210,7 +276,41 @@ SUPPORTED_ALERT_TYPES={"price_above","price_below","pct_change","rsi_overbought"
 def root(): return {"service":"Neural Market API","docs":"/docs","health":"/health"}
 
 @app.get("/health")
-def health(): return {"status":"ok"}
+def health():
+    """Liveness plus real subsystem status (Phase 22 adds the crypto section).
+
+    Existing keys are preserved so current monitors keep working; the crypto
+    block reports only observed provider health and is additive.
+    """
+    payload={"status":"ok"}
+    try:
+        from .crypto.websocket.manager import crypto_ws_manager as _crypto_ws
+        from .crypto.services.service import crypto_service as _crypto_svc
+        payload["crypto"]={
+            "status":"ok","cache_entries":_crypto_svc.manager.cache.size(),
+            "providers":_crypto_svc.manager.health_snapshot(),
+            "websocket":_crypto_ws.stats(),
+        }
+    except Exception as exc:
+        logger.debug("crypto health section unavailable: %s",exc)
+    return payload
+
+@app.get("/readiness")
+def readiness():
+    """Readiness probe: is the process able to serve, with real provider health?"""
+    from .crypto.services.service import crypto_service as _crypto_svc
+    health_snapshot=_crypto_svc.manager.health_snapshot()
+    available=[entry for entry in health_snapshot if entry.get("available") is True]
+    return {
+        "status":"ready" if available else "degraded",
+        "providers":{"total":len(health_snapshot),"available":len(available)},
+        "detail":health_snapshot,
+    }
+
+@app.get("/liveness")
+def liveness():
+    """Liveness probe: the process is up. Never touches an external provider."""
+    return {"status":"alive"}
 
 @app.get("/api/forecast/markets")
 async def forecast_markets():

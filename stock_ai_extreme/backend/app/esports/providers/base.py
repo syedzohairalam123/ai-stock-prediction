@@ -65,6 +65,30 @@ class EsportsProviderError(Exception):
         super().__init__(f"[{provider}] {message}")
 
 
+def per_game_records(meta_data: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    The provider's per-map / per-game records, whichever key it publishes them under.
+
+    Adapters differ here because their upstreams do: CS2 (csapi.de) publishes a
+    ``maps`` list of ``{map_number, name, team_a_score, team_b_score}``, while
+    Dota 2 and LoL publish a ``games`` list of ``{duration, radiant_score,
+    dire_score, radiant_win, ...}``. Every consumer that needs the per-map
+    breakdown (feed serialization, map analytics, duration stats, anomaly
+    features) must read whichever list the source actually provided — assuming
+    a single key silently drops a source's real data.
+
+    Returns ``[]`` when neither key carries a usable list; it never fabricates
+    a record.
+    """
+    if not meta_data:
+        return []
+    for key in ("games", "maps"):
+        records = meta_data.get(key)
+        if isinstance(records, list) and records:
+            return [record for record in records if isinstance(record, dict)]
+    return []
+
+
 @dataclass
 class Game:
     """Normalized game model."""

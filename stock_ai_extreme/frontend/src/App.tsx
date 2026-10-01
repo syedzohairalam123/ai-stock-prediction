@@ -45,6 +45,8 @@ const Events = lazy(() => import("./pages/Events"));
 const Company = lazy(() => import("./pages/Company"));
 const Screener = lazy(() => import("./pages/Screener"));
 const Crypto = lazy(() => import("./pages/Crypto"));
+// Phase 22A: real crypto market data + multi-timeframe data engine terminal
+const CryptoMarketTerminalPage = lazy(() => import("./pages/CryptoMarketTerminalPage"));
 const ForexCommoditiesPage = lazy(() => import("./pages/ForexCommoditiesPage"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const SentimentPage = lazy(() => import("./pages/SentimentPage"));
@@ -112,6 +114,7 @@ export default function App() {
               <Route path="/events" element={<Events />} />
               <Route path="/company" element={<Company />} />
               <Route path="/crypto" element={<Crypto />} />
+              <Route path="/crypto-terminal" element={<CryptoMarketTerminalPage />} />
               <Route path="/forex-commodities" element={<ForexCommoditiesPage />} />
               <Route path="/sentiment" element={<SentimentPage />} />
               <Route path="/forecasts" element={<ForecastMarketsPage />} />

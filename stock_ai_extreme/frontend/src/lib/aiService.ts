@@ -42,7 +42,7 @@ export function aiUrl(path: string): string {
 // Types
 // ---------------------------------------------------------------------------
 
-export type EntityType = 'stock' | 'index';
+export type EntityType = 'stock' | 'index' | 'crypto';
 
 /** Everything the browser knows about what the user is looking at. */
 export interface AIContext {

@@ -1,7 +1,35 @@
 services:
+  # Phase 21C: shared cache + cross-worker WebSocket fan-out. Optional in the
+  # sense that the API runs fine without it (in-process cache, local fan-out),
+  # but required for multi-worker deployment.
+  redis:
+    image: redis:7-alpine
+    # Pure cache + pub/sub: no persistence needed, so no RDB/AOF churn.
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
   api:
     build: .
     ports:
       - "8000:8000"
     env_file:
       - ./backend/.env
+    environment:
+      # Overrides any blank REDIS_URL in backend/.env so the containers share one
+      # cache and one event fan-out. Set ESPORTS_CACHE_BACKEND=memory to opt out.
+      REDIS_URL: redis://redis:6379/0
+      ESPORTS_CACHE_BACKEND: auto
+      ESPORTS_REDIS_PUBSUB: "true"
+      ESPORTS_CACHE_NAMESPACE: "nm:esports:cache:"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped

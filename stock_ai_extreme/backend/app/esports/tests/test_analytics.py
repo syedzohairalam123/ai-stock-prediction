@@ -21,7 +21,7 @@ from app.esports.analytics.data_quality import (
 )
 from app.esports.analytics.observability import EsportsObservability, esports_metrics
 from app.esports.analytics.service import EsportsAnalyticsService
-from app.esports.analytics.store import AnalyticsStore
+from app.esports.analytics.store import AnalyticsStore, analytics_store
 from app.esports.providers.base import (
     EventType,
     Game,
@@ -216,6 +216,21 @@ class TestMapAnalytics:
         result = metrics.calculate_map_analytics(matches, "ta")
         assert result["maps"][0]["sample_size"] == 6
         assert result["maps"][0]["data_quality"] == "HIGH"
+
+    def test_cs2_published_maps_key_is_used_not_ignored(self):
+        """csapi.de stores per-map records under ``maps`` (no ``games`` key)."""
+        match = make_match("m1", game="cs2", source="csapi.de")
+        match.meta_data.pop("games", None)
+        match.meta_data["maps"] = [
+            {"map_number": 1, "name": "Nuke", "team_a_score": 13, "team_b_score": 8},
+            {"map_number": 2, "name": "Ancient", "team_a_score": 13, "team_b_score": 11},
+        ]
+        result = metrics.calculate_map_analytics([match], "ta")
+        assert result["available"] is True
+        by_map = {entry["map"]: entry for entry in result["maps"]}
+        assert by_map["Nuke"]["wins"] == 1
+        assert by_map["Ancient"]["win_rate"] == pytest.approx(1.0)
+        assert result["sources"] == ["csapi.de"]
 
 
 # ===========================================================================
@@ -687,6 +702,11 @@ def _service(matches, **kwargs):
     service = EsportsAnalyticsService()
     service.history_limit = 100
     service.configure(manager)
+    # Test isolation: the analytics store is a process-wide singleton whose
+    # TTL cache survives across test files (e.g. when another module's API
+    # tests run first and populate trending entries). Clear it so every test
+    # starts from a clean cache state.
+    analytics_store.invalidate()
     return service, manager
 
 

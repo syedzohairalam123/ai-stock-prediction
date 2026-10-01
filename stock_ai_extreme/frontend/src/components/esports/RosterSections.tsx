@@ -42,6 +42,15 @@ function TeamBlock({ team, score, tournamentName }: { team: TeamRef; score: numb
             </dd>
           </div>
         )}
+        {team.metadata &&
+          typeof (team.metadata as Record<string, unknown>).current_win_streak === "number" && (
+            <div>
+              <dt>Streak</dt>
+              <dd title="Current win streak reported by the data source">
+                {String((team.metadata as Record<string, unknown>).current_win_streak)}W
+              </dd>
+            </div>
+          )}
       </dl>
     </div>
   );

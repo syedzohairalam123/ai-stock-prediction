@@ -211,6 +211,18 @@ def test_serialize_match_carries_real_fields_only():
     assert set(["data_mode", "data_quality", "last_updated", "source"]).issubset(record)
 
 
+def test_serialize_match_surfaces_cs2_per_map_records():
+    """csapi.de publishes ``maps``; the feed must not drop that real data."""
+    maps = [
+        {"map_number": 1, "name": "Nuke", "team_a_score": 13, "team_b_score": 8},
+        {"map_number": 2, "name": "Ancient", "team_a_score": 13, "team_b_score": 11},
+    ]
+    record = feed.serialize_match(_match("cs2-m1", MatchStatus.COMPLETED, maps=maps), NOW)
+    assert [entry["name"] for entry in record["games"]] == ["Nuke", "Ancient"]
+    assert record["games"][0]["team_a_score"] == 13
+    assert record["games"][0]["team_b_score"] == 8
+
+
 # --------------------------------------------------------------------------
 # §24 — server-side filtering
 # --------------------------------------------------------------------------

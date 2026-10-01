@@ -285,6 +285,25 @@ class CS2Adapter(EsportsDataProvider):
             return []
         return [self._map_team(row) for row in rows]
 
+    async def _team_streak(self, external: str) -> Optional[int]:
+        """
+        The provider's published current win streak for a team (``/teams/{id}``).
+
+        Ranking rows do not carry this; the team-detail endpoint does. Returns
+        None when the source omits it, so the UI shows its labelled fallback
+        rather than an invented number.
+        """
+        try:
+            data = await self._get_json(f"/teams/{external}", ttl_seconds=900)
+        except EsportsProviderError:
+            return None
+        if not isinstance(data, dict):
+            return None
+        value = data.get("streak")
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return None
+        return int(value)
+
     async def get_team(self, team_id: str) -> Optional[Team]:
         """Optional extra (not in the base interface): resolve a ranked team."""
         if not team_id.startswith(f"{PREFIX}-t"):
@@ -298,7 +317,12 @@ class CS2Adapter(EsportsDataProvider):
         if isinstance(rows, list):
             for row in rows:
                 if str(row.get("id")) == external:
-                    return self._map_team(row)
+                    team = self._map_team(row)
+                    # Enrich with the provider's published streak (real value only).
+                    streak = await self._team_streak(external)
+                    if streak is not None:
+                        team.meta_data["current_win_streak"] = streak
+                    return team
         return None
 
     async def get_players(self, team_id: str) -> List[Player]:

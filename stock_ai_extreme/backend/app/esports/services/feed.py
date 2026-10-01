@@ -14,7 +14,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Sequence
 
-from app.esports.providers.base import GameEvent, Match, MatchStatus, Team
+from app.esports.providers.base import GameEvent, Match, MatchStatus, Team, per_game_records
 from app.esports.services.manager import EsportsDataManager
 
 # Lower number = shown first in a mixed feed / more likely featured.
@@ -100,7 +100,10 @@ def serialize_match(match: Match, now: Optional[datetime] = None) -> Dict[str, A
     logos = meta.get("team_logos") or {}
     status = match.status.value if isinstance(match.status, MatchStatus) else str(match.status)
     last_updated = _as_aware(match.source_timestamp) or _as_aware(match.received_at)
-    games = meta.get("games") or []
+    # CS2 publishes its per-map list under ``maps`` and Dota/LoL under
+    # ``games``; normalize both so the UI's per-map breakdown is real for every
+    # source that supplies one (instead of only the two MOBA feeds).
+    games = per_game_records(meta)
     game_time = meta.get("game_time_seconds")
     if game_time is None and games:
         game_time = games[-1].get("duration")

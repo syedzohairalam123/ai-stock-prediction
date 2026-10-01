@@ -13,6 +13,7 @@ import time
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, desc
 
+from app.config import settings
 from app.db import session_scope
 from app.providers.cache import TTLCache
 
@@ -33,6 +34,7 @@ from app.esports.normalization.pipeline import NormalizationPipeline
 from app.esports.state.event_engine import MatchStateEngine
 from app.esports.services.event_deduplication import EventDeduplicationService
 from app.esports.services.event_ordering import EventOrderingService
+from app.esports.websocket.event_bus import LocalEventBus, build_event_bus
 from app.esports.websocket.manager import esports_ws_manager
 from app.esports.database.models import (
     EsportsGame,
@@ -68,15 +70,23 @@ class EsportsDataManager:
     Event Bus / Redis → WebSocket Gateway Cluster → 10,000 clients
     """
     
-    def __init__(self, providers: List[EsportsDataProvider]):
+    def __init__(self, providers: List[EsportsDataProvider], *, event_bus=None, breakers=None):
         """
         Initialize the esports data manager.
-        
+
         Args:
             providers: List of provider adapters
+            event_bus: Fan-out transport. Defaults to an in-process bus; main.py
+                injects a Redis-backed bus when one is configured and reachable.
+            breakers: Optional CircuitBreakerRegistry, surfaced through get_stats().
         """
         self.providers = providers
         self.provider_map = {p.get_provider_name(): p for p in providers}
+        self._breakers = breakers
+        # One publish seam for every channel broadcast, so multi-worker fan-out
+        # is a transport swap rather than a change in the live path.
+        self._event_bus = event_bus or LocalEventBus(esports_ws_manager.broadcast_to_channel)
+        self._last_catalog_counts: Dict[str, int] = {}
         
         # Initialize services
         self.deduplication_service = EventDeduplicationService()
@@ -102,6 +112,8 @@ class EsportsDataManager:
             "total_matches_tracked": 0,
             "active_subscriptions": 0,
             "provider_errors": 0,
+            "catalog_persist_runs": 0,
+            "catalog_entities_persisted": 0,
         }
     
     async def start(self):
@@ -111,13 +123,21 @@ class EsportsDataManager:
         
         self._running = True
         logger.info("Starting EsportsDataManager")
-        
+
+        # Bring the fan-out transport up (a no-op for the local bus).
+        try:
+            await self._event_bus.start()
+        except Exception as exc:  # a transport failure must not block the app
+            logger.warning("Event bus start failed: %s", exc)
+
         # Start background tasks
         self._background_tasks = [
             asyncio.create_task(self._provider_health_monitor()),
             asyncio.create_task(self._cleanup_loop()),
             asyncio.create_task(self._event_ingestion_loop()),
         ]
+        if getattr(settings, "esports_catalog_persist_enabled", True):
+            self._background_tasks.append(asyncio.create_task(self._catalog_persist_loop()))
     
     async def stop(self):
         """Stop the data manager and cleanup."""
@@ -133,7 +153,13 @@ class EsportsDataManager:
         
         # Wait for tasks to complete
         await asyncio.gather(*self._background_tasks, return_exceptions=True)
-        
+
+        # Tear down the fan-out transport (closes the Redis connection).
+        try:
+            await self._event_bus.stop()
+        except Exception as exc:
+            logger.debug("Event bus stop failed: %s", exc)
+
         # Close providers
         for provider in self.providers:
             if hasattr(provider, 'close'):
@@ -448,7 +474,7 @@ class EsportsDataManager:
             }
             _broadcast_started = time.perf_counter()
             for channel in event_channels:
-                await esports_ws_manager.broadcast_to_channel(channel, {**payload, "channel": channel})
+                await self._event_bus.publish(channel, {**payload, "channel": channel})
             try:
                 from app.esports.analytics.observability import esports_metrics
 
@@ -470,7 +496,7 @@ class EsportsDataManager:
 
                 # Broadcast updated snapshot to the same channels.
                 for channel in event_channels:
-                    await esports_ws_manager.broadcast_to_channel(channel, {
+                    await self._event_bus.publish(channel, {
                         "type": "snapshot",
                         "channel": channel,
                         "data": snapshot.to_dict(),
@@ -601,6 +627,48 @@ class EsportsDataManager:
                 logger.error(f"Event ingestion loop error: {e}")
                 await asyncio.sleep(20)
     
+    async def persist_catalog(self) -> Dict[str, int]:
+        """
+        One bounded persistence pass over every provider (Phase 21A §12).
+
+        Writes the provider catalog into the esports tables so history survives
+        a restart; the work is bounded by settings so it never becomes an
+        unbounded upstream crawl. Errors are contained: a failing table write is
+        logged and the live pipeline is unaffected.
+        """
+        from app.esports.services import persistence
+
+        with session_scope() as db:
+            counts = await persistence.persist_catalog(
+                self,
+                db,
+                max_matches=int(getattr(settings, "esports_persist_max_matches", 200)),
+                max_teams=int(getattr(settings, "esports_persist_max_teams", 40)),
+                persist_players=bool(getattr(settings, "esports_persist_players", False)),
+                max_player_teams=int(getattr(settings, "esports_persist_max_player_teams", 8)),
+            )
+        self._stats["catalog_persist_runs"] += 1
+        self._stats["catalog_entities_persisted"] += sum(counts.values())
+        self._last_catalog_counts = counts
+        logger.info("esports catalog persisted: %s", counts)
+        return counts
+
+    async def _catalog_persist_loop(self):
+        """Background sweep that keeps the esports tables populated."""
+        interval = max(int(getattr(settings, "esports_catalog_persist_interval_seconds", 300)), 30)
+        await asyncio.sleep(15)  # let the app finish booting first
+        while self._running:
+            try:
+                await self.persist_catalog()
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Catalog persistence failed: {e}")
+            try:
+                await asyncio.sleep(interval)
+            except asyncio.CancelledError:
+                break
+
     def get_stats(self) -> Dict[str, Any]:
         """Get manager statistics."""
         return {
@@ -609,4 +677,7 @@ class EsportsDataManager:
             "ordering_stats": self.ordering_service.get_stats(),
             "pipeline_stats": self.normalization_pipeline.get_stats(),
             "websocket_stats": esports_ws_manager.get_connection_stats(),
+            "event_bus": self._event_bus.stats(),
+            "catalog_persisted_last_run": self._last_catalog_counts,
+            "circuit_breakers": self._breakers.snapshot() if self._breakers else {},
         }

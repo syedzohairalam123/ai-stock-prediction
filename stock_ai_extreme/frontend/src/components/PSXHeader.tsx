@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, Menu, X, Settings, Sun, Moon, Smartphone, LogIn, UserPlus, ChevronDown, Gamepad2 } from 'lucide-react';
+import { Search, Menu, X, Settings, Sun, Moon, Smartphone, LogIn, UserPlus, ChevronDown, Gamepad2, Bitcoin } from 'lucide-react';
 
 interface PSXHeaderProps {
   theme: 'light' | 'dark';
@@ -22,6 +23,9 @@ export default function PSXHeader({ theme, toggleTheme, isMobileMenuOpen, toggle
     // Phase 21C: esports gets a primary slot (it is a first-class hub, not a
     // utility page) with its own icon so it reads as a distinct product area.
     { path: '/esports', label: 'Esports', icon: Gamepad2 },
+    // Phase 22C: crypto terminal gets a primary slot too (real-time crypto
+    // market hub) with its own icon, mirroring the esports treatment.
+    { path: '/crypto-terminal', label: 'Crypto Terminal', icon: Bitcoin },
     { path: '/forex-commodities', label: 'Forex & Commodities' },
     { path: '/sentiment', label: 'Sentiment' },
     { path: '/forecasts', label: 'Forecasts' },
@@ -50,6 +54,7 @@ export default function PSXHeader({ theme, toggleTheme, isMobileMenuOpen, toggle
     { path: '/events', label: 'Events', group: 'Analytics' },
     { path: '/company', label: 'Company', group: 'Analytics' },
     { path: '/crypto', label: 'Crypto', group: 'Markets' },
+    { path: '/crypto-terminal', label: 'Crypto Terminal', group: 'Markets' },
     { path: '/derivatives', label: 'Derivatives', group: 'Markets' },
     { path: '/screener', label: 'Screener', group: 'Tools' },
     { path: '/screener-classic', label: 'Screener Classic', group: 'Tools' },
@@ -219,8 +224,13 @@ export default function PSXHeader({ theme, toggleTheme, isMobileMenuOpen, toggle
         </div>
       </div>
 
-      {/* Mobile Menu */}
-      {isMobileMenuOpen && (
+      {/* Mobile Menu — rendered through a portal on <body> because the header's
+          backdrop-filter makes the header the containing block for fixed
+          descendants (CSS spec), which collapsed the overlay to the header's
+          height (~158px on phones): the drawer was visually clipped and taps
+          below it fell through to the page underneath. Portalling restores the
+          designed full-viewport overlay without touching the header styles. */}
+      {isMobileMenuOpen && createPortal(
         <div className="psx-mobile-menu open" onClick={toggleMobileMenu}>
           <div className="psx-mobile-drawer" onClick={(e) => e.stopPropagation()}>
             <div className="psx-mobile-drawer-head">
@@ -274,7 +284,8 @@ export default function PSXHeader({ theme, toggleTheme, isMobileMenuOpen, toggle
               </Link>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* App Store CTAs */}
