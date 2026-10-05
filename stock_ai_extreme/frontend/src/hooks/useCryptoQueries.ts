@@ -15,6 +15,7 @@ import {
   type CandlesResponse,
   type CryptoAssetsResponse,
   type CryptoHealthResponse,
+  type CryptoNewsResponse,
   type DriftResponse,
   type ForecastHistoryResponse,
   type ForecastPerformanceResponse,
@@ -59,6 +60,8 @@ export const cryptoKeys = {
   preSession: ["crypto", "categories", "pre-session"] as const,
   institutions: (symbol: string) => ["crypto", "categories", "institutions", symbol] as const,
   industry: ["crypto", "categories", "industry"] as const,
+  // additive: real Google News RSS headlines per asset
+  news: (symbol: string, limit: number) => ["crypto", "news", symbol, limit] as const,
 };
 
 /** The documented asset catalogue (spec §5). */
@@ -334,6 +337,19 @@ export function useCryptoIndustry() {
     queryKey: cryptoKeys.industry,
     queryFn: async () => (await CryptoService.getIndustry()).data,
     staleTime: 10 * 60_000,
+    retry: 1,
+  });
+}
+
+/** Real per-asset headlines from Google News RSS (additive). */
+export function useCryptoNews(symbol: string | undefined, limit = 20, enabled = true) {
+  return useQuery<CryptoNewsResponse>({
+    queryKey: cryptoKeys.news(symbol ?? "", limit),
+    queryFn: async () => (await CryptoService.getNews(symbol as string, limit)).data,
+    enabled: Boolean(symbol) && enabled,
+    staleTime: 3 * 60_000,
+    refetchInterval: 5 * 60_000,
+    placeholderData: keepPreviousData,
     retry: 1,
   });
 }

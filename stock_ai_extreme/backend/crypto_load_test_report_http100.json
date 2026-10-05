@@ -1,0 +1,107 @@
+{
+  "phase": "22",
+  "generated_at": "2026-10-02T11:53:13.401422+00:00",
+  "target": "http://127.0.0.1:8001",
+  "levels_http": [
+    100
+  ],
+  "levels_websocket": [],
+  "methodology": "Real client-observed latencies against a running backend. NOT tested is NOT verified; a level that cannot be established is reported with its failure counts.",
+  "levels": [
+    {
+      "kind": "http",
+      "level": 100,
+      "concurrency": 10,
+      "requests_attempted": 100,
+      "requests_ok": 100,
+      "requests_rate_limited": 0,
+      "status_counts": {
+        "200": 100
+      },
+      "duration_seconds": 1.831,
+      "throughput_rps": 54.63,
+      "latency_ms": {
+        "count": 100,
+        "p50": 117.42,
+        "p95": 672.72,
+        "p99": 735.87,
+        "max": 758.78,
+        "mean": 176.89,
+        "stdev": 210.08
+      },
+      "per_endpoint_latency_ms": {
+        "/api/v1/crypto/assets": {
+          "count": 18,
+          "p50": 115.66,
+          "p95": 286.01,
+          "p99": 311.12,
+          "max": 317.39,
+          "mean": 108.78,
+          "stdev": 100.04
+        },
+        "/api/v1/crypto/timeframes": {
+          "count": 18,
+          "p50": 54.15,
+          "p95": 239.94,
+          "p99": 240.41,
+          "max": 240.52,
+          "mean": 75.31,
+          "stdev": 76.0
+        },
+        "/api/v1/crypto/quote/BTC": {
+          "count": 24,
+          "p50": 60.05,
+          "p95": 497.69,
+          "p99": 673.06,
+          "max": 725.33,
+          "mean": 157.99,
+          "stdev": 208.18
+        },
+        "/api/v1/crypto/candles/BTC?timeframe=1h&limit=200": {
+          "count": 16,
+          "p50": 57.64,
+          "p95": 508.13,
+          "p99": 521.01,
+          "max": 524.22,
+          "mean": 118.67,
+          "stdev": 158.05
+        },
+        "/api/v1/crypto/analytics/BTC?timeframe=5m": {
+          "count": 16,
+          "p50": 239.28,
+          "p95": 736.26,
+          "p99": 754.28,
+          "max": 758.78,
+          "mean": 359.02,
+          "stdev": 257.41
+        },
+        "/api/v1/crypto/targets/BTC": {
+          "count": 8,
+          "p50": 282.21,
+          "p95": 706.71,
+          "p99": 729.85,
+          "max": 735.64,
+          "mean": 367.55,
+          "stdev": 243.88
+        }
+      },
+      "server_cpu_seconds_delta": 1.64,
+      "server_rss_mb_after": 468.3,
+      "system_memory_load_percent": 86.0
+    }
+  ],
+  "system_before": {
+    "processes": 6,
+    "cpu_seconds_total": 436.78,
+    "rss_mb_total": 457.9,
+    "system_memory_load_percent": 86.0,
+    "system_memory_available_mb": 1015.0
+  },
+  "system_after": {
+    "processes": 6,
+    "cpu_seconds_total": 438.44,
+    "rss_mb_total": 468.3,
+    "system_memory_load_percent": 86.0,
+    "system_memory_available_mb": 1008.2
+  }
+}

@@ -178,6 +178,10 @@ app.include_router(crypto_router, prefix="/api/v1/crypto")
 app.include_router(crypto_router, prefix="/api/crypto", include_in_schema=False)
 app.include_router(crypto_ws_router, prefix="/api/v1/crypto")
 app.include_router(crypto_ws_router, prefix="/api/crypto", include_in_schema=False)
+# Phase 23A: Central Bank and Macroeconomic Intelligence Engine.
+# Additive: mounted at /api/v1/macro with real data sources (Federal Reserve, BOJ, FRED).
+from .macro_intelligence.routes import router as macro_router
+app.include_router(macro_router)
 
 # Phase 2: provider manager. yfinance is primary; Finnhub is an optional live-quote
 # fallback that only activates if FINNHUB_API_KEY is set (skipped otherwise — no

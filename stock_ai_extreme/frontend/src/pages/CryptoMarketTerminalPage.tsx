@@ -25,10 +25,13 @@ import { CryptoDataQualityPanel } from "../components/crypto/CryptoDataQualityPa
 import { CryptoAnalyticsPanel } from "../components/crypto/CryptoAnalyticsPanel";
 import { CryptoMultiTimeframePanel } from "../components/crypto/CryptoMultiTimeframePanel";
 import { CryptoSourcesPanel } from "../components/crypto/CryptoSourcesPanel";
+import { CryptoNewsPanel } from "../components/crypto/CryptoNewsPanel";
 import { CryptoSubcategoryNav, subcategoryHint, type CryptoSubcategory } from "../components/crypto/CryptoSubcategoryNav";
 import { CryptoMicroTrendCard, CryptoVolatilityCard, CryptoMicroTrendChart } from "../components/crypto/CryptoSignalPanels";
 import { CryptoForecastPanel } from "../components/crypto/CryptoForecastPanel";
+import { CryptoForecastHistoryPanel } from "../components/crypto/CryptoForecastHistoryPanel";
 import { CryptoTargetsPanel } from "../components/crypto/CryptoTargetsPanel";
+import { CryptoTargetHistoryPanel } from "../components/crypto/CryptoTargetHistoryPanel";
 import {
   CryptoIndustryView,
   CryptoInstitutionsView,
@@ -44,6 +47,7 @@ import {
   useCryptoIndustry,
   useCryptoInstitutions,
   useCryptoMultiTimeframe,
+  useCryptoNews,
   useCryptoPreSession,
   useCryptoQuote,
   useCryptoSources,
@@ -95,6 +99,7 @@ export default function CryptoMarketTerminalPage() {
   const preSessionQ = useCryptoPreSession();
   const institutionsQ = useCryptoInstitutions(symbol);
   const industryQ = useCryptoIndustry();
+  const newsQ = useCryptoNews(symbol, 20, subcategory === "ALL");
 
   // ---- live stream (one shared gateway socket, spec §14/§19) --------------
   useCryptoSocket({ symbol, timeframe: activeTimeframe });
@@ -312,6 +317,8 @@ export default function CryptoMarketTerminalPage() {
                 onHorizonChange={setHorizon}
               />
 
+              <CryptoForecastHistoryPanel symbol={symbol} timeframe={activeTimeframe} />
+
               <div className="crypto-terminal-two-col">
                 <CryptoDataQualityPanel
                   quality={candlesQ.data?.quality ?? analyticsQ.data?.quality}
@@ -339,6 +346,14 @@ export default function CryptoMarketTerminalPage() {
                 loading={sourcesQ.isLoading}
                 error={sourcesQ.isError ? (sourcesQ.error as Error).message : null}
               />
+
+              <CryptoNewsPanel
+                symbol={symbol}
+                data={newsQ.data}
+                loading={newsQ.isLoading}
+                error={newsQ.isError ? (newsQ.error as Error).message : null}
+                onRetry={() => newsQ.refetch()}
+              />
             </>
           )}
 
@@ -362,14 +377,17 @@ export default function CryptoMarketTerminalPage() {
           )}
 
           {subcategory === "TARGETS" && (
-            <CryptoTargetsPanel
-              symbol={symbol}
-              timeframe={activeTimeframe}
-              data={targetsQ.data}
-              loading={targetsQ.isLoading}
-              error={targetsQ.isError ? (targetsQ.error as Error).message : null}
-              onRetry={() => targetsQ.refetch()}
-            />
+            <>
+              <CryptoTargetsPanel
+                symbol={symbol}
+                timeframe={activeTimeframe}
+                data={targetsQ.data}
+                loading={targetsQ.isLoading}
+                error={targetsQ.isError ? (targetsQ.error as Error).message : null}
+                onRetry={() => targetsQ.refetch()}
+              />
+              <CryptoTargetHistoryPanel symbol={symbol} />
+            </>
           )}
 
           {subcategory === "INDUSTRY" && (
@@ -392,7 +410,7 @@ export default function CryptoMarketTerminalPage() {
             </span>
             <span className="dim">
               Source {quoteQ.data?.source ?? sourcesQ.data?.sources?.[0]?.provider ?? NA} · updated{" "}
-              {quoteQ.data?.timestamp ? formatDateTime(quoteQ.data.timestamp) : NA}
+              {formatDateTime(quoteQ.data?.source_timestamp ?? quoteQ.data?.fetched_at ?? null)}
             </span>
             <span className="dim">
               Real data only. Modelled figures are estimates, not guarantees — not investment advice.

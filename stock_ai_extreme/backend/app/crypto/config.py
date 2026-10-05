@@ -80,6 +80,13 @@ class CryptoSettings(BaseSettings):
     rate_limit_window_seconds: int = Field(default=60, ge=10, le=600)
     ws_max_connections: int = Field(default=30, ge=1, le=10000)
 
+    # ---- cross-worker fan-out (Phase 22D) ---------------------------------
+    #: When REDIS_URL is configured, route the WebSocket fan-out through Redis
+    #: pub/sub so a client on one worker receives events routed on another.
+    #: Unset REDIS_URL keeps the single-process in-memory fan-out (the default).
+    redis_pubsub: bool = True
+    redis_channel: str = "nm:crypto:events"
+
     # ---- background workers -------------------------------------------------
     workers_enabled: bool = True
     worker_interval_seconds: int = Field(default=120, ge=15, le=3600)

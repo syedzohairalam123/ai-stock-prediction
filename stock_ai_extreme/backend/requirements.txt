@@ -31,3 +31,4 @@ pytest-asyncio>=0.21.0
 # Phase 21C: optional shared cache for the esports analytics store. The app runs
 # without it (in-memory cache); Redis is used only when REDIS_URL is configured.
 redis>=5.0
+# Phase 23A: Macro intelligence - httpx already included above

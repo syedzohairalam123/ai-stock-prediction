@@ -1,0 +1,71 @@
+{
+  "phase": "22",
+  "generated_at": "2026-10-02T11:53:04.161033+00:00",
+  "target": "http://127.0.0.1:8001",
+  "levels_http": [],
+  "levels_websocket": [
+    100
+  ],
+  "methodology": "Real client-observed latencies against a running backend. NOT tested is NOT verified; a level that cannot be established is reported with its failure counts.",
+  "levels": [
+    {
+      "kind": "websocket",
+      "level": 100,
+      "connections_requested": 100,
+      "connections_established": 100,
+      "connections_failed": 0,
+      "peak_concurrent_connections": 100,
+      "messages_received": 900,
+      "snapshots": 100,
+      "ticks": 600,
+      "candle_frames": 0,
+      "batches": 0,
+      "reconnect_rate_percent": 0.0,
+      "connect_latency_ms": {
+        "count": 100,
+        "p50": 135.26,
+        "p95": 172.54,
+        "p99": 174.17,
+        "max": 174.54,
+        "mean": 123.8,
+        "stdev": 36.23
+      },
+      "server_gateway_stats": {
+        "connections_total": 455,
+        "messages_in": 354,
+        "messages_out": 1726,
+        "coalesced": 595,
+        "upstream_events": 19,
+        "upstream_restarts": 3,
+        "disconnects": 455,
+        "send_failures": 192,
+        "rejected_connections": 0,
+        "connections": 0,
+        "channels": 0,
+        "subscriptions": 0,
+        "upstream_streams": [
+          {
+            "providerSymbol": "BTCUSDT",
+            "interval": "5m"
+          }
+        ],
+        "coalesceMs": 250,
+        "maxConnections": 10000
+      }
+    }
+  ],
+  "system_before": {
+    "processes": 6,
+    "cpu_seconds_total": 434.14,
+    "rss_mb_total": 217.0,
+    "system_memory_load_percent": 90.0,
+    "system_memory_available_mb": 753.4
+  },
+  "system_after": {
+    "processes": 6,
+    "cpu_seconds_total": 437.61,
+    "rss_mb_total": 483.8,
+    "system_memory_load_percent": 87.0,
+    "system_memory_available_mb": 982.8
+  }
+}

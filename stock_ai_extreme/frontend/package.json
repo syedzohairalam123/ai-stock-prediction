@@ -12,6 +12,7 @@
     "test:fuzzy": "node scripts/fuzzy-search-test.mjs",
     "test:workspace:share": "node scripts/workspace-share-test.mjs",
     "test:esports": "node scripts/esports-hub-test.mjs",
+    "test:crypto:panels": "node scripts/crypto-panels-test.mjs",
     "audit:charts": "node scripts/chart-audit.mjs",
     "audit:pages": "node scripts/page-audit.mjs",
     "audit:assistant": "node scripts/assistant-audit.mjs"

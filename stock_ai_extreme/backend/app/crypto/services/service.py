@@ -132,6 +132,13 @@ class CryptoService:
     async def industry(self) -> Dict[str, Any]:
         return await categories_mod.industry_view(self.manager)
 
+    async def news(self, symbol: str, *, limit: int = 20) -> Dict[str, Any]:
+        """Real, keyless per-asset headlines from Google News RSS (additive)."""
+        from app.crypto import news as crypto_news
+
+        asset = symbol_service.resolve(symbol)
+        return await crypto_news.news_view(asset.internal, asset.name, limit=limit)
+
     def currency_pairs(self) -> Dict[str, Any]:
         return {
             "base_currency": "USD",

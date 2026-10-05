@@ -170,6 +170,18 @@ def init_db() -> None:
     # the package root) for the same reason — registering the tables must not pull
     # the router/service import chain (and scikit-learn) in at startup.
     from .crypto.database import models as crypto_models  # noqa: F401  Phase 22
+    # Phase 23A: Central Bank and Macroeconomic Intelligence Engine models.
+    # CentralBank, PolicyMeeting, PolicyDecision, PolicyExpectation, MacroSeries
+    # are declared in models.py (which was already imported above via `from . import models`).
+    # The import below makes the reference explicit and ensures the classes are registered
+    # with Base.metadata before create_all() is called.
+    from .models import (  # noqa: F401  Phase 23A
+        CentralBank as _CentralBank,
+        PolicyMeeting as _PolicyMeeting,
+        PolicyDecision as _PolicyDecision,
+        PolicyExpectation as _PolicyExpectation,
+        MacroSeries as _MacroSeries,
+    )
     Base.metadata.create_all(bind=engine)
     _ensure_additive_columns()
 

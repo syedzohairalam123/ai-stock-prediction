@@ -619,6 +619,8 @@ tbody tr:hover{background:var(--raised)}
 .base-badge-warning{background:var(--orange-s);border-color:var(--orange);color:var(--orange)}
 .base-badge-danger{background:var(--red-s);border-color:var(--red);color:var(--red)}
 .base-badge-info{background:var(--blue-s);border-color:var(--blue);color:var(--blue)}
+.base-badge-secondary{background:var(--blue-s);border-color:var(--blue);color:var(--blue)}
+.base-badge-outline{background:transparent;border-color:var(--border2);color:var(--text2)}
 .base-input-wrapper{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
 .base-input-label{font-size:.78rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.6px}
 .base-input-container{position:relative;display:flex;align-items:center}
@@ -6340,3 +6342,13 @@ body.ai-panel-open .paper-fab{display:none}
 @media(max-width:900px){.crypto-threshold-split{grid-template-columns:1fr}.crypto-industry-grid{grid-template-columns:1fr}}
 @media(max-width:700px){.crypto-subnav-tabs button{padding:5px 10px;font-size:11px}.crypto-threshold-form input,.crypto-threshold-form select{min-width:0;width:100%}}
 
+
+/* Crypto news panel (additive — real Google News RSS headlines) */
+.crypto-news-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.crypto-news-item{padding:10px 0;border-bottom:1px solid var(--border)}
+.crypto-news-item:last-child{border-bottom:none}
+.crypto-news-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--text3);margin-bottom:3px}
+.crypto-news-publisher{font-weight:600;color:var(--text2)}
+.crypto-news-title{color:var(--text);font-size:13px;line-height:1.4;text-decoration:none;display:block}
+.crypto-news-title:hover{text-decoration:underline}
+.crypto-news-foot{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;font-size:11px;border-top:1px solid var(--border);padding-top:8px;margin-top:8px}

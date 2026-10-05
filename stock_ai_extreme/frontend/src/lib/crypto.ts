@@ -666,6 +666,52 @@ export interface IndustryResponse {
 }
 
 // ---------------------------------------------------------------------------
+// News (additive — real Google News RSS headlines)
+// ---------------------------------------------------------------------------
+
+export interface CryptoNewsArticle {
+  title: string;
+  url: string;
+  publisher: string;
+  author: string | null;
+  published_at: string | null;
+  data_mode: DataStatusValue | "UNKNOWN";
+  image_url: string | null;
+  excerpt: string | null;
+  category: string | null;
+  source: string;
+  feed: string;
+  origin: string;
+}
+
+export interface CryptoNewsFeedStatus {
+  key: string;
+  name: string;
+  region: string;
+  url: string;
+  status: "OK" | "EMPTY" | "ERROR" | "DISABLED";
+  http_status: number | null;
+  items: number;
+  error: string | null;
+  fetched_at: string;
+}
+
+export interface CryptoNewsResponse {
+  symbol: string;
+  asset_name: string;
+  articles: CryptoNewsArticle[];
+  count: number;
+  returned: number;
+  status: "OK" | "EMPTY" | "ERROR" | "DISABLED" | "UNAVAILABLE";
+  source: string;
+  feed: CryptoNewsFeedStatus | null;
+  query?: string;
+  note?: string;
+  reason?: string;
+  origin: string;
+}
+
+// ---------------------------------------------------------------------------
 // Operations
 // ---------------------------------------------------------------------------
 
@@ -722,6 +768,8 @@ export const CryptoService = {
   getInstitutions: (symbol: string) =>
     cryptoGet<InstitutionsResponse>(`/categories/institutions/${encodeURIComponent(symbol)}`),
   getIndustry: () => cryptoGet<IndustryResponse>("/categories/industry"),
+  getNews: (symbol: string, limit = 20) =>
+    cryptoGet<CryptoNewsResponse>(`/news/${encodeURIComponent(symbol)}`, { limit }),
 
   // market data
   getQuote: (symbol: string) => cryptoGet<QuotePayload>(`/quote/${encodeURIComponent(symbol)}`),

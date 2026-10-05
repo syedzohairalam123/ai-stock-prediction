@@ -68,6 +68,8 @@ const QuantLabPage = lazy(() => import("./pages/QuantLabPage"));
 const EsportsHubPage = lazy(() => import("./pages/EsportsHubPage"));
 const EsportsMatchPage = lazy(() => import("./pages/EsportsMatchPage"));
 const EsportsTournamentPage = lazy(() => import("./pages/EsportsTournamentPage"));
+// Phase 23A: Central Bank and Macroeconomic Intelligence Engine
+const MacroIntelligencePage = lazy(() => import("./pages/MacroIntelligencePage"));
 
 export default function App() {
   return (
@@ -137,6 +139,9 @@ export default function App() {
               <Route path="/esports/match/:id" element={<EsportsMatchPage />} />
               <Route path="/esports/tournament/:id" element={<EsportsTournamentPage />} />
               <Route path="/esports/:game" element={<EsportsHubPage />} />
+
+              {/* Phase 23A: Central Bank and Macroeconomic Intelligence Engine */}
+              <Route path="/macro-intelligence" element={<MacroIntelligencePage />} />
 
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

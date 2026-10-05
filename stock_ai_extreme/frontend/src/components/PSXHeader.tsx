@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, Menu, X, Settings, Sun, Moon, Smartphone, LogIn, UserPlus, ChevronDown, Gamepad2, Bitcoin } from 'lucide-react';
+import { Search, Menu, X, Settings, Sun, Moon, Smartphone, LogIn, UserPlus, ChevronDown, Gamepad2, Bitcoin, Landmark } from 'lucide-react';
 
 interface PSXHeaderProps {
   theme: 'light' | 'dark';
@@ -26,6 +26,8 @@ export default function PSXHeader({ theme, toggleTheme, isMobileMenuOpen, toggle
     // Phase 22C: crypto terminal gets a primary slot too (real-time crypto
     // market hub) with its own icon, mirroring the esports treatment.
     { path: '/crypto-terminal', label: 'Crypto Terminal', icon: Bitcoin },
+    // Phase 23A: central-bank / macroeconomic intelligence gets a primary slot.
+    { path: '/macro-intelligence', label: 'Macro Intelligence', icon: Landmark },
     { path: '/forex-commodities', label: 'Forex & Commodities' },
     { path: '/sentiment', label: 'Sentiment' },
     { path: '/forecasts', label: 'Forecasts' },

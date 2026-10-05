@@ -251,6 +251,18 @@ class Settings(BaseSettings):
     esports_rate_limit_window_seconds: int = Field(default=60, ge=10, le=600)
     esports_ws_max_connections: int = Field(default=30, ge=1, le=10000)
 
+    # Phase 23A: Central Bank and Macroeconomic Intelligence Engine
+    # FRED API key for economic data (free at https://fred.stlouisfed.org/docs/api/api_key.html)
+    # Required for real Fed rate decisions and macro series data
+    macro_fred_api_key: Optional[str] = None
+    macro_cache_ttl_seconds: int = Field(default=300, ge=60, le=3600)
+    macro_meeting_cache_ttl_seconds: int = Field(default=1800, ge=300, le=86400)
+    macro_series_cache_ttl_seconds: int = Field(default=3600, ge=300, le=86400)
+    # Data freshness thresholds (seconds)
+    macro_live_threshold_hours: int = Field(default=6, ge=1, le=24)
+    macro_recent_threshold_hours: int = Field(default=72, ge=24, le=168)
+    macro_stale_threshold_days: int = Field(default=7, ge=1, le=30)
+
     # Performance settings
     max_history_days: int = Field(default=3650, ge=365, le=7300)  # Max 10 years
     min_history_days: int = Field(default=30, ge=7, le=365)

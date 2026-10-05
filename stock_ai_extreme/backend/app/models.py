@@ -311,3 +311,113 @@ class DiscoveryEvent(Base):
     #: "view" (an entity page/card was opened) or "search" (a query matched).
     kind: Mapped[str] = mapped_column(String(20), index=True)
     occurred_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, index=True)
+
+
+class CentralBank(Base):
+    """Phase 23A — Central Bank registry.
+
+    Stores metadata for major central banks worldwide. Each bank has a unique
+    identifier, country, currency, timezone, and data source configuration.
+    The architecture supports adding new banks without engine redesign."""
+    __tablename__ = "central_banks"
+
+    id: Mapped[str] = mapped_column(String(20), primary_key=True)  # e.g., "FED", "BOJ", "ECB"
+    name: Mapped[str] = mapped_column(String(100), index=True)  # e.g., "Federal Reserve", "Bank of Japan"
+    country: Mapped[str] = mapped_column(String(100))  # e.g., "United States", "Japan"
+    currency: Mapped[str] = mapped_column(String(10))  # e.g., "USD", "JPY"
+    timezone: Mapped[str] = mapped_column(String(50))  # e.g., "America/New_York", "Asia/Tokyo"
+    source: Mapped[str] = mapped_column(String(50))  # Data source: "federal_reserve", "boj", "ecb", etc.
+    active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+
+class PolicyMeeting(Base):
+    """Phase 23A — Central bank policy meeting schedule and status.
+
+    Stores scheduled monetary policy meetings with status tracking. Meetings
+    are sourced from official central bank publications (FOMC calendar, BOJ
+    monetary policy meetings, etc.). Dates are stored in UTC for consistent
+    countdown calculations."""
+    __tablename__ = "policy_meetings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    central_bank_id: Mapped[str] = mapped_column(String(20), index=True)
+    scheduled_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    timezone: Mapped[str] = mapped_column(String(50))  # Meeting's local timezone
+    status: Mapped[str] = mapped_column(String(20), index=True)  # UPCOMING, IN_PROGRESS, COMPLETED, CANCELLED, UNKNOWN
+    source_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)  # Official source URL
+    source_timestamp: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # When source published this
+    meeting_type: Mapped[str] = mapped_column(String(50))  # REGULAR, EMERGENCY, UNSCHEDULED
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+
+class PolicyDecision(Base):
+    """Phase 23A — Monetary policy decision records.
+
+    Stores actual policy rate decisions made at meetings. Includes previous
+    rate, new rate, and calculated basis point change. Direction is derived
+    from the change (HIKE, CUT, UNCHANGED). Never hardcodes bps values."""
+    __tablename__ = "policy_decisions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    meeting_id: Mapped[int] = mapped_column(Integer, index=True)
+    previous_rate: Mapped[float] = mapped_column(Float)  # Rate before decision (e.g., 5.25)
+    new_rate: Mapped[float] = mapped_column(Float)  # Rate after decision (e.g., 5.50)
+    change_bps: Mapped[int] = mapped_column(Integer)  # Calculated: (new_rate - previous_rate) * 100
+    direction: Mapped[str] = mapped_column(String(20))  # HIKE, CUT, UNCHANGED
+    decision_timestamp: Mapped[datetime] = mapped_column(DateTime, index=True)
+    source: Mapped[str] = mapped_column(String(50))  # Source of decision data
+    source_document: Mapped[str | None] = mapped_column(String(1000), nullable=True)  # Link to official statement
+    notes: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+
+class PolicyExpectation(Base):
+    """Phase 23A — Market-implied policy expectations from legitimate sources.
+
+    Stores sourced expectations (not predictions) where available from reputable
+    providers. Clearly labeled as SOURCE-DERIVED EXPECTATION. Never manufactures
+    probabilities. Records methodology and observation timestamp."""
+    __tablename__ = "policy_expectations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    meeting_id: Mapped[int] = mapped_column(Integer, index=True)
+    source: Mapped[str] = mapped_column(String(50))  # Source name (e.g., "CME FedWatch", "Bloomberg")
+    observed_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    expected_outcome: Mapped[str | None] = mapped_column(String(20), nullable=True)  # HIKE, CUT, UNCHANGED
+    expected_rate_min: Mapped[float | None] = mapped_column(Float, nullable=True)
+    expected_rate_max: Mapped[float | None] = mapped_column(Float, nullable=True)
+    probability_hike: Mapped[float | None] = mapped_column(Float, nullable=True)
+    probability_cut: Mapped[float | None] = mapped_column(Float, nullable=True)
+    probability_unchanged: Mapped[float | None] = mapped_column(Float, nullable=True)
+    methodology: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+
+class MacroSeries(Base):
+    """Phase 23A — Macroeconomic time-series data with revision tracking.
+
+    Stores economic indicators with observation date, release date, and
+    revision history. Critical for backtesting correctness — observation date
+    is when the economic activity occurred, release date is when it was published.
+    Supports data revisions with timestamp tracking."""
+    __tablename__ = "macro_series"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    series_id: Mapped[str] = mapped_column(String(50), index=True)  # e.g., "CPIAUCSL", "UNRATE"
+    observation_date: Mapped[datetime] = mapped_column(DateTime, index=True)  # Economic activity date
+    release_date: Mapped[datetime] = mapped_column(DateTime, index=True)  # Publication date
+    value: Mapped[float] = mapped_column(Float)
+    unit: Mapped[str] = mapped_column(String(20))  # e.g., "Percent", "Index", "Billions USD"
+    frequency: Mapped[str] = mapped_column(String(20))  # DAILY, WEEKLY, MONTHLY, QUARTERLY, ANNUAL
+    source: Mapped[str] = mapped_column(String(50))  # e.g., "FRED", "BLS", "BEA"
+    source_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    initial_release: Mapped[bool] = mapped_column(default=True)  # True if this is the first published value
+    revision: Mapped[int] = mapped_column(Integer, default=0)  # Revision number (0 = initial)
+    revision_timestamp: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    previous_value: Mapped[float | None] = mapped_column(Float, nullable=True)  # Value before revision
+    data_freshness: Mapped[str] = mapped_column(String(20), default="HISTORICAL")  # LIVE, RECENT, DELAYED, HISTORICAL, STALE, UNAVAILABLE
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)

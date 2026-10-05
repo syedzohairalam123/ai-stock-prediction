@@ -76,6 +76,10 @@ class CryptoStreamManager:
         self._active_streams: Tuple[Tuple[str, str], ...] = ()
         self._lock = asyncio.Lock()
         self._manager = None
+        # Phase 22D: cross-worker fan-out. Defaults to the local in-process bus
+        # and is only Redis-backed when REDIS_URL is configured and reachable.
+        self._event_bus = None
+        self._bus_started = False
         self._stats: Dict[str, int] = {
             "connections_total": 0,
             "messages_in": 0,
@@ -92,6 +96,12 @@ class CryptoStreamManager:
     def configure(self, manager) -> None:
         """Bind the provider manager (used for the upstream provider + snapshots)."""
         self._manager = manager
+        # Phase 22D: build the fan-out bus once. Local by default; Redis pub/sub
+        # only when REDIS_URL is set so a multi-worker deployment shares events.
+        if self._event_bus is None:
+            from app.crypto.websocket.event_bus import build_event_bus
+
+            self._event_bus = build_event_bus(self._publish)
 
     @property
     def manager(self):
@@ -429,7 +439,7 @@ class CryptoStreamManager:
             return
 
         if event.get("type") == "ticker":
-            await self._publish(
+            await self._event_bus.publish(
                 symbol_channel(asset.internal),
                 {
                     "type": "tick",
@@ -452,7 +462,7 @@ class CryptoStreamManager:
         if event.get("type") == "kline":
             interval = str(event.get("interval") or "")
             for timeframe in _timeframes_for_interval(interval):
-                await self._publish(
+                await self._event_bus.publish(
                     timeframe_channel(asset.internal, timeframe),
                     {
                         "type": "candle",
@@ -531,6 +541,10 @@ class CryptoStreamManager:
             raise
 
     async def _ensure_tasks(self) -> None:
+        # Phase 22D: start the fan-out bus once (no-op for the local bus).
+        if self._event_bus is not None and not self._bus_started:
+            self._bus_started = True
+            await self._event_bus.start()
         if self._flush_task is None or self._flush_task.done():
             self._flush_task = asyncio.create_task(self._flush_loop())
         if self._heartbeat_task is None or self._heartbeat_task.done():
@@ -567,6 +581,12 @@ class CryptoStreamManager:
 
     # ----------------------------------------------------------------- shutdown
     async def shutdown(self) -> None:
+        if self._event_bus is not None:
+            try:
+                await self._event_bus.stop()
+            except Exception:
+                pass
+            self._bus_started = False
         for task in (self._upstream_task, self._flush_task, self._heartbeat_task):
             if task is not None:
                 task.cancel()
@@ -589,6 +609,7 @@ class CryptoStreamManager:
             "connections": len(self._clients),
             "channels": len(self._channels),
             "subscriptions": sum(len(s) for s in self._subscriptions.values()),
+            "event_bus": self._event_bus.stats() if self._event_bus is not None else {"backend": "local", "enabled": False},
             "upstream_streams": [
                 {"providerSymbol": symbol, "interval": interval} for symbol, interval in self._active_streams
             ],

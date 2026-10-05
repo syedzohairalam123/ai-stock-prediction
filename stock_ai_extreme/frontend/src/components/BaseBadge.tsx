@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 
 interface BaseBadgeProps {
   children: ReactNode;
-  variant?: 'default' | 'success' | 'warning' | 'danger' | 'info';
+  variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'secondary' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }

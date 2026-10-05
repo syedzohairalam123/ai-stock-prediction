@@ -1,0 +1,49 @@
+{
+  "phase": "22",
+  "generated_at": "2026-10-02T12:25:36.943514+00:00",
+  "target": "http://127.0.0.1:8001",
+  "levels_http": [],
+  "levels_websocket": [
+    10000
+  ],
+  "methodology": "Real client-observed latencies against a running backend. NOT tested is NOT verified; a level that cannot be established is reported with its failure counts.",
+  "levels": [
+    {
+      "kind": "websocket",
+      "level": 10000,
+      "connections_requested": 10000,
+      "connections_established": 0,
+      "connections_failed": 10000,
+      "peak_concurrent_connections": 0,
+      "messages_received": 0,
+      "snapshots": 0,
+      "ticks": 0,
+      "candle_frames": 0,
+      "batches": 0,
+      "reconnect_rate_percent": 100.0,
+      "connect_latency_ms": {
+        "count": 0,
+        "p50": null,
+        "p95": null,
+        "p99": null,
+        "max": null,
+        "mean": null
+      },
+      "server_gateway_stats": {}
+    }
+  ],
+  "system_before": {
+    "processes": 4,
+    "cpu_seconds_total": 250.69,
+    "rss_mb_total": 512.6,
+    "system_memory_load_percent": 88.0,
+    "system_memory_available_mb": 851.6
+  },
+  "system_after": {
+    "processes": 4,
+    "cpu_seconds_total": 295.31,
+    "rss_mb_total": 443.1,
+    "system_memory_load_percent": 89.0,
+    "system_memory_available_mb": 810.0
+  }
+}

@@ -166,6 +166,7 @@ export function CryptoTargetsPanel({
                   <th scope="col">Current distance</th>
                   <th scope="col">Distance %</th>
                   <th scope="col">Historical touches</th>
+                  <th scope="col">First reached</th>
                   <th scope="col">Last touch</th>
                   <th scope="col">Status</th>
                   <th scope="col">Modelled estimate</th>
@@ -181,6 +182,7 @@ export function CryptoTargetsPanel({
                       {formatPercent(row.proximity?.distance_percent ?? null)}
                     </td>
                     <td>{row.touch_count ?? NA}</td>
+                    <td>{row.target.first_reached_at ? formatDateTime(row.target.first_reached_at) : NA}</td>
                     <td>{row.last_touched_at ? formatDateTime(row.last_touched_at) : NA}</td>
                     <td>
                       <span className={`crypto-chip ${STATUS_TONE[row.status] ?? ""}`}>{row.status}</span>

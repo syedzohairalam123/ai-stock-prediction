@@ -143,6 +143,29 @@ async def get_institutions(symbol: str, request: Request) -> Dict[str, Any]:
     )
 
 
+@router.get("/news/{symbol}")
+async def get_news(
+    symbol: str, request: Request, limit: int = Query(20, ge=1, le=50)
+) -> Dict[str, Any]:
+    """
+    Real, keyless per-asset headlines from Google News RSS (additive).
+
+    Same keyless feed pipeline as the rest of the app. A failing or empty feed
+    is reported as UNAVAILABLE with its real reason — never padded with
+    invented stories.
+    """
+    _check_limit(request)
+    internal = _resolve(symbol)
+    payload = await _service().news(internal, limit=limit)
+    available = payload.get("status") == "OK"
+    return envelope(
+        payload,
+        source="google-news",
+        data_status=DataStatus.LIVE if available else DataStatus.UNAVAILABLE,
+        notes=[payload.get("note") or payload.get("reason") or ""],
+    )
+
+
 @router.get("/categories/industry")
 async def get_industry(request: Request) -> Dict[str, Any]:
     """Documented internal taxonomy + provider category metadata (spec §45)."""
