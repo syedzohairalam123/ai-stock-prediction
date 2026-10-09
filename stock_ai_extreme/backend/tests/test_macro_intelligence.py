@@ -11,6 +11,7 @@ Tests:
 - API endpoints
 """
 import pytest
+import pytest_asyncio
 from datetime import datetime, timezone, timedelta
 
 from app.macro_intelligence.models import (
@@ -293,6 +294,23 @@ class TestMacroTrendAnalytics:
 
         analytics = analyze_macro_trend(observations, series_id="TEST")
         assert analytics.trend == "stable"
+
+
+@pytest_asyncio.fixture
+async def client():
+    """Async ASGI client — these tests await requests, so a sync TestClient
+    cannot serve them. ``init_db()`` is called explicitly: the ASGI transport
+    does not run the app's lifespan, so relying on startup would leave the
+    schema missing (a real hidden test-order bug this fixture fixes)."""
+    from httpx import ASGITransport, AsyncClient
+
+    from app.db import init_db
+    from app.main import app
+
+    init_db()
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://testserver") as async_client:
+        yield async_client
 
 
 @pytest.mark.asyncio

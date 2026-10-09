@@ -73,6 +73,11 @@ class EventWindowAnalysis:
     change_20d: Optional[float] = None
     pre_volatility: Optional[float] = None
     post_volatility: Optional[float] = None
+    #: Phase 23B spec §7 — the *sessions* each observation is anchored to, so a
+    #: consumer can see exactly which trading days a window return spans.
+    decision_session: Optional[str] = None      # trading session used as the anchor
+    pre_session: Optional[str] = None           # session immediately before the anchor
+    window_end_sessions: Optional[dict] = None  # {"window_5d": "YYYY-MM-DD"}
 
 
 def analyze_policy_rates(decisions: list[dict]) -> PolicyRateAnalytics:
@@ -115,16 +120,20 @@ def analyze_policy_rates(decisions: list[dict]) -> PolicyRateAnalytics:
     max_hike_bps = int(hike_bps.max()) if not hike_bps.empty else 0
     max_cut_bps = int(cut_bps.min()) if not cut_bps.empty else 0  # Most negative cut
 
-    # Current rate and range
-    current_rate = float(df.iloc[0]["new_rate"]) if not df.empty else None
+    # Current rate and range. The frame is sorted ASCENDING by timestamp, so
+    # the newest decision is the LAST row — `current_rate` must be the most
+    # recent verified setting, never the oldest (a real order-dependent bug:
+    # it silently reported the stale rate whenever input arrived oldest-first,
+    # and the reverse whenever it arrived newest-first).
+    current_rate = float(df.iloc[-1]["new_rate"]) if not df.empty else None
     rate_range_min = float(df["new_rate"].min()) if not df.empty else None
     rate_range_max = float(df["new_rate"].max()) if not df.empty else None
 
-    # Total bps change over period
+    # Total bps change over the period: newest minus oldest, always.
     if len(df) >= 2:
-        first_rate = float(df.iloc[-1]["new_rate"])
-        last_rate = float(df.iloc[0]["new_rate"])
-        total_bps_change = int(round((last_rate - first_rate) * 100))
+        oldest_rate = float(df.iloc[0]["new_rate"])
+        newest_rate = float(df.iloc[-1]["new_rate"])
+        total_bps_change = int(round((newest_rate - oldest_rate) * 100))
     else:
         total_bps_change = 0
 
@@ -290,8 +299,10 @@ def analyze_event_window(
     pre_event_avg = float(pre_data["close"].mean()) if not pre_data.empty else None
     post_event_avg = float(post_data["close"].mean()) if not post_data.empty else None
 
-    # Calculate changes for each window
+    # Calculate changes for each window, recording the closing session each
+    # window lands on so the observation is fully traceable (spec §7).
     changes = {}
+    window_end_sessions: dict[str, str] = {}
     for window in windows:
         post_end_idx = min(len(df), decision_idx + window + 1)
         window_data = df.iloc[decision_idx:post_end_idx]
@@ -301,6 +312,9 @@ def analyze_event_window(
             post_price = float(window_data.iloc[-1]["close"])
             change_pct = ((post_price - pre_price) / pre_price * 100) if pre_price != 0 else 0.0
             changes[f"change_{window}d"] = change_pct
+            window_end_sessions[f"window_{window}d"] = pd.Timestamp(
+                window_data.iloc[-1]["date"]
+            ).date().isoformat()
 
     # Volatility before and after
     pre_volatility = float(pre_data["close"].std()) if len(pre_data) > 1 else None
@@ -317,6 +331,13 @@ def analyze_event_window(
         change_20d=changes.get("change_20d"),
         pre_volatility=pre_volatility,
         post_volatility=post_volatility,
+        decision_session=pd.Timestamp(df.iloc[decision_idx]["date"]).date().isoformat(),
+        pre_session=(
+            pd.Timestamp(df.iloc[decision_idx - 1]["date"]).date().isoformat()
+            if decision_idx > 0
+            else None
+        ),
+        window_end_sessions=window_end_sessions or None,
     )
 
 

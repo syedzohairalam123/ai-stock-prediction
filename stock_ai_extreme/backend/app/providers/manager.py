@@ -123,6 +123,25 @@ class MarketDataManager:
 
         raise ProviderError("manager", f"no provider could return news for {ticker}: {last_error}")
 
+    async def splits(self, ticker: str):
+        """Provider-reported stock splits, like history(): (list, source, status).
+
+        Optional capability — a provider without ``get_splits`` is skipped. An
+        empty list is a valid answer (the company has never split).
+        """
+        last_error: Exception | None = None
+        for provider in self.providers:
+            get_splits = getattr(provider, "get_splits", None)
+            if get_splits is None:
+                continue
+            try:
+                return await get_splits(ticker), provider.name, DataStatus.LIVE
+            except ProviderError as exc:
+                logger.warning("splits provider failed, trying next: %s", exc)
+                last_error = exc
+                continue
+        raise ProviderError("manager", f"no provider could return splits for {ticker}: {last_error}")
+
     async def purge_caches(self, keep_for_stale_seconds: float = 3600) -> int:
         """Memory hygiene for long-running servers: drop cache entries that
         have been expired for a while (recently-expired entries are kept on

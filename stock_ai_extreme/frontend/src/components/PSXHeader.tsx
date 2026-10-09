@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, Menu, X, Settings, Sun, Moon, Smartphone, LogIn, UserPlus, ChevronDown, Gamepad2, Bitcoin, Landmark } from 'lucide-react';
+import { Search, Menu, X, Settings, Sun, Moon, Smartphone, LogIn, UserPlus, ChevronDown, Gamepad2, Bitcoin, Landmark, TrendingUp } from 'lucide-react';
 
 interface PSXHeaderProps {
   theme: 'light' | 'dark';
@@ -28,6 +28,8 @@ export default function PSXHeader({ theme, toggleTheme, isMobileMenuOpen, toggle
     { path: '/crypto-terminal', label: 'Crypto Terminal', icon: Bitcoin },
     // Phase 23A: central-bank / macroeconomic intelligence gets a primary slot.
     { path: '/macro-intelligence', label: 'Macro Intelligence', icon: Landmark },
+    // Phase 23B: SPX/SPY direction + corporate market-cap intelligence.
+    { path: '/market-intelligence', label: 'Market Intelligence', icon: TrendingUp },
     { path: '/forex-commodities', label: 'Forex & Commodities' },
     { path: '/sentiment', label: 'Sentiment' },
     { path: '/forecasts', label: 'Forecasts' },

@@ -76,6 +76,7 @@ export default function Layout() {
           <Link to="/esports">Esports</Link>
           <Link to="/crypto-terminal">Crypto Terminal</Link>
           <Link to="/macro-intelligence">Macro Intelligence</Link>
+          <Link to="/market-intelligence">Market Intelligence</Link>
         </div>
       </footer>
 

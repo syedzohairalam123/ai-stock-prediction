@@ -53,6 +53,8 @@ const ROUTES = [
   { path: "/analytics", label: "Analytics", click: "Detect regime" },
   { path: "/command-center", label: "CommandCenter" },
   { path: "/macro", label: "Macro" },
+  { path: "/macro-intelligence", label: "MacroIntelligencePage" },
+  { path: "/market-intelligence", label: "MarketIntelligencePage" },
   { path: "/events", label: "Events", click: "Run study" },
   { path: "/company?ticker=OGDC", label: "Company" },
   { path: "/crypto", label: "Crypto" },

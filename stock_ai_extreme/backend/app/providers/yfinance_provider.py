@@ -80,6 +80,10 @@ class YFinanceProvider(MarketDataProvider):
                 break
         if not info:
             raise ProviderError(self.name, "no profile info returned for this ticker")
+        # Phase 23B (spec §9): the market-cap engine needs the price and share
+        # count alongside the profile, plus their own timestamps so a computed
+        # capitalisation knows which date each input belongs to. Additive — the
+        # existing keys are unchanged so every current caller keeps working.
         return {
             "ticker": ticker.upper(),
             "name": info.get("longName") or info.get("shortName"),
@@ -91,7 +95,43 @@ class YFinanceProvider(MarketDataProvider):
             "currency": info.get("currency"),
             "market_cap": info.get("marketCap"),
             "exchange": info.get("exchange"),
+            "source": self.name,
+            "currentPrice": info.get("currentPrice") or info.get("regularMarketPrice"),
+            "previousClose": info.get("previousClose"),
+            "sharesOutstanding": info.get("sharesOutstanding"),
+            "sharesOutstandingDate": info.get("sharesOutstandingDate"),
+            "regularMarketTime": info.get("regularMarketTime"),
         }
+
+    def _fetch_splits(self, ticker: str):
+        return yf.Ticker(ticker.upper()).splits
+
+    async def get_splits(self, ticker: str) -> list[dict]:
+        """Corporate stock splits reported by the provider (Phase 23B spec §10).
+
+        Returns ``[{date, ratio}]`` where ``ratio`` is new shares per old share
+        (Yahoo's own split factor, e.g. 2.0 for a 2:1 split, 0.1 for a 1:10
+        reverse). An empty list is the honest answer for a ticker that has never
+        split — only a real fetch failure raises.
+        """
+        raw = None
+        for symbol in symbol_candidates(ticker, suffix_fallback=False):
+            candidate = await self._with_retries(self._fetch_splits, symbol)
+            if candidate is not None and len(candidate) > 0:
+                raw = candidate
+                break
+        if raw is None:
+            return []
+        splits: list[dict] = []
+        for index, value in raw.items():
+            try:
+                day = pd.Timestamp(index).date().isoformat()
+                ratio = float(value)
+            except (TypeError, ValueError):
+                continue
+            if ratio and ratio > 0:
+                splits.append({"date": day, "ratio": ratio})
+        return splits
 
     def _fetch_news(self, ticker: str) -> list[dict]:
         return list(yf.Ticker(ticker.upper()).news or [])

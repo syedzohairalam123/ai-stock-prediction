@@ -70,6 +70,8 @@ const EsportsMatchPage = lazy(() => import("./pages/EsportsMatchPage"));
 const EsportsTournamentPage = lazy(() => import("./pages/EsportsTournamentPage"));
 // Phase 23A: Central Bank and Macroeconomic Intelligence Engine
 const MacroIntelligencePage = lazy(() => import("./pages/MacroIntelligencePage"));
+// Phase 23B: SPX/SPY market direction + corporate market-cap intelligence
+const MarketIntelligencePage = lazy(() => import("./pages/MarketIntelligencePage"));
 
 export default function App() {
   return (
@@ -142,6 +144,9 @@ export default function App() {
 
               {/* Phase 23A: Central Bank and Macroeconomic Intelligence Engine */}
               <Route path="/macro-intelligence" element={<MacroIntelligencePage />} />
+
+              {/* Phase 23B: SPX/SPY market direction + market-cap intelligence */}
+              <Route path="/market-intelligence" element={<MarketIntelligencePage />} />
 
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

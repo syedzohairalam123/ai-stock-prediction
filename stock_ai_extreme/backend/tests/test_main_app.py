@@ -35,7 +35,11 @@ def client():
 
 def test_root_and_health(client):
     assert client.get("/").status_code == 200
-    assert client.get("/health").json() == {"status": "ok"}
+    health = client.get("/health").json()
+    # Phase 22 added a real crypto health snapshot to /health; the endpoint is
+    # still liveness-ok, it just carries more than it used to.
+    assert health["status"] == "ok"
+    assert "crypto" in health
 
 
 def test_system_health_reports_providers(client):

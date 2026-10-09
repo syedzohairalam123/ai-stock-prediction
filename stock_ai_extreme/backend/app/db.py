@@ -182,6 +182,10 @@ def init_db() -> None:
         PolicyExpectation as _PolicyExpectation,
         MacroSeries as _MacroSeries,
     )
+    # Phase 23B: corporate market-cap intelligence models. Imported from the
+    # module (not the package root) so registering the tables does not pull the
+    # router/service import chain in at startup.
+    from .market_intel import db_models as market_intel_models  # noqa: F401
     Base.metadata.create_all(bind=engine)
     _ensure_additive_columns()
 

@@ -393,6 +393,8 @@ class PolicyExpectation(Base):
     probability_cut: Mapped[float | None] = mapped_column(Float, nullable=True)
     probability_unchanged: Mapped[float | None] = mapped_column(Float, nullable=True)
     methodology: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Real link to the observation's source (e.g. the exact decision market).
+    source_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
 

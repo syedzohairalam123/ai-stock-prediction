@@ -29,16 +29,29 @@ interface PolicyMeeting {
   current_policy_rate?: number | null;
   previous_decision?: string;
   source_url?: string;
+  /** When the official source itself was captured (spec §8 “Last Updated”). */
+  source_timestamp?: string | null;
+}
+
+/** A sourced market-implied expectation to surface on the meeting card (spec §6). */
+export interface MarketImpliedExpectation {
+  source: string;
+  expected_outcome: string | null;
+  probabilities: Record<string, number>;
+  observed_at: string | null;
+  source_url: string | null;
 }
 
 interface PolicyMeetingCardProps {
   meeting: PolicyMeeting;
   bankName?: string;
+  marketImplied?: MarketImpliedExpectation | null;
 }
 
 export const PolicyMeetingCard: React.FC<PolicyMeetingCardProps> = ({
   meeting,
   bankName,
+  marketImplied,
 }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -128,12 +141,42 @@ export const PolicyMeetingCard: React.FC<PolicyMeetingCardProps> = ({
       </div>
 
       {/* Countdown */}
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-1">
         <Clock className="w-4 h-4 text-gray-600" />
         <span className="text-lg font-semibold text-gray-900">
           {formatCountdown(meeting.countdown)}
         </span>
       </div>
+
+      {/* Last Updated (source capture time, spec §8) */}
+      {meeting.source_timestamp && (
+        <p className="text-xs text-gray-400 mb-3">
+          Last updated {new Date(meeting.source_timestamp).toLocaleString()}
+        </p>
+      )}
+
+      {/* Market-Implied Expectation (when a real source provides one) */}
+      {marketImplied && (
+        <div className="mb-3 p-2 bg-purple-50 rounded">
+          <p className="text-xs text-gray-500 uppercase mb-1">
+            Market-Implied ({marketImplied.source})
+          </p>
+          <p className="text-sm text-gray-900">
+            {marketImplied.expected_outcome ?? 'N/A'}
+            {marketImplied.expected_outcome &&
+            marketImplied.probabilities?.[marketImplied.expected_outcome.toLowerCase()] != null
+              ? ` ${marketImplied.probabilities[
+                  marketImplied.expected_outcome.toLowerCase()
+                ].toFixed(1)}%`
+              : ''}
+          </p>
+          {marketImplied.observed_at && (
+            <p className="text-xs text-gray-400">
+              Observed {new Date(marketImplied.observed_at).toLocaleString()}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Current Policy Rate (if available) */}
       {meeting.current_policy_rate != null && (

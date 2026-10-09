@@ -21,7 +21,7 @@ interface MacroSeries {
   data_freshness: string;
   revision: number;
   previous_value?: number | null;
-  source_url?: string;
+  source_url?: string | null;
 }
 
 interface MacroSeriesCardProps {

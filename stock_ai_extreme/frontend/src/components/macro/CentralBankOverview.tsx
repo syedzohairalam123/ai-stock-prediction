@@ -37,11 +37,25 @@ interface PolicyMeeting {
   source_url?: string;
 }
 
+/** Latest verified policy setting with both range bounds labelled (spec §4). */
+export interface PolicyRateRange {
+  central_bank_id: string;
+  is_range: boolean;
+  lower: number | null;
+  upper: number | null;
+  midpoint: number | null;
+  label: string;
+  source: string | null;
+  source_url: string | null;
+  status: string;
+}
+
 interface CentralBankOverviewProps {
   bank: CentralBank;
   currentRate?: number | null;
   previousDecision?: string;
   nextMeeting?: PolicyMeeting;
+  rateRange?: PolicyRateRange | null;
   onRefresh?: () => void;
 }
 
@@ -50,6 +64,7 @@ export const CentralBankOverview: React.FC<CentralBankOverviewProps> = ({
   currentRate,
   previousDecision,
   nextMeeting,
+  rateRange,
   onRefresh,
 }) => {
   const getDirectionIcon = (direction?: string) => {
@@ -115,11 +130,20 @@ export const CentralBankOverview: React.FC<CentralBankOverviewProps> = ({
         )}
       </div>
 
-      {/* Current Policy Rate */}
+      {/* Current Policy Rate / Target Range */}
       <div className="mb-4 p-4 bg-blue-50 rounded-lg">
-        <p className="text-xs text-gray-500 uppercase mb-1">Current Policy Rate</p>
+        <p className="text-xs text-gray-500 uppercase mb-1">
+          {rateRange?.is_range ? rateRange.label : 'Current Policy Rate'}
+        </p>
         <div className="flex items-center gap-2">
-          {currentRate != null ? (
+          {rateRange?.is_range && rateRange.lower != null && rateRange.upper != null ? (
+            <>
+              <span className="text-3xl font-bold text-gray-900">
+                {rateRange.lower.toFixed(2)}%–{rateRange.upper.toFixed(2)}%
+              </span>
+              {getDirectionIcon(previousDecision)}
+            </>
+          ) : currentRate != null ? (
             <>
               <span className="text-3xl font-bold text-gray-900">
                 {currentRate.toFixed(2)}%
@@ -130,9 +154,27 @@ export const CentralBankOverview: React.FC<CentralBankOverviewProps> = ({
             <span className="text-gray-500">No data available</span>
           )}
         </div>
+        {rateRange?.source && (
+          <p className="text-xs text-gray-500 mt-1">
+            {rateRange.is_range && rateRange.midpoint != null
+              ? `Midpoint ${rateRange.midpoint.toFixed(2)}% · `
+              : ''}
+            {rateRange.status} · source {rateRange.source}
+            {rateRange.source_url && (
+              <a
+                href={rateRange.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-1 text-blue-600 hover:underline"
+              >
+                (verify)
+              </a>
+            )}
+          </p>
+        )}
         {previousDecision && (
           <p className={`text-sm mt-1 ${getDirectionColor(previousDecision)}`}>
-            Previous: {previousDecision}
+            Latest decision: {previousDecision}
           </p>
         )}
       </div>

@@ -7,8 +7,8 @@ API-ready responses. Handles caching, error handling, and data validation.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import datetime, timedelta, timezone
+from typing import Callable, Optional
 
 from sqlalchemy.orm import Session
 
@@ -41,9 +41,86 @@ from .sources import (
     BankOfJapanSource,
     FREDSource,
     FRED_SERIES,
+    FRED_SERIES_LABELS,
+    DEFAULT_INDICATOR_KEYS,
 )
+from .analytics import analyze_event_window
 
 logger = logging.getLogger("neural_market.macro_intelligence.service")
+
+# ---------------------------------------------------------------------------
+# Central-bank source registry
+#
+# A bank is served because a source adapter is registered for its id — not
+# because of any branch inside the service. Adding the ECB, Bank of England,
+# Bank of Canada, RBA or SNB later is therefore a registration plus that bank's
+# metadata row (spec §3), never a change to the engine: the fetch/normalise/
+# store/API path is shared by every registered bank.
+#
+# Each factory takes the configured FRED API key (``None`` when unset) and
+# returns a source adapter. Adapters that do not need a key simply ignore it.
+# ---------------------------------------------------------------------------
+
+CentralBankSourceFactory = Callable[[Optional[str]], BaseCentralBankSource]
+
+CENTRAL_BANK_SOURCE_FACTORIES: dict[str, CentralBankSourceFactory] = {
+    "FED": lambda key: FederalReserveSource(api_key=key),
+    "BOJ": lambda key: BankOfJapanSource(),
+}
+
+
+def register_central_bank_source(
+    bank_id: str, factory: CentralBankSourceFactory
+) -> None:
+    """Register (or replace) a source adapter factory for a central bank.
+
+    Public so future-bank support is explicitly additive; the engines call
+    ``available_source_banks()``/``_get_source()`` and never enumerate banks
+    themselves.
+    """
+    CENTRAL_BANK_SOURCE_FACTORIES[bank_id.upper()] = factory
+
+
+def available_source_banks() -> list[str]:
+    """Ids for which a real source adapter is registered, sorted."""
+    return sorted(CENTRAL_BANK_SOURCE_FACTORIES)
+
+
+#: Institution metadata for the banks the engine ships with (spec §3).
+#: Adding a future bank is one entry here plus one source registration above;
+#: nothing in the service, routes or models hardcodes a bank id.
+CENTRAL_BANK_CATALOGUE: dict[str, dict[str, str]] = {
+    "FED": {
+        "name": "Federal Reserve",
+        "country": "United States",
+        "currency": "USD",
+        "timezone": "America/New_York",
+        "source": "federal_reserve",
+    },
+    "BOJ": {
+        "name": "Bank of Japan",
+        "country": "Japan",
+        "currency": "JPY",
+        "timezone": "Asia/Tokyo",
+        "source": "boj",
+    },
+}
+
+
+def _as_utc(value: Optional[datetime]) -> Optional[datetime]:
+    """Return a UTC-aware datetime.
+
+    SQLite (and the SQLAlchemy ``DateTime`` columns here) round-trips
+    timezone-aware values as *naive* ones. Every timestamp was written as
+    UTC, so a naive value read back is UTC — this restores the tzinfo before
+    any subtraction against ``datetime.now(timezone.utc)``, which would
+    otherwise raise "can't subtract offset-naive and offset-aware datetimes".
+    """
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
 
 
 class MacroIntelligenceService:
@@ -53,26 +130,46 @@ class MacroIntelligenceService:
         self.fred_api_key = settings.macro_fred_api_key or settings.fred_api_key
         self._sources: dict[str, BaseCentralBankSource] = {}
         self._fred_source: Optional[FREDSource] = None
+        # Optional async market-history fetcher bound by the app shell so the
+        # event-window analytics reuse the SAME real provider path as every
+        # other chart in the terminal (no second data service is created).
+        self._market_history = None
+
+    def configure_market_data(self, history_fetcher) -> None:
+        """Bind ``async fn(ticker, start, end, interval) -> (frame, source, status)``."""
+        self._market_history = history_fetcher
 
     def _get_source(self, bank_id: str) -> Optional[BaseCentralBankSource]:
-        """Get or create source instance for a central bank."""
+        """Get or create the registered source adapter for a central bank.
+
+        Resolution goes through ``CENTRAL_BANK_SOURCE_FACTORIES`` so a new bank
+        needs only a registration — no engine branch. An unknown bank returns
+        ``None`` and the callers degrade honestly (empty result, never data
+        invented for a bank the engine cannot actually read).
+        """
+        bank_id = bank_id.upper()
         if bank_id not in self._sources:
-            if bank_id == "FED":
-                self._sources[bank_id] = FederalReserveSource(api_key=self.fred_api_key)
-            elif bank_id == "BOJ":
-                self._sources[bank_id] = BankOfJapanSource()
-            else:
-                logger.warning("No source configured for bank_id: %s", bank_id)
+            factory = CENTRAL_BANK_SOURCE_FACTORIES.get(bank_id)
+            if factory is None:
+                logger.warning(
+                    "No source adapter registered for bank_id: %s "
+                    "(registered: %s)",
+                    bank_id,
+                    ", ".join(available_source_banks()) or "none",
+                )
                 return None
+            self._sources[bank_id] = factory(self.fred_api_key)
         return self._sources[bank_id]
 
-    def _get_fred_source(self) -> Optional[FREDSource]:
-        """Get or create FRED source."""
+    def _get_fred_source(self) -> FREDSource:
+        """Get or create the FRED source.
+
+        Works with or without an API key: with a key it uses FRED's JSON API
+        (true release dates), without one it falls back to the public keyless
+        CSV endpoint, so real macro data is available on a fresh install too.
+        """
         if self._fred_source is None:
-            if self.fred_api_key:
-                self._fred_source = FREDSource(api_key=self.fred_api_key)
-            else:
-                logger.warning("FRED API key not configured")
+            self._fred_source = FREDSource(api_key=self.fred_api_key or "")
         return self._fred_source
 
     # -----------------------------------------------------------------------
@@ -114,27 +211,21 @@ class MacroIntelligenceService:
             }
 
     def initialize_central_banks(self):
-        """Initialize default central banks in database."""
+        """Initialize the catalogue's central banks in the database.
+
+        Driven by ``CENTRAL_BANK_CATALOGUE`` (spec §3), so a future bank is a
+        data entry rather than code. Existing rows are left untouched.
+        """
         default_banks = [
             CentralBankInfo(
-                id="FED",
-                name="Federal Reserve",
-                country="United States",
-                currency="USD",
-                timezone="America/New_York",
-                source="federal_reserve",
-            ),
-            CentralBankInfo(
-                id="BOJ",
-                name="Bank of Japan",
-                country="Japan",
-                currency="JPY",
-                timezone="Asia/Tokyo",
-                source="boj",
-            ),
-            # Future banks can be added here without redesign
-            # CentralBankInfo(id="ECB", name="European Central Bank", country="Eurozone", currency="EUR", timezone="Europe/Brussels", source="ecb"),
-            # CentralBankInfo(id="BOE", name="Bank of England", country="United Kingdom", currency="GBP", timezone="Europe/London", source="boe"),
+                id=bank_id,
+                name=meta["name"],
+                country=meta["country"],
+                currency=meta["currency"],
+                timezone=meta["timezone"],
+                source=meta["source"],
+            )
+            for bank_id, meta in CENTRAL_BANK_CATALOGUE.items()
         ]
 
         with session_scope() as db:
@@ -230,7 +321,8 @@ class MacroIntelligenceService:
             now = datetime.now(timezone.utc)
 
             for meeting in meetings:
-                countdown = calculate_countdown(meeting.scheduled_at, now)
+                scheduled_at = _as_utc(meeting.scheduled_at)
+                countdown = calculate_countdown(scheduled_at, now)
 
                 # Get latest decision for this bank
                 latest_decision = db.query(PolicyDecisionModel).join(
@@ -246,7 +338,7 @@ class MacroIntelligenceService:
                 result.append({
                     "id": meeting.id,
                     "central_bank_id": meeting.central_bank_id,
-                    "scheduled_at": meeting.scheduled_at.isoformat(),
+                    "scheduled_at": scheduled_at.isoformat(),
                     "timezone": meeting.timezone,
                     "status": meeting.status,
                     "meeting_type": meeting.meeting_type,
@@ -261,6 +353,11 @@ class MacroIntelligenceService:
                     "current_policy_rate": current_rate,
                     "previous_decision": previous_direction,
                     "source_url": meeting.source_url,
+                    # When the source itself was captured (§8 "Last Updated").
+                    "source_timestamp": (
+                        _as_utc(meeting.source_timestamp).isoformat()
+                        if meeting.source_timestamp else None
+                    ),
                 })
 
             return result
@@ -418,6 +515,231 @@ class MacroIntelligenceService:
             logger.error("Failed to fetch expectations for %s: %s", bank_id, e)
             return []
 
+    def get_expectation_history(self, bank_id: str, limit: int = 50) -> dict:
+        """Stored, sourced expectation snapshots for one bank (spec §7).
+
+        Every row is a snapshot a legitimate source actually published, kept
+        append-only so the change in expectations over time stays visible.
+        Where no configured source publishes machine-readable probabilities
+        (CME FedWatch requires a data agreement) the response says exactly
+        that instead of fabricating a number (spec §2).
+        """
+        with session_scope() as db:
+            rows = (
+                db.query(PolicyExpectationModel, PolicyMeetingModel)
+                .join(
+                    PolicyMeetingModel,
+                    PolicyExpectationModel.meeting_id == PolicyMeetingModel.id,
+                )
+                .filter(PolicyMeetingModel.central_bank_id == bank_id)
+                .order_by(PolicyExpectationModel.observed_at.desc())
+                .limit(limit)
+                .all()
+            )
+            snapshots = []
+            for exp, meeting in rows:
+                probabilities = {
+                    "hike": exp.probability_hike,
+                    "cut": exp.probability_cut,
+                    "unchanged": exp.probability_unchanged,
+                }
+                provided = [v for v in probabilities.values() if v is not None]
+                total = round(sum(provided), 6) if provided else None
+                probability_note = None
+                if total is not None:
+                    if 99.0 <= total <= 101.0:
+                        probability_note = (
+                            "Source-reported probabilities sum to ~100% within rounding tolerance."
+                        )
+                    else:
+                        probability_note = (
+                            "Source reports a partial distribution; the remainder belongs to "
+                            "the source's own methodology and is not filled in here."
+                        )
+                snapshots.append(
+                    {
+                        "id": exp.id,
+                        "meeting_id": exp.meeting_id,
+                        "central_bank_id": meeting.central_bank_id,
+                        "meeting_scheduled_at": (
+                            _as_utc(meeting.scheduled_at).isoformat()
+                            if meeting.scheduled_at else None
+                        ),
+                        "source": exp.source,
+                        "observed_at": (
+                            _as_utc(exp.observed_at).isoformat()
+                            if exp.observed_at else None
+                        ),
+                        "expected_outcome": exp.expected_outcome,
+                        "expected_rate_min": exp.expected_rate_min,
+                        "expected_rate_max": exp.expected_rate_max,
+                        "probabilities": {k: v for k, v in probabilities.items() if v is not None},
+                        "probability_total": total,
+                        "probability_note": probability_note,
+                        "methodology": exp.methodology,
+                        "source_url": getattr(exp, "source_url", None),
+                        "data_quality": "SOURCE-REPORTED",
+                    }
+                )
+
+        if not snapshots:
+            return {
+                "central_bank_id": bank_id,
+                "snapshots": [],
+                "count": 0,
+                "status": "UNAVAILABLE",
+                "expectation_source": None,
+                "statement": "Market-implied expectations unavailable.",
+                "note": (
+                    "No configured source publishes machine-readable market-implied policy "
+                    "probabilities on the keyless tier, so no expectation row is stored or "
+                    "shown rather than inventing one."
+                ),
+            }
+
+        sources = sorted({s["source"] for s in snapshots if s["source"]})
+        return {
+            "central_bank_id": bank_id,
+            "snapshots": snapshots,
+            "count": len(snapshots),
+            "status": "LIVE",
+            "expectation_source": sources,
+            "statement": "Sourced expectation snapshots (oldest → newest history preserved).",
+            "note": (
+                "Market expectations are not the central bank's official decision; they are "
+                "what a named source implied at a named timestamp."
+            ),
+        }
+
+    async def event_window_analysis(
+        self,
+        bank_id: str,
+        ticker: str = "^GSPC",
+        lookback_decisions: int = 4,
+        windows: Optional[list[int]] = None,
+    ) -> dict:
+        """Market observations around completed policy decisions (spec §10).
+
+        One real market-history request covers every analysed decision, then
+        each decision is measured against the closes around it. Results are
+        historical observations only — the engine never claims a price move
+        was caused by the decision.
+        """
+        windows = windows or [1, 3, 5, 10, 20]
+        decisions = self.get_policy_history(bank_id, limit=lookback_decisions)
+        if not decisions:
+            return {
+                "central_bank_id": bank_id,
+                "ticker": ticker,
+                "results": [],
+                "count": 0,
+                "status": "UNAVAILABLE",
+                "reason": "No stored policy decisions to analyze yet — refresh the policy history first.",
+            }
+        if self._market_history is None:
+            return {
+                "central_bank_id": bank_id,
+                "ticker": ticker,
+                "results": [],
+                "count": 0,
+                "status": "UNAVAILABLE",
+                "reason": "Market-data source not configured for event-window analysis.",
+            }
+
+        decision_dates = []
+        for row in decisions:
+            try:
+                decision_dates.append(datetime.fromisoformat(row["decision_timestamp"]))
+            except (TypeError, ValueError):
+                continue
+        if not decision_dates:
+            return {
+                "central_bank_id": bank_id,
+                "ticker": ticker,
+                "results": [],
+                "count": 0,
+                "status": "UNAVAILABLE",
+                "reason": "Stored decisions have no usable timestamps.",
+            }
+
+        start = (min(decision_dates) - timedelta(days=60)).date()
+        end = datetime.now(timezone.utc).date()
+        try:
+            frame, market_source, market_status = await self._market_history(ticker, start, end, "1d")
+        except Exception as exc:
+            return {
+                "central_bank_id": bank_id,
+                "ticker": ticker,
+                "results": [],
+                "count": 0,
+                "status": "UNAVAILABLE",
+                "reason": f"Market history unavailable: {exc}",
+                "market_source": None,
+            }
+
+        market_data = []
+        for idx, row in frame.iterrows():
+            date_attr = getattr(idx, "date", None)
+            day = date_attr() if callable(date_attr) else idx
+            market_data.append({"date": str(day)[:10], "close": float(row["Close"])})
+
+        if not market_data:
+            return {
+                "central_bank_id": bank_id,
+                "ticker": ticker,
+                "results": [],
+                "count": 0,
+                "status": "UNAVAILABLE",
+                "reason": "Market history returned no usable rows.",
+                "market_source": market_source,
+            }
+
+        results = []
+        for row in decisions:
+            decision_dt = datetime.fromisoformat(row["decision_timestamp"])
+            analysis = analyze_event_window(market_data, decision_dt, windows=windows)
+            results.append(
+                {
+                    "decision_timestamp": row["decision_timestamp"],
+                    "direction": row["direction"],
+                    "change_bps": row["change_bps"],
+                    "previous_rate": row["previous_rate"],
+                    "new_rate": row["new_rate"],
+                    "source_document": row.get("source_document"),
+                    "market_ticker": ticker,
+                    "pre_event_avg": analysis.pre_event_avg,
+                    "post_event_avg": analysis.post_event_avg,
+                    "change_1d": analysis.change_1d,
+                    "change_3d": analysis.change_3d,
+                    "change_5d": analysis.change_5d,
+                    "change_10d": analysis.change_10d,
+                    "change_20d": analysis.change_20d,
+                    "pre_volatility": analysis.pre_volatility,
+                    "post_volatility": analysis.post_volatility,
+                    # Phase 23B spec §7 — market sessions each window spans.
+                    "decision_session": analysis.decision_session,
+                    "pre_session": analysis.pre_session,
+                    "window_end_sessions": analysis.window_end_sessions,
+                }
+            )
+
+        return {
+            "central_bank_id": bank_id,
+            "ticker": ticker,
+            "windows": windows,
+            "results": results,
+            "count": len(results),
+            "status": "LIVE",
+            "market_source": market_source,
+            "market_status": market_status,
+            "history_start": start.isoformat(),
+            "history_end": end.isoformat(),
+            "note": (
+                "Historical observation only. A price move near a decision date is not "
+                "evidence that the decision caused it."
+            ),
+        }
+
     # -----------------------------------------------------------------------
     # Macro Series operations
     # -----------------------------------------------------------------------
@@ -526,6 +848,269 @@ class MacroIntelligenceService:
             {"key": key, "series_id": series_id, "description": key.replace("_", " ").title()}
             for key, series_id in FRED_SERIES.items()
         ]
+
+    def is_known_series(self, series_id: str) -> bool:
+        """True when ``series_id`` is one of the engine's curated FRED series."""
+        return series_id in FRED_SERIES.values()
+
+
+    # -----------------------------------------------------------------------
+    # Macro indicator dashboard
+    # -----------------------------------------------------------------------
+
+    def get_macro_indicators(self, keys: Optional[list[str]] = None) -> list[dict]:
+        """Latest stored observation per curated macro indicator.
+
+        Reads only rows already retrieved from a real source; a series with no
+        stored observations is omitted rather than zero-filled.
+        """
+        selected = keys or DEFAULT_INDICATOR_KEYS
+        seen_ids: set[str] = set()
+        indicators: list[dict] = []
+        for key in selected:
+            series_id = FRED_SERIES.get(key)
+            if not series_id or series_id in seen_ids:
+                continue
+            seen_ids.add(series_id)
+            observations = self.get_macro_series(series_id, limit=2)
+            if not observations:
+                continue
+            latest = observations[0]
+            previous = observations[1] if len(observations) > 1 else None
+            change = None
+            change_pct = None
+            if previous and previous.get("value") not in (None, 0):
+                change = round(latest["value"] - previous["value"], 6)
+                change_pct = round(change / abs(previous["value"]) * 100, 4)
+            indicators.append({
+                "key": key,
+                "series_id": series_id,
+                "label": FRED_SERIES_LABELS.get(key, {}).get(
+                    "label", key.replace("_", " ").title()
+                ),
+                "value": latest["value"],
+                "unit": latest["unit"],
+                "frequency": latest["frequency"],
+                "observation_date": latest["observation_date"],
+                "release_date": latest["release_date"],
+                "source": latest["source"],
+                "source_url": latest.get("source_url"),
+                "data_freshness": latest["data_freshness"],
+                "previous_value": previous["value"] if previous else None,
+                "change": change,
+                "change_pct": change_pct,
+                "revision": latest.get("revision", 0),
+                # The keyless CSV endpoint cannot report FRED's true
+                # publication/vintage date, so it is flagged rather than
+                # presented as exact.
+                "release_date_estimated": latest.get("source") == "FRED CSV",
+            })
+        return indicators
+
+    def refresh_macro_indicators(
+        self, keys: Optional[list[str]] = None, limit: int = 120
+    ) -> int:
+        """Fetch and store the curated indicator set from FRED.
+
+        Each series is an independent source call, so they are fetched
+        concurrently and one failing series cannot block the rest.
+        """
+        from concurrent.futures import ThreadPoolExecutor
+
+        selected = keys or DEFAULT_INDICATOR_KEYS
+        series_ids = [FRED_SERIES[k] for k in selected if k in FRED_SERIES]
+        if not series_ids:
+            return 0
+
+        def _one(series_id: str) -> int:
+            return len(self.fetch_and_store_macro_series(series_id, limit=limit))
+
+        stored = 0
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            for count in pool.map(_one, series_ids):
+                stored += count
+        return stored
+
+    # -----------------------------------------------------------------------
+    # Policy rate range (Fed target bounds)
+    # -----------------------------------------------------------------------
+
+    def get_policy_rate_range(self, bank_id: str) -> dict:
+        """Latest verified policy setting, with both range bounds labelled.
+
+        For the Fed this is the FOMC target range (lower/upper) from the real
+        FRED series; for a bank setting a single rate it collapses to one
+        value. Returns UNAVAILABLE rather than a guess when the source is
+        unreachable and no stored decision exists.
+        """
+        if bank_id == "FED":
+            rng = self._get_fred_source().fetch_policy_rate_range()
+            if rng:
+                return {
+                    "central_bank_id": "FED",
+                    "is_range": rng["lower"] is not None and rng["upper"] is not None,
+                    "lower": rng["lower"],
+                    "upper": rng["upper"],
+                    "midpoint": rng["midpoint"],
+                    "label": "Federal Funds Target Range",
+                    "source": rng["source"],
+                    "source_url": rng["source_url"],
+                    "status": "LIVE",
+                }
+
+        decisions = self.get_policy_history(bank_id, limit=1)
+        if decisions:
+            rate = decisions[0]["new_rate"]
+            return {
+                "central_bank_id": bank_id,
+                "is_range": False,
+                "lower": rate,
+                "upper": rate,
+                "midpoint": rate,
+                "label": "Policy Rate",
+                "source": decisions[0].get("source"),
+                "source_url": decisions[0].get("source_document"),
+                "status": "RECENT",
+            }
+        return {
+            "central_bank_id": bank_id,
+            "is_range": False,
+            "lower": None,
+            "upper": None,
+            "midpoint": None,
+            "label": "Policy Rate",
+            "source": None,
+            "source_url": None,
+            "status": "UNAVAILABLE",
+        }
+
+    # -----------------------------------------------------------------------
+    # Sourced market-implied expectations (real prediction-market prices)
+    # -----------------------------------------------------------------------
+
+    async def refresh_sourced_expectations(
+        self, bank_id: str, meeting_id: Optional[int] = None
+    ) -> list[dict]:
+        """Fetch real market-implied expectations, store append-only snapshots.
+
+        Snapshots are deduped on (meeting, source, observed_at) so a refresh
+        landing on the same market tick does not duplicate, while a new tick
+        is preserved as history.
+        """
+        from .expectations import fetch_policy_expectations
+
+        try:
+            sourced = await fetch_policy_expectations(bank_id, timeout=20.0)
+        except Exception as exc:
+            logger.warning("Sourced expectations fetch failed for %s: %s", bank_id, exc)
+            return []
+        if not sourced:
+            return []
+
+        stored: list[dict] = []
+        with session_scope() as db:
+            for item in sourced:
+                meeting = None
+                if meeting_id is not None:
+                    meeting = db.query(PolicyMeetingModel).filter(
+                        PolicyMeetingModel.id == meeting_id,
+                        PolicyMeetingModel.central_bank_id == bank_id,
+                    ).first()
+                if meeting is None:
+                    meeting = self._resolve_meeting_for_day(
+                        db, bank_id, item.meeting_scheduled_at
+                    )
+                if meeting is None:
+                    meeting = PolicyMeetingModel(
+                        central_bank_id=bank_id,
+                        scheduled_at=item.meeting_scheduled_at,
+                        timezone="UTC",
+                        status="UPCOMING",
+                        meeting_type="REGULAR",
+                        source_url=item.source_url,
+                    )
+                    db.add(meeting)
+                    db.flush()
+
+                existing = db.query(PolicyExpectationModel).filter(
+                    PolicyExpectationModel.meeting_id == meeting.id,
+                    PolicyExpectationModel.source == item.source,
+                    PolicyExpectationModel.observed_at == item.observed_at,
+                ).first()
+                if existing:
+                    continue
+
+                row = PolicyExpectationModel(
+                    meeting_id=meeting.id,
+                    source=item.source,
+                    observed_at=item.observed_at,
+                    expected_outcome=item.expected_outcome,
+                    probability_hike=item.probability_hike,
+                    probability_cut=item.probability_cut,
+                    probability_unchanged=item.probability_unchanged,
+                    methodology=item.methodology,
+                    source_url=item.source_url,
+                )
+                db.add(row)
+                db.flush()
+                stored.append({
+                    "id": row.id,
+                    "meeting_id": meeting.id,
+                    "source": row.source,
+                    "observed_at": row.observed_at.isoformat(),
+                    "expected_outcome": row.expected_outcome,
+                    "probability_hike": row.probability_hike,
+                    "probability_cut": row.probability_cut,
+                    "probability_unchanged": row.probability_unchanged,
+                    "methodology": row.methodology,
+                    "source_url": item.source_url,
+                    "event_title": item.event_title,
+                })
+        logger.info(
+            "Stored %d sourced expectation snapshot(s) for %s", len(stored), bank_id
+        )
+        return stored
+
+    @staticmethod
+    def _resolve_meeting_for_day(db: Session, bank_id: str, when: datetime):
+        """Stored meeting nearest ``when`` for the bank (15-day window)."""
+        day = when.replace(hour=0, minute=0, second=0, microsecond=0)
+        candidates = (
+            db.query(PolicyMeetingModel)
+            .filter(
+                PolicyMeetingModel.central_bank_id == bank_id,
+                PolicyMeetingModel.scheduled_at >= day - timedelta(days=15),
+                PolicyMeetingModel.scheduled_at <= day + timedelta(days=15),
+            )
+            .all()
+        )
+        if not candidates:
+            return None
+        return min(
+            candidates,
+            key=lambda meeting: abs((_as_utc(meeting.scheduled_at) - when).total_seconds()),
+        )
+
+    # -----------------------------------------------------------------------
+    # One-shot refresh for the UI
+    # -----------------------------------------------------------------------
+
+    def refresh_all(self, bank_id: str, series_limit: int = 120) -> dict:
+        """Refresh every real feed this page shows for one bank.
+
+        Official meetings, policy decisions and the curated macro indicator
+        set (each with per-source failure isolation). Sourced expectations are
+        refreshed separately by the async route.
+        """
+        meetings = self.fetch_and_store_meetings(bank_id, limit=20)
+        decisions = self.fetch_and_store_decisions(bank_id, limit=50)
+        indicators = self.refresh_macro_indicators(limit=series_limit)
+        return {
+            "central_bank_id": bank_id,
+            "meetings_stored": len(meetings),
+            "decisions_stored": len(decisions),
+            "indicator_observations_stored": indicators,
+        }
 
 
 # Global service instance

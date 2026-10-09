@@ -182,6 +182,14 @@ app.include_router(crypto_ws_router, prefix="/api/crypto", include_in_schema=Fal
 # Additive: mounted at /api/v1/macro with real data sources (Federal Reserve, BOJ, FRED).
 from .macro_intelligence.routes import router as macro_router
 app.include_router(macro_router)
+# Phase 23A: the macro service's event-window analytics reuse the same real
+# market-data path as every other chart (set once `data` exists below).
+from .macro_intelligence.service import macro_service as _macro_service
+# Phase 23B: SPX/SPY market-direction analytics + corporate market-cap
+# intelligence. Additive: mounted at /api/v1/market-intel, and bound to the SAME
+# provider manager / macro service below so no second data path is created.
+from .market_intel.routes import router as market_intel_router
+app.include_router(market_intel_router)
 
 # Phase 2: provider manager. yfinance is primary; Finnhub is an optional live-quote
 # fallback that only activates if FINNHUB_API_KEY is set (skipped otherwise — no
@@ -258,6 +266,12 @@ crypto_service = configure_crypto(CryptoService(crypto_manager))
 from .crypto.websocket.manager import crypto_ws_manager
 crypto_ws_manager.configure(crypto_manager)
 data,predictor,insighter,lstm,gru=DataAgent(manager),PredictionAgent(),InsightAgent(),LSTMPredictionAgent(),GRUPredictionAgent()
+_macro_service.configure_market_data(data.history)  # Phase 23A event-window analytics
+# Phase 23B: bind the market-intel service to the shared provider manager (same
+# providers/cache/quota as every other chart) and reuse the Phase 23A service for
+# policy event studies — one provider stack, no duplicates.
+from .market_intel.service import configure_market_intel
+configure_market_intel(manager.history, manager.profile, _macro_service, manager.splits)
 
 class HistoryRequest(BaseModel): start:date; end:date; interval:str="1d"
 class PredictRequest(HistoryRequest): horizon:int=Field(7,ge=1,le=30); model:str="rf"; lstm_epochs:int=Field(25,ge=5,le=100)
